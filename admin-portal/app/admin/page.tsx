@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, ShoppingBag, Gift, Users, DollarSign, ExternalLink, Save } from "lucide-react";
+import Link from "next/link";
+import { LogOut, ShoppingBag, Gift, Users, DollarSign, ExternalLink, Save, Download, FileText } from "lucide-react";
 
 type Order = {
   id: string;
@@ -182,10 +183,18 @@ function OrdersTab() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-3">
-        <SummaryCard icon={Users} label="Total Order" value={orders.length} color="blue" />
-        <SummaryCard icon={ShoppingBag} label="Pending" value={pending} color="amber" />
-        <SummaryCard icon={DollarSign} label="Pendapatan" value={rupiah(total)} color="emerald" />
+      <div className="flex items-start gap-3">
+        <div className="grid grid-cols-3 gap-3 flex-1">
+          <SummaryCard icon={Users} label="Total Order" value={orders.length} color="blue" />
+          <SummaryCard icon={ShoppingBag} label="Pending" value={pending} color="amber" />
+          <SummaryCard icon={DollarSign} label="Pendapatan" value={rupiah(total)} color="emerald" />
+        </div>
+        <a
+          href="/api/admin/orders/export"
+          className="shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-800 transition-all duration-200 shadow-sm"
+        >
+          <Download className="w-3.5 h-3.5" /> Export CSV
+        </a>
       </div>
 
       {orders.length === 0 ? (
@@ -257,7 +266,7 @@ function OrdersTab() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-2 border-t border-gray-50">
+                <div className="flex items-center justify-between pt-2 border-t border-gray-50">
                 <div className="flex items-center gap-2">
                   <StatusBadge status={o.status} />
                   {o.agree_snk && (
@@ -265,6 +274,12 @@ function OrdersTab() {
                       ✅ S&K
                     </span>
                   )}
+                  <Link
+                    href={`/admin/invoice/order/${o.id}`}
+                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition-all duration-200"
+                  >
+                    <FileText className="w-3 h-3" /> Invoice
+                  </Link>
                 </div>
                 <button
                   onClick={() => save(o)}
@@ -327,10 +342,18 @@ function ClaimsTab() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-3">
-        <SummaryCard icon={Gift} label="Total Klaim" value={claims.length} color="purple" />
-        <SummaryCard icon={ShoppingBag} label="Pending" value={pending} color="amber" />
-        <SummaryCard icon={DollarSign} label="Tercairkan" value={rupiah(total)} color="emerald" />
+      <div className="flex items-start gap-3">
+        <div className="grid grid-cols-3 gap-3 flex-1">
+          <SummaryCard icon={Gift} label="Total Klaim" value={claims.length} color="purple" />
+          <SummaryCard icon={ShoppingBag} label="Pending" value={pending} color="amber" />
+          <SummaryCard icon={DollarSign} label="Tercairkan" value={rupiah(total)} color="emerald" />
+        </div>
+        <a
+          href="/api/admin/claims/export"
+          className="shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-800 transition-all duration-200 shadow-sm"
+        >
+          <Download className="w-3.5 h-3.5" /> Export CSV
+        </a>
       </div>
 
       {claims.length === 0 ? (
@@ -402,7 +425,7 @@ function ClaimsTab() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-2 border-t border-gray-50">
+                <div className="flex items-center justify-between pt-2 border-t border-gray-50">
                 <div className="flex items-center gap-2">
                   <StatusBadge status={c.status} />
                   {c.agree_snk && (
@@ -410,6 +433,12 @@ function ClaimsTab() {
                       ✅ S&K
                     </span>
                   )}
+                  <Link
+                    href={`/admin/invoice/claim/${c.id}`}
+                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-gray-500 hover:text-violet-600 hover:bg-violet-50 border border-transparent hover:border-violet-200 transition-all duration-200"
+                  >
+                    <FileText className="w-3 h-3" /> Invoice
+                  </Link>
                 </div>
                 <button
                   onClick={() => save(c)}
