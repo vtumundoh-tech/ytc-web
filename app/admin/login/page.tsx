@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ShieldCheck, LogIn, ArrowRight } from "lucide-react";
 
 export default function AdminLoginPage() {
   const [password, setPassword] = useState("");
@@ -30,26 +31,44 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main className="max-w-sm mx-auto px-4 py-24">
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-4">
-        <h1 className="font-bold text-lg text-gray-900">Login Admin</h1>
-        <input
-          type="password"
-          placeholder="Password"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoFocus
-        />
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button
-          type="submit"
-          disabled={loading || !password}
-          className="w-full bg-gray-900 disabled:opacity-40 text-white font-semibold py-2.5 rounded-lg text-sm"
-        >
-          {loading ? "..." : "Masuk"}
-        </button>
-      </form>
-    </main>
+    <div className="max-w-sm mx-auto px-4 py-24">
+      <div className="card-lg animate-scale-in">
+        <div className="text-center mb-6">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <ShieldCheck className="w-5 h-5 text-white" />
+          </div>
+          <h1 className="text-lg font-bold text-gray-900">Login Admin</h1>
+          <p className="text-xs text-gray-500 mt-1">Masukkan password untuk mengakses dashboard</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="field-label">Password</label>
+            <input
+              type="password"
+              className="input-field"
+              placeholder="Masukkan password admin"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoFocus
+            />
+          </div>
+
+          {error && (
+            <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-sm text-red-700 animate-fade-in">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading || !password}
+            className="btn-primary w-full flex items-center justify-center gap-2 bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black shadow-md"
+          >
+            {loading ? "..." : <><LogIn className="w-4 h-4" /> Masuk</>}
+          </button>
+        </form>
+      </div>
+    </div>
   );
 }

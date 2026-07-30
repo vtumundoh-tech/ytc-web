@@ -1,5 +1,4 @@
 -- Jalankan seluruh file ini di Supabase Dashboard > SQL Editor > New Query > Run
--- (Jika tabel sudah ada (project lama), jalankan migration.sql dulu sebelum ini)
 
 -- ========== TABEL ORDERS (Pembelian) ==========
 create table if not exists orders (
@@ -14,9 +13,9 @@ create table if not exists orders (
   amount integer not null, -- nominal dalam Rupiah
   machine_id text, -- diisi setelah user install aplikasi (boleh kosong saat checkout)
   status text not null default 'pending', -- pending | paid | expired | failed | cancelled
-  ref_id text unique not null,
-  goqris_trx_id text,
-  payment_type text, -- metode pembayaran (qris)
+  midtrans_order_id text unique not null,
+  midtrans_transaction_id text,
+  payment_type text, -- qris, bank_transfer, gopay, dll (diisi otomatis dari webhook)
   license_key text, -- diisi manual oleh admin setelah key dibuat & dikirim
   admin_notes text,
   paid_at timestamptz
@@ -48,9 +47,10 @@ create index if not exists idx_claims_status on cashback_claims(status);
 create index if not exists idx_claims_created_at on cashback_claims(created_at desc);
 
 -- ========== ROW LEVEL SECURITY ==========
--- RLS diaktifkan. Semua akses dari app dilakukan lewat API route server
--- (pakai Service Role Key yang otomatis bypass RLS), dari sisi client
--- (anon key) tidak ada akses langsung sama sekali.
+-- RLS diaktifkan. Karena semua akses tulis/baca dari app dilakukan lewat API route
+-- server (pakai Service Role Key yang otomatis bypass RLS), maka dari sisi client
+-- (anon key) tidak ada akses langsung sama sekali. Ini paling aman untuk data
+-- pribadi seperti ini.
 alter table orders enable row level security;
 alter table cashback_claims enable row level security;
 -- Tidak ada policy yang dibuat untuk anon/authenticated -> otomatis semua akses

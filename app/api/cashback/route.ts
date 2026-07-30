@@ -1,18 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
+import { checkRateLimit, rateLimitKey } from "@/lib/rateLimit";
+import {
+  validateFileSignature,
+  validateFileSize,
+  isAllowedMimeType,
+} from "@/lib/fileValidation";
 
 const BUCKET = "cashback-proofs";
-const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_BYTES = 5 * 1024 * 1024;
 
 async function uploadProof(supabase: ReturnType<typeof supabaseServer>, file: File, prefix: string) {
-  if (file.size > MAX_FILE_BYTES) {
+  const arrayBuffer = await file.arrayBuffer();
+
+  if (!validateFileSize(arrayBuffer.byteLength)) {
     throw new Error(`File ${file.name} terlalu besar (maks 5MB).`);
   }
-  const ext = file.name.split(".").pop() || "jpg";
+
+  const mime = file.type || "image/jpeg";
+  if (!isAllowedMimeType(mime) || !validateFileSignature(arrayBuffer, mime)) {
+    throw new Error(`File ${file.name} tidak valid. Hanya JPEG/PNG/WebP yang diperbolehkan.`);
+  }
+
+  const ext = mime.split("/")[1] || "jpg";
   const path = `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const arrayBuffer = await file.arrayBuffer();
   const { error } = await supabase.storage.from(BUCKET).upload(path, Buffer.from(arrayBuffer), {
-    contentType: file.type || "image/jpeg",
+    contentType: mime,
     upsert: false,
   });
   if (error) throw error;
@@ -22,6 +35,12 @@ async function uploadProof(supabase: ReturnType<typeof supabaseServer>, file: Fi
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const rl = checkRateLimit(rateLimitKey("cashback", ip), 5, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json({ error: "Terlalu banyak permintaan. Coba lagi nanti." }, { status: 429 });
+    }
+
     const form = await req.formData();
     const fullName = form.get("fullName") as string;
     const whatsapp = form.get("whatsapp") as string;

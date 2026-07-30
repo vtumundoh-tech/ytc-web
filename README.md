@@ -1,11 +1,11 @@
 # YouTube Clipper — Web Pembayaran & Klaim Cashback
 
 Web ini menggantikan Google Form manual dengan:
-- **Halaman Beli** (`/beli`) → user isi data, bayar via QRIS (GoQRIS), status otomatis terdeteksi.
+- **Halaman Beli** (`/beli`) → user isi data, bayar langsung via Midtrans (QRIS/VA/e-wallet), status otomatis update.
 - **Halaman Klaim Cashback** (`/klaim-cashback`) → user isi data + upload bukti, disimpan ke database, Anda proses transfer manual.
 - **Halaman Admin** (`/admin`) → lihat semua data, update status, isi key lisensi.
 
-Stack: **Next.js + Supabase (database & storage) + GoQRIS (QRIS payment) + Vercel (hosting)**.
+Stack: **Next.js + Supabase (database & storage) + Midtrans (payment) + Vercel (hosting)**.
 
 ---
 
@@ -14,7 +14,8 @@ Stack: **Next.js + Supabase (database & storage) + GoQRIS (QRIS payment) + Verce
 1. Akun **GitHub** (untuk simpan kode & connect ke Vercel)
 2. Akun **Vercel** — https://vercel.com (bisa daftar pakai akun GitHub)
 3. Akun **Supabase** — https://supabase.com
-4. Akun **GoQRIS** — https://goqris.web.id (daftar, ambil API Key, input BaseQR GoPay Merchant Anda)
+4. Akun **Midtrans** — https://midtrans.com
+   - KTP Anda + foto halaman pertama buku tabungan (untuk aktivasi akun Individual)
 
 ---
 
@@ -33,17 +34,20 @@ Stack: **Next.js + Supabase (database & storage) + GoQRIS (QRIS payment) + Verce
 
 ---
 
-## 2. Setup GoQRIS (Payment Gateway)
+## 2. Setup Midtrans (Payment Gateway)
 
-GoQRIS adalah layanan yang menghubungkan akun GoPay Merchant Anda ke API sehingga QRIS bisa dibuat secara dinamis dan pembayaran terdeteksi otomatis.
+Kenapa Midtrans (bukan Xendit): untuk akun **perorangan/individu** (belum ada PT/CV), syarat Midtrans lebih ringan (cukup KTP + buku tabungan) dan approval-nya biasanya lebih cepat. Kode di project ini sudah dipisah rapi di `lib/midtrans.ts`, jadi kalau nanti Anda sudah punya badan usaha dan mau pindah ke Xendit, tinggal ganti file itu saja.
 
-1. Buka https://goqris.web.id → **Daftar**.
-2. Setelah login, buka menu **Pengaturan**, ambil **API Key** (diawali `GO_`).
-3. Di menu **Dashboard**, input **BaseQR** — scan QRIS statis dari akun GoPay Merchant Anda.
-4. Pilih paket langganan sesuai kebutuhan (Free Plan tersedia dengan kuota harian).
-5. API Key tersebut akan dipakai di `.env.local` sebagai `GOQRIS_API_KEY`.
+1. Daftar di https://midtrans.com → pilih **Individual/Perorangan**.
+2. Login ke dashboard, tetap di mode **Sandbox** dulu untuk uji coba:
+   - Buka **Settings → Access Keys**. Catat `Server Key` dan `Client Key` (yang diawali `SB-`).
+3. Sambil uji coba, ajukan **aktivasi akun Production**: `Settings → Account → Aktivasi Akun` → upload KTP & buku tabungan. Prosesnya 1-3 hari kerja.
+4. Setelah production aktif, di **Settings → Access Keys** akan ada Server Key & Client Key baru (tanpa awalan `SB-`) — pakai ini untuk live.
+5. Setelah web sudah live di Vercel (langkah 5), buka **Settings → Configuration** di dashboard Midtrans, isi:
+   - **Payment Notification URL**: `https://domain-anda.vercel.app/api/midtrans-webhook`
+   - **Finish Redirect URL**: `https://domain-anda.vercel.app/success`
 
-Tidak perlu setup webhook — sistem polling otomatis dari halaman pembayaran akan mengecek status tiap 3 detik via GoQRIS API.
+   Ini penting — tanpa ini, status pembayaran tidak akan otomatis ter-update.
 
 ---
 
@@ -88,13 +92,16 @@ git push -u origin main
    | `NEXT_PUBLIC_SUPABASE_URL` | dari Supabase |
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | dari Supabase |
    | `SUPABASE_SERVICE_ROLE_KEY` | dari Supabase (rahasia!) |
-   | `GOQRIS_API_KEY` | dari GoQRIS (Pengaturan) |
+   | `MIDTRANS_SERVER_KEY` | dari Midtrans |
+   | `NEXT_PUBLIC_MIDTRANS_CLIENT_KEY` | dari Midtrans |
+   | `MIDTRANS_IS_PRODUCTION` | `false` saat sandbox, `true` saat live |
    | `ADMIN_PASSWORD` | password bebas, buat yang kuat |
    | `ADMIN_SESSION_SECRET` | string acak panjang bebas (contoh: hasil dari `openssl rand -hex 32`) |
    | `NEXT_PUBLIC_APP_URL` | isi setelah tahu domain Vercel-nya, contoh `https://ytc-anda.vercel.app` |
 
 3. Klik **Deploy**. Setelah selesai, Anda akan dapat domain seperti `https://ytc-anda.vercel.app`.
-4. Opsional — update `NEXT_PUBLIC_APP_URL` di **Environment Variables** dengan domain asli jika diperlukan.
+4. Kembali ke **Project Settings → Environment Variables** di Vercel, update `NEXT_PUBLIC_APP_URL` dengan domain asli tadi, lalu **Redeploy**.
+5. Selesaikan langkah 2.5 di atas (isi Notification URL & Finish Redirect URL di Midtrans).
 
 ---
 
@@ -102,14 +109,14 @@ git push -u origin main
 
 - **Link untuk disebar ke user:** `https://domain-anda.vercel.app` (mereka pilih sendiri Beli / Klaim Cashback).
 - **Link khusus Anda (jangan disebar):** `https://domain-anda.vercel.app/admin` — login pakai `ADMIN_PASSWORD` yang Anda set tadi.
-- Alur beli: user isi data → muncul QRIS → user scan & bayar → sistem deteksi otomatis (polling 3 detik) → status jadi `paid` → Anda buka `/admin`, buat key lisensi, isi kolom **Key Lisensi**, lalu kirim manual ke WhatsApp user, klik **Simpan**.
+- Alur beli: user bayar → webhook otomatis ubah status jadi `paid` → Anda buka `/admin`, buat key lisensi, isi kolom **Key Lisensi**, lalu kirim manual ke WhatsApp user, klik **Simpan**.
 - Alur cashback: user isi form → muncul di tab **Klaim Cashback** pada `/admin` dengan status `pending` → Anda cek 3 link bukti (follow/like/share) → kalau valid, transfer manual → ubah status jadi `paid`. Kalau tidak valid → `rejected`.
 
 ---
 
 ## Catatan keamanan & desain
 
-- Nomor rekening pribadi Anda **tidak pernah ditampilkan** ke user — pembayaran lewat QRIS (GoQRIS).
+- Nomor rekening pribadi Anda **tidak pernah ditampilkan** ke user — pembayaran sepenuhnya lewat Midtrans.
 - Tabel database diproteksi **Row Level Security**; hanya API server (pakai `service_role` key) yang bisa akses, browser user tidak bisa baca/tulis data langsung.
 - Halaman `/admin` diproteksi middleware + cookie sesi yang ditandatangani — tanpa password yang benar, tidak bisa masuk.
 - Soal captcha di form cashback ("7 + 8") masih sangat sederhana, sekadar mencegah bot paling dasar — bukan pengaman utama. Kalau nanti ada masalah spam, saya bisa bantu upgrade ke Google reCAPTCHA/Turnstile.

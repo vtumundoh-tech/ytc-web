@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CASHBACK_TIERS, ADDON_1080 } from "@/lib/tiers";
+import { Gift, User, Phone, Hash, Key, Tag, Image, FileText, CheckCircle, AlertTriangle } from "lucide-react";
 
 export default function KlaimCashbackPage() {
   const [fullName, setFullName] = useState("");
@@ -57,163 +58,155 @@ export default function KlaimCashbackPage() {
 
   if (done) {
     return (
-      <main className="max-w-md mx-auto px-4 py-16 text-center">
-        <div className="w-16 h-16 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center text-3xl mx-auto mb-5">✓</div>
-        <h1 className="text-xl font-bold text-gray-900 mb-2">Klaim terkirim!</h1>
-        <p className="text-gray-500 text-sm leading-relaxed">
-          Admin akan memverifikasi bukti Anda maksimal 1x24 jam. Cashback akan ditransfer ke nomor
-          WhatsApp yang Anda daftarkan.
-        </p>
-      </main>
+      <div className="max-w-lg mx-auto px-4 py-16 sm:py-24">
+        <div className="card-lg text-center animate-scale-in">
+          <div className="w-16 h-16 rounded-full bg-violet-100 flex items-center justify-center mx-auto mb-6">
+            <svg className="w-8 h-8 text-violet-600 animate-check" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-bold text-gray-900 mb-3">Klaim terkirim!</h1>
+          <p className="text-gray-500 text-sm leading-relaxed">
+            Admin akan memverifikasi bukti Anda maksimal 1x24 jam. Cashback akan ditransfer ke nomor WhatsApp yang Anda daftarkan.
+          </p>
+        </div>
+      </div>
     );
   }
 
   return (
-    <main className="max-w-xl mx-auto px-4 py-8">
-      <div className="rounded-t-xl bg-violet-600 text-white px-6 py-6">
-        <h1 className="text-lg font-bold">Klaim Cashback YouTube Clipper</h1>
-        <p className="text-sm opacity-90 mt-1">Isi data & lampirkan bukti follow/like/share untuk klaim cashback.</p>
+    <div className="max-w-2xl mx-auto px-4 py-8 sm:py-12">
+      <div className="text-center mb-8 animate-fade-in">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-violet-200/50">
+          <Gift className="w-5 h-5 text-white" />
+        </div>
+        <h1 className="text-xl font-bold text-gray-900">Klaim Cashback</h1>
+        <p className="text-sm text-gray-500 mt-1">Lampirkan bukti follow, like & share untuk klaim cashback Anda.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-b-xl shadow-sm p-6 space-y-5">
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-900">
-          <strong>Syarat Ringkas:</strong> Follow TikTok @yourstudio &middot; Like & comment video promo
-          terbaru (wajib video berbeda tiap klaim) &middot; Share ke minimal 3 teman &middot; Screenshot
-          semua langkah &middot; Diproses maksimal 1x24 jam.
+      <div className="card-sm mb-6 flex items-start gap-3 animate-fade-in">
+        <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+        <div className="text-xs text-gray-500 leading-relaxed">
+          <strong className="text-gray-700">Syarat Ringkas:</strong> Follow TikTok @yourstudio &middot; Like & comment video promo terbaru &middot; Share ke 3 teman &middot; Screenshot semua langkah.
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="card-lg space-y-6 animate-slide-up">
+        <div className="space-y-5">
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Informasi Pengguna</h2>
+
+          <Field icon={User} label="Nama Lengkap" required>
+            <input className="input-field" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+          </Field>
+
+          <Field icon={Phone} label="Nomor WhatsApp" required hint="Aktif — untuk konfirmasi dan transfer cashback">
+            <input className="input-field" type="tel" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} required />
+          </Field>
+
+          <Field icon={Hash} label="Machine ID (12 digit)" required hint="Buka aplikasi, lihat di halaman aktivasi">
+            <input className="input-field font-mono uppercase" maxLength={12} value={machineId} onChange={(e) => setMachineId(e.target.value)} required />
+          </Field>
+
+          <Field icon={Key} label="Key Lisensi" required hint="Key utama (720p) yang dibeli">
+            <input className="input-field font-mono" value={licenseKey} onChange={(e) => setLicenseKey(e.target.value)} required />
+          </Field>
         </div>
 
-        <Field label="Nama Lengkap" required hint="Sesuai nama saat pembelian key">
-          <input className="input" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
-        </Field>
+        <hr className="border-gray-100" />
 
-        <Field label="Nomor WhatsApp" required hint="Aktif — untuk konfirmasi dan transfer cashback">
-          <input className="input" type="tel" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} required />
-        </Field>
+        <div className="space-y-5">
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Informasi Pembelian</h2>
 
-        <Field label="Machine ID (12 digit)" required hint="Buka aplikasi YouTube Clipper, lihat di halaman aktivasi">
-          <input
-            className="input font-mono uppercase"
-            maxLength={12}
-            value={machineId}
-            onChange={(e) => setMachineId(e.target.value)}
-            required
-          />
-        </Field>
+          <Field icon={Tag} label="Tier yang Dibeli" required>
+            <select className="input-field" value={tier} onChange={(e) => setTier(e.target.value)} required>
+              <option value="">— Pilih —</option>
+              {CASHBACK_TIERS.map((t) => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+          </Field>
 
-        <Field label="Key Lisensi" required hint="Key utama (720p) yang dibeli">
-          <input className="input font-mono" value={licenseKey} onChange={(e) => setLicenseKey(e.target.value)} required />
-        </Field>
+          <Field icon={Tag} label="Add-on 1080p" hint="Apakah Anda membeli upgrade 1080p?">
+            <select className="input-field" value={addon} onChange={(e) => setAddon(e.target.value)}>
+              {ADDON_1080.map((t) => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+          </Field>
 
-        <Field label="Tier yang Dibeli" required>
-          <select className="input" value={tier} onChange={(e) => setTier(e.target.value)} required>
-            <option value="">— Pilih —</option>
-            {CASHBACK_TIERS.map((t) => (
-              <option key={t.value} value={t.value}>{t.label}</option>
-            ))}
-          </select>
-        </Field>
+          <Field icon={Tag} label="Nominal yang Dibayarkan" required hint="Jumlah yang Anda transfer">
+            <input className="input-field" type="number" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} required />
+          </Field>
+        </div>
 
-        <Field label="Add-on 1080p" hint="Apakah Anda membeli upgrade 1080p?">
-          <select className="input" value={addon} onChange={(e) => setAddon(e.target.value)}>
-            {ADDON_1080.map((t) => (
-              <option key={t.value} value={t.value}>{t.label}</option>
-            ))}
-          </select>
-        </Field>
+        <hr className="border-gray-100" />
 
-        <Field label="Nominal yang Dibayarkan" required hint="Jumlah uang yang Anda transfer">
-          <input className="input" type="number" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} required />
-        </Field>
+        <div className="space-y-5">
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Upload Bukti</h2>
 
-        <Field label="Screenshot — Follow TikTok" required>
-          <input className="input" type="file" accept="image/*" onChange={(e) => setFFollow(e.target.files?.[0] || null)} required />
-        </Field>
-        <Field label="Screenshot — Like & Comment" required>
-          <input className="input" type="file" accept="image/*" onChange={(e) => setFLike(e.target.files?.[0] || null)} required />
-        </Field>
-        <Field label="Screenshot — Share ke Teman" required>
-          <input className="input" type="file" accept="image/*" onChange={(e) => setFShare(e.target.files?.[0] || null)} required />
-        </Field>
+          <FileUpload label="Screenshot — Follow TikTok" file={fFollow} onChange={setFFollow} required />
+          <FileUpload label="Screenshot — Like & Comment" file={fLike} onChange={setFLike} required />
+          <FileUpload label="Screenshot — Share ke Teman" file={fShare} onChange={setFShare} required />
+        </div>
 
-        <Field label="Catatan Tambahan" hint="Opsional">
-          <textarea className="input" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
-        </Field>
+        <hr className="border-gray-100" />
 
-        <Field label="Verifikasi" required hint="Berapa hasil dari 7 + 8?">
-          <input className="input max-w-[150px]" type="number" value={captcha} onChange={(e) => setCaptcha(e.target.value)} required />
+        <Field icon={FileText} label="Catatan Tambahan" hint="Opsional">
+          <textarea className="input-field" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </Field>
-
-        <hr />
 
         <div>
-          <label className="font-semibold text-sm text-gray-900 block mb-1">
-            Syarat & Ketentuan Cashback <span className="text-red-600">*</span>
+          <label className="field-label">
+            <CheckCircle className="w-3.5 h-3.5 inline mr-1.5 text-violet-500" />
+            Verifikasi <span className="text-red-400">*</span>
           </label>
-          <div className="border rounded-lg overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setSnkOpen((v) => !v)}
-              className="w-full flex justify-between items-center px-4 py-3 text-sm font-medium bg-gray-50 hover:bg-gray-100"
-            >
-              <span>Klik untuk membaca Syarat & Ketentuan lengkap</span>
-              <span className={`transition-transform ${snkOpen ? "rotate-180" : ""}`}>▾</span>
-            </button>
-            {snkOpen && (
-              <div className="px-4 py-3 text-sm text-gray-600 leading-relaxed space-y-2">
-                <p>Cashback hanya berlaku 1 kali per key, non-tunai, ditransfer ke WhatsApp terdaftar, dan tidak bisa digabung promo lain.</p>
-                <p>Video like & comment wajib berbeda setiap klaim — mengulang video yang sama dianggap tidak sah.</p>
-                <p>Kecurangan (akun palsu, bot, klaim ganda, video sama berulang) mengakibatkan klaim ditolak permanen, blacklist, dan key aktif dapat dicabut tanpa refund.</p>
-                <p>Keputusan Admin bersifat mutlak. Syarat & ketentuan dapat berubah sewaktu-waktu.</p>
-              </div>
-            )}
-          </div>
+          <input className="input-field max-w-[160px]" type="number" placeholder="7 + 8 = ?" value={captcha} onChange={(e) => setCaptcha(e.target.value)} required />
+          <p className="field-hint">Berapa hasil dari 7 + 8?</p>
         </div>
 
-        <label className="flex items-start gap-3 bg-emerald-50 border border-emerald-200 rounded-lg p-4 cursor-pointer">
-          <input type="checkbox" className="mt-1 accent-emerald-600 w-4 h-4" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
+        <hr className="border-gray-100" />
+
+        <div>
+          <button type="button" onClick={() => setSnkOpen((v) => !v)} className="flex items-center justify-between w-full text-left">
+            <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
+              Syarat & Ketentuan <span className="text-red-400">*</span>
+            </span>
+            <span className={`text-gray-300 transition-transform duration-200 ${snkOpen ? "rotate-180" : ""}`}>▾</span>
+          </button>
+          {snkOpen && (
+            <div className="mt-3 p-4 rounded-xl bg-gray-50 text-xs text-gray-500 leading-relaxed space-y-2 animate-fade-in">
+              <p>Cashback hanya berlaku 1 kali per key, non-tunai, ditransfer ke WhatsApp terdaftar.</p>
+              <p>Video like & comment wajib berbeda setiap klaim — mengulang video yang sama dianggap tidak sah.</p>
+              <p>Kecurangan mengakibatkan blacklist permanen & key dapat dicabut tanpa refund.</p>
+              <p>Keputusan Admin bersifat mutlak.</p>
+            </div>
+          )}
+        </div>
+
+        <label className="flex items-start gap-3 p-4 rounded-xl bg-gradient-to-r from-violet-50 to-violet-50/30 border border-violet-100 cursor-pointer">
+          <input type="checkbox" className="mt-0.5 accent-violet-600 w-4 h-4 rounded" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
           <div>
-            <div className="font-semibold text-sm text-emerald-900">Saya setuju dengan Syarat & Ketentuan yang berlaku</div>
-            <div className="text-xs text-emerald-800/80 mt-1">Jika tidak setuju, Anda tidak dapat mengklaim cashback.</div>
+            <div className="text-sm font-semibold text-violet-900">Saya setuju dengan Syarat & Ketentuan</div>
+            <div className="text-xs text-violet-700/70 mt-0.5">Jika tidak setuju, Anda tidak dapat mengklaim cashback</div>
           </div>
         </label>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && (
+          <div className="p-4 rounded-xl bg-red-50 border border-red-100 text-sm text-red-700 animate-fade-in">
+            {error}
+          </div>
+        )}
 
-        <div className="text-center pt-2">
-          <button
-            type="submit"
-            disabled={!requiredFilled || loading}
-            className="bg-violet-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-violet-700 text-white font-semibold px-8 py-3 rounded-lg"
-          >
-            {loading ? "Mengirim..." : "Kirim Klaim Cashback"}
-          </button>
-        </div>
+        <button type="submit" disabled={!requiredFilled || loading} className="btn-purple w-full flex items-center justify-center gap-2">
+          {loading ? "Mengirim..." : <><Gift className="w-4 h-4" /> Kirim Klaim Cashback</>}
+        </button>
       </form>
-
-      <style jsx global>{`
-        .input {
-          width: 100%;
-          padding: 0.7rem;
-          border: 1px solid #dadce0;
-          border-radius: 0.5rem;
-          font-size: 0.9rem;
-        }
-        .input:focus {
-          outline: none;
-          border-color: #673ab7;
-          box-shadow: 0 0 0 2px rgba(103, 58, 183, 0.15);
-        }
-      `}</style>
-    </main>
+    </div>
   );
 }
 
-function Field({
-  label,
-  required,
-  hint,
-  children,
-}: {
+function Field({ icon: Icon, label, required, hint, children }: {
+  icon: any;
   label: string;
   required?: boolean;
   hint?: string;
@@ -221,11 +214,45 @@ function Field({
 }) {
   return (
     <div>
-      <label className="font-semibold text-sm text-gray-900 block mb-1">
-        {label} {required && <span className="text-red-600">*</span>}
+      <label className="field-label">
+        <Icon className="w-3.5 h-3.5 inline mr-1.5 text-violet-500" />
+        {label} {required && <span className="text-red-400">*</span>}
       </label>
-      {hint && <div className="text-xs text-gray-500 mb-1.5">{hint}</div>}
       {children}
+      {hint && <p className="field-hint">{hint}</p>}
+    </div>
+  );
+}
+
+function FileUpload({ label, file, onChange, required }: {
+  label: string;
+  file: File | null;
+  onChange: (f: File | null) => void;
+  required?: boolean;
+}) {
+  return (
+    <div>
+      <label className="field-label">
+        <Image className="w-3.5 h-3.5 inline mr-1.5 text-violet-500" />
+        {label} {required && <span className="text-red-400">*</span>}
+      </label>
+      <label className="flex flex-col items-center justify-center w-full p-6 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-violet-300 hover:bg-violet-50/30 transition-all duration-200">
+        {file ? (
+          <div className="text-center">
+            <Image className="w-8 h-8 text-violet-500 mx-auto mb-2" />
+            <p className="text-sm font-medium text-gray-700">{file.name}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{(file.size / 1024 / 1024).toFixed(1)} MB</p>
+            <span className="inline-block mt-2 text-xs text-violet-600 font-medium">Tap untuk ganti file</span>
+          </div>
+        ) : (
+          <div className="text-center">
+            <Image className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+            <p className="text-sm text-gray-500">Tap untuk pilih gambar</p>
+            <p className="text-xs text-gray-400 mt-0.5">JPEG, PNG, atau WebP (maks 5MB)</p>
+          </div>
+        )}
+        <input type="file" accept="image/*" className="hidden" onChange={(e) => onChange(e.target.files?.[0] || null)} required={required} />
+      </label>
     </div>
   );
 }

@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
-import { createGoQRISOrder } from "@/lib/goqris";
+import { createSnapTransaction } from "@/lib/midtrans";
 import { findTier } from "@/lib/tiers";
-
-const PROJECT_NAME = "YouTube Clipper";
+import { checkRateLimit, rateLimitKey } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const rl = checkRateLimit(rateLimitKey("checkout", ip), 10, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json({ error: "Terlalu banyak permintaan. Coba lagi nanti." }, { status: 429 });
+    }
+
     const body = await req.json();
     const { fullName, whatsapp, email, tier } = body || {};
 
@@ -19,16 +24,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Paket tidak valid." }, { status: 400 });
     }
 
-    const refId = `YTC-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-
-    const goqris = await createGoQRISOrder(
-      {
-        refId,
-        amount: tierData.amount,
-        customerName: fullName,
-      },
-      PROJECT_NAME
-    );
+    const orderId = `YTC-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
     const supabase = supabaseServer();
     const { error: insertError } = await supabase.from("orders").insert({
@@ -39,18 +35,20 @@ export async function POST(req: NextRequest) {
       tier_label: tierData.label,
       amount: tierData.amount,
       status: "pending",
-      ref_id: refId,
+      midtrans_order_id: orderId,
     });
     if (insertError) throw insertError;
 
-    return NextResponse.json({
-      refId,
-      trxId: goqris.trx_id,
-      totalAmount: goqris.total_amount,
-      qrImage: goqris.payment_detail.qr_image,
-      qrString: goqris.payment_detail.qr_string,
-      expiresAt: goqris.expires_at,
+    const snap = await createSnapTransaction({
+      orderId,
+      amount: tierData.amount,
+      customerName: fullName,
+      customerPhone: whatsapp,
+      customerEmail: email,
+      itemName: `Lisensi YouTube Clipper - ${tierData.label}`,
     });
+
+    return NextResponse.json({ redirectUrl: snap.redirect_url });
   } catch (err: any) {
     console.error("checkout error:", err);
     return NextResponse.json({ error: "Gagal membuat transaksi. Coba lagi beberapa saat." }, { status: 500 });
