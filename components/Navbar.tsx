@@ -5,8 +5,11 @@ import { usePathname } from "next/navigation";
 import { CreditCard, Gift, ShieldCheck } from "lucide-react";
 
 const links = [
-  { href: "/beli", label: "Beli Lisensi", icon: CreditCard, color: "text-emerald-600" },
-  { href: "/klaim-cashback", label: "Klaim Cashback", icon: Gift, color: "text-violet-600" },
+  { href: "/", label: "Beranda" },
+  { href: "/#harga", label: "Harga" },
+  { href: "/#cara-beli", label: "Cara Beli" },
+  { href: "/beli", label: "Beli Lisensi", icon: CreditCard },
+  { href: "/klaim-cashback", label: "Klaim Cashback", icon: Gift },
 ];
 
 export default function Navbar() {
@@ -27,19 +30,21 @@ export default function Navbar() {
 
         <div className="flex items-center gap-1">
           {links.map((link) => {
-            const Icon = link.icon;
-            const isActive = pathname === link.href;
+            const Icon = link.icon as React.ElementType | undefined;
+            const isActive = pathname === link.href || (link.href.startsWith("/#") && pathname === "/");
+            const activeStyle = link.href.startsWith("/") && !link.href.startsWith("/#") && pathname === link.href;
+
+            let style = "text-gray-500 hover:text-gray-900 hover:bg-gray-50";
+            if (isActive && activeStyle) style = "bg-gray-100 text-gray-900";
+            else if (isActive) style = "bg-gray-100 text-gray-900";
+
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${
-                  isActive
-                    ? "bg-gray-100 text-gray-900"
-                    : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
-                }`}
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${style}`}
               >
-                <Icon className="w-3.5 h-3.5" />
+                {Icon && <Icon className="w-3.5 h-3.5" />}
                 <span className="hidden sm:inline">{link.label}</span>
               </Link>
             );

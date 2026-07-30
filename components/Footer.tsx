@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 
 export default function Footer() {
@@ -9,7 +10,7 @@ export default function Footer() {
           <span>&copy; {new Date().getFullYear()} YouTube Clipper. All rights reserved.</span>
         </div>
         <div className="flex items-center gap-4 text-xs text-gray-400">
-          <span className="hover:text-gray-600 cursor-pointer">Syarat & Ketentuan</span>
+          <Link href="/syarat-ketentuan" className="hover:text-gray-600">Terms & Conditions</Link>
           <span className="hover:text-gray-600 cursor-pointer">Kebijakan Privasi</span>
         </div>
       </div>

@@ -14,7 +14,7 @@ const nextConfig = {
               "img-src 'self' data: https:; " +
               "font-src 'self'; " +
               "frame-src https://app.sandbox.midtrans.com https://app.midtrans.com; " +
-              "connect-src 'self' https://api.sandbox.midtrans.com https://api.midtrans.com;",
+               "connect-src 'self' https://api.sandbox.midtrans.com https://api.midtrans.com https://app.sandbox.midtrans.com https://app.midtrans.com;",
           },
           { key: "X-Frame-Options", value: "DENY" },
           { key: "X-Content-Type-Options", value: "nosniff" },

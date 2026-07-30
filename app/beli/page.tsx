@@ -1,18 +1,28 @@
 "use client";
 
-import { useState } from "react";
-import { TIERS, formatRupiah } from "@/lib/tiers";
-import { CreditCard, User, Phone, Mail, CheckCircle, ArrowRight } from "lucide-react";
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { TIERS, formatRupiah, findCashback } from "@/lib/tiers";
+import { CreditCard, User, Phone, Mail, CheckCircle, ArrowRight, ExternalLink, Gift } from "lucide-react";
 
-export default function BeliPage() {
+function BeliForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const preselected = searchParams.get("tier") || "";
+
   const [fullName, setFullName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [email, setEmail] = useState("");
-  const [tier, setTier] = useState("");
+  const [tier, setTier] = useState(preselected);
   const [agree, setAgree] = useState(false);
-  const [snkOpen, setSnkOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (preselected && TIERS.some((t) => t.value === preselected)) {
+      setTier(preselected);
+    }
+  }, [preselected]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -27,7 +37,27 @@ export default function BeliPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal membuat transaksi");
-      window.location.href = data.redirectUrl;
+
+      const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY;
+      const isProd = process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === "true";
+      const snapUrl = isProd
+        ? "https://app.midtrans.com/snap/snap.js"
+        : "https://app.sandbox.midtrans.com/snap/snap.js";
+
+      if (typeof window !== "undefined" && data.token && clientKey) {
+        await loadSnapScript(snapUrl, clientKey);
+        (window as any).snap.pay(data.token, {
+          onSuccess: () => { router.push("/success"); },
+          onPending: () => { router.push("/success"); },
+          onError: (result: any) => {
+            setError(result?.status_message || "Pembayaran gagal, coba lagi.");
+            setLoading(false);
+          },
+          onClose: () => { setLoading(false); },
+        });
+      } else {
+        window.location.href = data.redirectUrl;
+      }
     } catch (err: any) {
       setError(err.message || "Terjadi kesalahan, coba lagi.");
       setLoading(false);
@@ -35,6 +65,7 @@ export default function BeliPage() {
   }
 
   const selected = TIERS.find((t) => t.value === tier);
+  const cashback = tier ? findCashback(tier) : 0;
   const canSubmit = fullName && whatsapp && tier && agree && !loading;
 
   return (
@@ -102,68 +133,76 @@ export default function BeliPage() {
         <div>
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Pilih Paket</h2>
           <div className="grid sm:grid-cols-2 gap-3">
-            {TIERS.map((t) => (
-              <button
-                key={t.value}
-                type="button"
-                onClick={() => setTier(t.value)}
-                className={`relative text-left p-4 rounded-xl border-2 transition-all duration-200 ${
-                  tier === t.value
-                    ? "border-emerald-400 bg-emerald-50/50 shadow-sm"
-                    : "border-gray-100 bg-white hover:border-gray-200"
-                }`}
-              >
-                {tier === t.value && (
-                  <CheckCircle className="absolute top-3 right-3 w-4 h-4 text-emerald-500" />
-                )}
-                <div className="font-semibold text-sm text-gray-900">{t.label}</div>
-                <div className="text-base font-bold text-emerald-600 mt-1">{formatRupiah(t.amount)}</div>
-              </button>
-            ))}
+            {TIERS.map((t) => {
+              const cb = findCashback(t.value);
+              return (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => setTier(t.value)}
+                  className={`relative text-left p-4 rounded-xl border-2 transition-all duration-200 ${
+                    tier === t.value
+                      ? "border-emerald-400 bg-emerald-50/50 shadow-sm"
+                      : "border-gray-100 bg-white hover:border-gray-200"
+                  }`}
+                >
+                  {tier === t.value && (
+                    <CheckCircle className="absolute top-3 right-3 w-4 h-4 text-emerald-500" />
+                  )}
+                  <div className="font-semibold text-sm text-gray-900">{t.label}</div>
+                  <div className="text-base font-bold text-emerald-600 mt-1">{formatRupiah(t.amount)}</div>
+                  {cb > 0 && (
+                    <div className="flex items-center gap-1 mt-2 text-[11px] font-medium text-amber-700">
+                      <Gift className="w-3 h-3" /> +{formatRupiah(cb)} cashback
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 
         <hr className="border-gray-100" />
 
         <div>
-          <button
-            type="button"
-            onClick={() => setSnkOpen((v) => !v)}
-            className="flex items-center justify-between w-full text-left"
-          >
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
-              Syarat & Ketentuan <span className="text-red-400">*</span>
-            </span>
-            <span className={`text-gray-300 transition-transform duration-200 ${snkOpen ? "rotate-180" : ""}`}>
-              ▾
-            </span>
-          </button>
-          {snkOpen && (
-            <div className="mt-3 p-4 rounded-xl bg-gray-50 text-xs text-gray-500 leading-relaxed space-y-2 animate-fade-in">
-              <p>1. Key lisensi dikirim via WhatsApp setelah pembayaran dikonfirmasi otomatis oleh sistem.</p>
-              <p>2. Semua pembelian bersifat final. Tidak ada refund setelah key dikirim.</p>
-              <p>3. Manipulasi waktu sistem untuk memperpanjang lisensi akan diblokir otomatis.</p>
-              <p>4. Data Anda hanya untuk keperluan aktivasi, tidak dibagikan ke pihak ketiga.</p>
+          <label className="flex items-start gap-3 p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-50/30 border border-emerald-100 cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-0.5 accent-emerald-600 w-4 h-4 rounded"
+              checked={agree}
+              onChange={(e) => setAgree(e.target.checked)}
+            />
+            <div>
+              <div className="text-sm font-semibold text-emerald-900">
+                Saya setuju dengan{" "}
+                <a
+                  href="/syarat-ketentuan"
+                  target="_blank"
+                  className="underline underline-offset-2 hover:text-emerald-700"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Syarat & Ketentuan
+                  <ExternalLink className="w-3 h-3 inline ml-0.5" />
+                </a>
+              </div>
+              <div className="text-xs text-emerald-700/70 mt-0.5">Termasuk No Refund Policy</div>
             </div>
-          )}
+          </label>
         </div>
-
-        <label className="flex items-start gap-3 p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-50/30 border border-emerald-100 cursor-pointer">
-          <input
-            type="checkbox"
-            className="mt-0.5 accent-emerald-600 w-4 h-4 rounded"
-            checked={agree}
-            onChange={(e) => setAgree(e.target.checked)}
-          />
-          <div>
-            <div className="text-sm font-semibold text-emerald-900">Saya setuju dengan Syarat & Ketentuan</div>
-            <div className="text-xs text-emerald-700/70 mt-0.5">Termasuk No Refund Policy</div>
-          </div>
-        </label>
 
         {error && (
           <div className="p-4 rounded-xl bg-red-50 border border-red-100 text-sm text-red-700 animate-fade-in">
             {error}
+          </div>
+        )}
+
+        {selected && cashback > 0 && (
+          <div className="p-4 rounded-xl bg-amber-50 border border-amber-100 flex items-center gap-3 text-sm">
+            <Gift className="w-5 h-5 text-amber-600 shrink-0" />
+            <div>
+              <div className="font-semibold text-amber-800">Paket ini eligible cashback!</div>
+              <div className="text-xs text-amber-700">Dapatkan {formatRupiah(cashback)} setelah klaim cashback.</div>
+            </div>
           </div>
         )}
 
@@ -176,7 +215,41 @@ export default function BeliPage() {
             <>Lanjut ke Pembayaran <ArrowRight className="w-4 h-4" /></>
           )}
         </button>
+
+        <p className="text-xs text-gray-400 text-center">
+          Pembayaran diproses oleh Midtrans — data Anda aman & terenkripsi.
+        </p>
       </form>
     </div>
+  );
+}
+
+function loadSnapScript(snapUrl: string, clientKey: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if ((window as any).snap) { resolve(); return; }
+    const script = document.createElement("script");
+    script.src = snapUrl;
+    script.setAttribute("data-client-key", clientKey);
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Gagal memuat pembayaran."));
+    document.body.appendChild(script);
+  });
+}
+
+export default function BeliPage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-2xl mx-auto px-4 py-8 sm:py-12">
+        <div className="card-lg space-y-6 animate-pulse">
+          <div className="h-6 bg-gray-100 rounded w-1/3 mx-auto mb-8" />
+          <div className="h-10 bg-gray-100 rounded" />
+          <div className="h-10 bg-gray-100 rounded" />
+          <div className="h-10 bg-gray-100 rounded" />
+          <div className="h-32 bg-gray-100 rounded" />
+        </div>
+      </div>
+    }>
+      <BeliForm />
+    </Suspense>
   );
 }

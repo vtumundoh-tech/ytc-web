@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       itemName: `Lisensi YouTube Clipper - ${tierData.label}`,
     });
 
-    return NextResponse.json({ redirectUrl: snap.redirect_url });
+    return NextResponse.json({ token: snap.token, redirectUrl: snap.redirect_url });
   } catch (err: any) {
     console.error("checkout error:", err);
     return NextResponse.json({ error: "Gagal membuat transaksi. Coba lagi beberapa saat." }, { status: 500 });
