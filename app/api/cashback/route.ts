@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
     const addon = (form.get("addon1080") || form.get("addon")) as string;
     const amountPaid = Number(form.get("amountPaid"));
     const notes = (form.get("notes") as string) || null;
+    const agreeSnk = form.get("agreeSnk") as string;
     const screenshotFollow = form.get("screenshotFollow") as File | null;
     const screenshotLike = form.get("screenshotLike") as File | null;
     const screenshotShare = form.get("screenshotShare") as File | null;
@@ -59,6 +60,9 @@ export async function POST(req: NextRequest) {
     }
     if (!screenshotFollow || !screenshotLike || !screenshotShare) {
       return NextResponse.json({ error: "Semua screenshot bukti wajib dilampirkan." }, { status: 400 });
+    }
+    if (agreeSnk !== "yes") {
+      return NextResponse.json({ error: "Anda harus setuju dengan Syarat & Ketentuan." }, { status: 400 });
     }
 
     const supabase = supabaseServer();
@@ -81,6 +85,7 @@ export async function POST(req: NextRequest) {
       screenshot_like_url: likeUrl,
       screenshot_share_url: shareUrl,
       notes,
+      agree_snk: true,
       status: "pending",
     });
     if (insertError) throw insertError;

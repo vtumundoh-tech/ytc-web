@@ -18,7 +18,8 @@ create table if not exists orders (
   payment_type text, -- qris, bank_transfer, gopay, dll (diisi otomatis dari webhook)
   license_key text, -- diisi manual oleh admin setelah key dibuat & dikirim
   admin_notes text,
-  paid_at timestamptz
+  paid_at timestamptz,
+  agree_snk boolean not null default false -- rekam jejak persetujuan S&K
 );
 
 create index if not exists idx_orders_status on orders(status);
@@ -40,7 +41,8 @@ create table if not exists cashback_claims (
   screenshot_share_url text not null,
   notes text,
   status text not null default 'pending', -- pending | approved | paid | rejected
-  admin_notes text
+  admin_notes text,
+  agree_snk boolean not null default false -- rekam jejak persetujuan S&K
 );
 
 create index if not exists idx_claims_status on cashback_claims(status);

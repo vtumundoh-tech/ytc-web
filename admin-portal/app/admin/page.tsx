@@ -17,6 +17,7 @@ type Order = {
   midtrans_order_id: string;
   license_key: string | null;
   admin_notes: string | null;
+  agree_snk: boolean;
 };
 
 type Claim = {
@@ -34,6 +35,7 @@ type Claim = {
   notes: string | null;
   status: string;
   admin_notes: string | null;
+  agree_snk: boolean;
 };
 
 const ORDER_STATUSES = ["pending", "paid", "expired", "failed", "cancelled"];
@@ -256,7 +258,14 @@ function OrdersTab() {
               </div>
 
               <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-                <StatusBadge status={o.status} />
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={o.status} />
+                  {o.agree_snk && (
+                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                      ✅ S&K
+                    </span>
+                  )}
+                </div>
                 <button
                   onClick={() => save(o)}
                   disabled={isSaving}
@@ -394,7 +403,14 @@ function ClaimsTab() {
               </div>
 
               <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-                <StatusBadge status={c.status} />
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={c.status} />
+                  {c.agree_snk && (
+                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                      ✅ S&K
+                    </span>
+                  )}
+                </div>
                 <button
                   onClick={() => save(c)}
                   disabled={isSaving}

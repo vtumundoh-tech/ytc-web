@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, LogIn, ArrowRight } from "lucide-react";
+import { ShieldCheck, LogIn } from "lucide-react";
 
 export default function AdminLoginPage() {
   const [password, setPassword] = useState("");

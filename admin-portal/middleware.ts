@@ -4,7 +4,6 @@ import { ADMIN_COOKIE_NAME, isValidSessionCookieValue } from "@/lib/adminSession
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Halaman login & API login tetap harus bisa diakses tanpa sesi.
   if (pathname === "/admin/login" || pathname === "/api/admin-login") {
     return NextResponse.next();
   }

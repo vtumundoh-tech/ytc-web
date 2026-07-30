@@ -13,10 +13,13 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { fullName, whatsapp, email, tier, addon1080 } = body || {};
+    const { fullName, whatsapp, email, tier, addon1080, agreeSnk } = body || {};
 
     if (!fullName || !whatsapp || !tier) {
       return NextResponse.json({ error: "Data belum lengkap." }, { status: 400 });
+    }
+    if (agreeSnk !== true) {
+      return NextResponse.json({ error: "Anda harus setuju dengan Syarat & Ketentuan." }, { status: 400 });
     }
 
     const tierData = findTier(tier);
@@ -41,6 +44,7 @@ export async function POST(req: NextRequest) {
       amount: totalAmount,
       status: "pending",
       midtrans_order_id: orderId,
+      agree_snk: true,
     });
     if (insertError) throw insertError;
 

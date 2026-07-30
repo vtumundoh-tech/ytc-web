@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CreditCard, Gift, ShieldCheck } from "lucide-react";
+import { CreditCard, Gift } from "lucide-react";
 
 const links = [
   { href: "/", label: "Beranda" },
@@ -14,7 +14,6 @@ const links = [
 
 export default function Navbar() {
   const pathname = usePathname();
-  if (pathname.startsWith("/admin")) return null;
 
   return (
     <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
@@ -49,13 +48,6 @@ export default function Navbar() {
               </Link>
             );
           })}
-          <Link
-            href="/admin"
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-all duration-200"
-          >
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Admin</span>
-          </Link>
         </div>
       </div>
     </nav>

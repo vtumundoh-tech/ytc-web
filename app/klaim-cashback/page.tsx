@@ -41,6 +41,7 @@ export default function KlaimCashbackPage() {
       fd.append("addon1080", addon1080 ? "yes" : "no");
       fd.append("amountPaid", amountPaid);
       fd.append("notes", notes);
+      fd.append("agreeSnk", "yes");
       fd.append("screenshotFollow", fFollow as File);
       fd.append("screenshotLike", fLike as File);
       fd.append("screenshotShare", fShare as File);

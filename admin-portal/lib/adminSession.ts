@@ -1,12 +1,5 @@
-// Sesi admin sengaja dibuat sederhana: 1 password (bukan sistem user/login
-// berlapis) karena hanya dipakai oleh 1 orang (Anda). Cookie berisi timestamp
-// yang ditandatangani (HMAC) supaya tidak bisa dipalsukan tanpa tahu secret-nya.
-//
-// Pakai Web Crypto API (bukan modul 'crypto' Node) karena file ini dipakai di
-// middleware.ts yang berjalan di Edge Runtime, yang tidak mendukung modul Node.
-
 const COOKIE_NAME = "ytc_admin_session";
-const MAX_AGE_SECONDS = 60 * 60 * 12; // 12 jam
+const MAX_AGE_SECONDS = 60 * 60 * 12;
 
 function secret() {
   const s = process.env.ADMIN_SESSION_SECRET;

@@ -37,7 +37,7 @@ function BeliForm() {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName, whatsapp, email, tier, addon1080 }),
+        body: JSON.stringify({ fullName, whatsapp, email, tier, addon1080, agreeSnk: true }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal membuat transaksi");
