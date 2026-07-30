@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     const machineId = form.get("machineId") as string;
     const licenseKey = form.get("licenseKey") as string;
     const tier = form.get("tier") as string;
-    const addon = form.get("addon") as string;
+    const addon = (form.get("addon1080") || form.get("addon")) as string;
     const amountPaid = Number(form.get("amountPaid"));
     const notes = (form.get("notes") as string) || null;
     const screenshotFollow = form.get("screenshotFollow") as File | null;

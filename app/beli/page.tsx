@@ -2,18 +2,21 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { TIERS, formatRupiah, findCashback } from "@/lib/tiers";
-import { CreditCard, User, Phone, Mail, CheckCircle, ArrowRight, ExternalLink, Gift } from "lucide-react";
+import { motion } from "framer-motion";
+import { TIERS, formatRupiah, findCashback, getAddonPrice, getTotalPrice } from "@/lib/tiers";
+import { CreditCard, User, Phone, Mail, CheckCircle, ArrowRight, ExternalLink, Gift, TrendingUp } from "lucide-react";
 
 function BeliForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselected = searchParams.get("tier") || "";
+  const preselectedAddon = searchParams.get("addon1080") === "1";
 
   const [fullName, setFullName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [email, setEmail] = useState("");
   const [tier, setTier] = useState(preselected);
+  const [addon1080, setAddon1080] = useState(preselectedAddon);
   const [agree, setAgree] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -21,8 +24,9 @@ function BeliForm() {
   useEffect(() => {
     if (preselected && TIERS.some((t) => t.value === preselected)) {
       setTier(preselected);
+      setAddon1080(preselectedAddon);
     }
-  }, [preselected]);
+  }, [preselected, preselectedAddon]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -33,7 +37,7 @@ function BeliForm() {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName, whatsapp, email, tier }),
+        body: JSON.stringify({ fullName, whatsapp, email, tier, addon1080 }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal membuat transaksi");
@@ -66,19 +70,32 @@ function BeliForm() {
 
   const selected = TIERS.find((t) => t.value === tier);
   const cashback = tier ? findCashback(tier) : 0;
+  const addonPrice = tier ? getAddonPrice(tier) : 0;
+  const totalPrice = tier ? getTotalPrice(tier, addon1080) : 0;
   const canSubmit = fullName && whatsapp && tier && agree && !loading;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 sm:py-12">
-      <div className="text-center mb-8 animate-fade-in">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="text-center mb-8"
+      >
         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-200/50">
           <CreditCard className="w-5 h-5 text-white" />
         </div>
         <h1 className="text-xl font-bold text-gray-900">Beli Lisensi</h1>
         <p className="text-sm text-gray-500 mt-1">Isi data, pilih paket, lalu bayar — key dikirim setelah dikonfirmasi.</p>
-      </div>
+      </motion.div>
 
-      <form onSubmit={handleSubmit} className="card-lg space-y-6 animate-slide-up">
+      <motion.form
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        onSubmit={handleSubmit}
+        className="card-lg space-y-6"
+      >
         <div className="space-y-5">
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Data Diri</h2>
 
@@ -133,30 +150,79 @@ function BeliForm() {
         <div>
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Pilih Paket</h2>
           <div className="grid sm:grid-cols-2 gap-3">
-            {TIERS.map((t) => {
-              const cb = findCashback(t.value);
+            {TIERS.map((t, i) => {
+              const aPrice = getAddonPrice(t.value);
+              const isSelected = tier === t.value;
               return (
-                <button
+                <motion.div
                   key={t.value}
-                  type="button"
-                  onClick={() => setTier(t.value)}
-                  className={`relative text-left p-4 rounded-xl border-2 transition-all duration-200 ${
-                    tier === t.value
-                      ? "border-emerald-400 bg-emerald-50/50 shadow-sm"
-                      : "border-gray-100 bg-white hover:border-gray-200"
-                  }`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.07 }}
                 >
-                  {tier === t.value && (
-                    <CheckCircle className="absolute top-3 right-3 w-4 h-4 text-emerald-500" />
-                  )}
-                  <div className="font-semibold text-sm text-gray-900">{t.label}</div>
-                  <div className="text-base font-bold text-emerald-600 mt-1">{formatRupiah(t.amount)}</div>
-                  {cb > 0 && (
-                    <div className="flex items-center gap-1 mt-2 text-[11px] font-medium text-amber-700">
-                      <Gift className="w-3 h-3" /> +{formatRupiah(cb)} cashback
+                  <button
+                    type="button"
+                    onClick={() => { setTier(t.value); if (addon1080 && !aPrice) setAddon1080(false); }}
+                    className={`relative text-left p-4 rounded-xl border-2 transition-all duration-200 w-full ${
+                      isSelected
+                        ? "border-emerald-400 bg-emerald-50/50 shadow-sm"
+                        : "border-gray-100 bg-white hover:border-gray-200"
+                    }`}
+                  >
+                    {isSelected && (
+                      <CheckCircle className="absolute top-3 right-3 w-4 h-4 text-emerald-500" />
+                    )}
+                    <div className="font-semibold text-sm text-gray-900">{t.label}</div>
+                    <div className="text-base font-bold text-emerald-600 mt-1">
+                      {formatRupiah(addon1080 && isSelected ? totalPrice : t.amount)}
                     </div>
-                  )}
-                </button>
+
+                    {/* Toggle 1080p di dalam kartu aktif */}
+                    {isSelected && aPrice > 0 && (
+                      <div className="mt-3 pt-3 border-t border-emerald-100">
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setAddon1080(!addon1080); }}
+                          className={`flex items-center justify-between w-full p-2 rounded-lg border transition-all duration-200 ${
+                            addon1080
+                              ? "bg-blue-50 border-blue-200"
+                              : "bg-white border-gray-100 hover:border-gray-200"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                              addon1080
+                                ? "bg-blue-600 border-blue-600"
+                                : "border-gray-300"
+                            }`}>
+                              {addon1080 && (
+                                <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </div>
+                            <span className={`text-xs font-medium ${addon1080 ? "text-blue-700" : "text-gray-500"}`}>
+                              +1080p Upgrade
+                            </span>
+                          </div>
+                          <span className={`text-xs font-bold ${addon1080 ? "text-blue-700" : "text-gray-400"}`}>
+                            +{formatRupiah(aPrice)}
+                          </span>
+                        </button>
+
+                        {addon1080 && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            className="mt-2 text-xs text-blue-600 font-medium flex items-center gap-1"
+                          >
+                            <TrendingUp className="w-3 h-3" /> Total: {formatRupiah(totalPrice)}
+                          </motion.div>
+                        )}
+                      </div>
+                    )}
+                  </button>
+                </motion.div>
               );
             })}
           </div>
@@ -191,9 +257,13 @@ function BeliForm() {
         </div>
 
         {error && (
-          <div className="p-4 rounded-xl bg-red-50 border border-red-100 text-sm text-red-700 animate-fade-in">
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 rounded-xl bg-red-50 border border-red-100 text-sm text-red-700"
+          >
             {error}
-          </div>
+          </motion.div>
         )}
 
         {selected && cashback > 0 && (
@@ -209,17 +279,21 @@ function BeliForm() {
         <button
           type="submit"
           disabled={!canSubmit}
-          className="btn-emerald w-full flex items-center justify-center gap-2"
+          className={`w-full inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm text-white transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed shadow-md ${
+            addon1080
+              ? "bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 shadow-blue-200/50"
+              : "bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 shadow-emerald-200/50"
+          }`}
         >
           {loading ? "Memproses..." : (
-            <>Lanjut ke Pembayaran <ArrowRight className="w-4 h-4" /></>
+            <>Lanjut ke Pembayaran — {formatRupiah(totalPrice)} <ArrowRight className="w-4 h-4" /></>
           )}
         </button>
 
         <p className="text-xs text-gray-400 text-center">
           Pembayaran diproses oleh Midtrans — data Anda aman & terenkripsi.
         </p>
-      </form>
+      </motion.form>
     </div>
   );
 }

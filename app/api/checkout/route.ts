@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { createSnapTransaction } from "@/lib/midtrans";
-import { findTier } from "@/lib/tiers";
+import { findTier, getAddonPrice, getTotalPrice } from "@/lib/tiers";
 import { checkRateLimit, rateLimitKey } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { fullName, whatsapp, email, tier } = body || {};
+    const { fullName, whatsapp, email, tier, addon1080 } = body || {};
 
     if (!fullName || !whatsapp || !tier) {
       return NextResponse.json({ error: "Data belum lengkap." }, { status: 400 });
@@ -24,6 +24,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Paket tidak valid." }, { status: 400 });
     }
 
+    const hasAddon = addon1080 === true;
+    const totalAmount = getTotalPrice(tier, hasAddon);
+    const tierLabel = hasAddon ? `${tierData.label} (1080p)` : `${tierData.label} (720p)`;
+    const itemName = `Lisensi YouTube Clipper - ${tierLabel}`;
+
     const orderId = `YTC-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
     const supabase = supabaseServer();
@@ -32,8 +37,8 @@ export async function POST(req: NextRequest) {
       whatsapp,
       email: email || null,
       tier: tierData.value,
-      tier_label: tierData.label,
-      amount: tierData.amount,
+      tier_label: tierLabel,
+      amount: totalAmount,
       status: "pending",
       midtrans_order_id: orderId,
     });
@@ -41,11 +46,11 @@ export async function POST(req: NextRequest) {
 
     const snap = await createSnapTransaction({
       orderId,
-      amount: tierData.amount,
+      amount: totalAmount,
       customerName: fullName,
       customerPhone: whatsapp,
       customerEmail: email,
-      itemName: `Lisensi YouTube Clipper - ${tierData.label}`,
+      itemName,
     });
 
     return NextResponse.json({ token: snap.token, redirectUrl: snap.redirect_url });

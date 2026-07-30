@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { CASHBACK_TIERS, ADDON_1080 } from "@/lib/tiers";
-import { Gift, User, Phone, Hash, Key, Tag, Image, FileText, CheckCircle, AlertTriangle } from "lucide-react";
+import { CASHBACK_TIERS, getAddonPrice, formatRupiah } from "@/lib/tiers";
+import { Gift, User, Phone, Hash, Key, Tag, Image, FileText, CheckCircle, AlertTriangle, TrendingUp } from "lucide-react";
 
 export default function KlaimCashbackPage() {
   const [fullName, setFullName] = useState("");
@@ -10,7 +10,7 @@ export default function KlaimCashbackPage() {
   const [machineId, setMachineId] = useState("");
   const [licenseKey, setLicenseKey] = useState("");
   const [tier, setTier] = useState("");
-  const [addon, setAddon] = useState("no");
+  const [addon1080, setAddon1080] = useState(false);
   const [amountPaid, setAmountPaid] = useState("");
   const [notes, setNotes] = useState("");
   const [captcha, setCaptcha] = useState("");
@@ -38,7 +38,7 @@ export default function KlaimCashbackPage() {
       fd.append("machineId", machineId.toUpperCase());
       fd.append("licenseKey", licenseKey);
       fd.append("tier", tier);
-      fd.append("addon", addon);
+      fd.append("addon1080", addon1080 ? "yes" : "no");
       fd.append("amountPaid", amountPaid);
       fd.append("notes", notes);
       fd.append("screenshotFollow", fFollow as File);
@@ -118,7 +118,7 @@ export default function KlaimCashbackPage() {
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Informasi Pembelian</h2>
 
           <Field icon={Tag} label="Tier yang Dibeli" required>
-            <select className="input-field" value={tier} onChange={(e) => setTier(e.target.value)} required>
+            <select className="input-field" value={tier} onChange={(e) => { setTier(e.target.value); setAddon1080(false); }} required>
               <option value="">— Pilih —</option>
               {CASHBACK_TIERS.map((t) => (
                 <option key={t.value} value={t.value}>{t.label}</option>
@@ -126,13 +126,45 @@ export default function KlaimCashbackPage() {
             </select>
           </Field>
 
-          <Field icon={Tag} label="Add-on 1080p" hint="Apakah Anda membeli upgrade 1080p?">
-            <select className="input-field" value={addon} onChange={(e) => setAddon(e.target.value)}>
-              {ADDON_1080.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-            </select>
-          </Field>
+          <div>
+            <label className="field-label">
+              <TrendingUp className="w-3.5 h-3.5 inline mr-1.5 text-violet-500" />
+              Upgrade 1080p
+            </label>
+            <button
+              type="button"
+              disabled={!tier}
+              onClick={() => setAddon1080(!addon1080)}
+              className={`w-full flex items-center justify-between p-3.5 rounded-xl border transition-all duration-200 ${
+                !tier
+                  ? "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed"
+                  : addon1080
+                    ? "bg-blue-50 border-blue-200"
+                    : "bg-white border-gray-200 hover:border-gray-300"
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                  !tier ? "border-gray-200 bg-gray-50" :
+                  addon1080 ? "bg-blue-600 border-blue-600" : "border-gray-300 bg-white"
+                }`}>
+                  {addon1080 && (
+                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+                <span className={`text-sm font-medium ${!tier ? "text-gray-300" : addon1080 ? "text-blue-700" : "text-gray-600"}`}>
+                  Saya membeli upgrade 1080p
+                </span>
+              </div>
+              {tier && getAddonPrice(tier) > 0 && (
+                <span className={`text-xs font-bold ${addon1080 ? "text-blue-700" : "text-gray-400"}`}>
+                  +{formatRupiah(getAddonPrice(tier))}
+                </span>
+              )}
+            </button>
+          </div>
 
           <Field icon={Tag} label="Nominal yang Dibayarkan" required hint="Jumlah yang Anda transfer">
             <input className="input-field" type="number" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} required />

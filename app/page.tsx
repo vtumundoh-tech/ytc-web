@@ -1,9 +1,27 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import {
   Download, Mic, Scissors, Brain, Volume2, CreditCard, Gift, Phone, Mail,
-  ChevronRight, Sparkles, Clock, ShieldCheck, TrendingUp,
+  ChevronRight, Sparkles, Clock, ShieldCheck, TrendingUp, Monitor,
 } from "lucide-react";
-import { TIERS, CASHBACK_TIERS, formatRupiah, discountPercent, findCashback } from "@/lib/tiers";
+import { TIERS, CASHBACK_TIERS, formatRupiah, discountPercent, findCashback, getAddonPrice } from "@/lib/tiers";
+
+const fadeUp = {
+  initial: { opacity: 0, y: 30 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, margin: "-80px" },
+  transition: { duration: 0.6 },
+};
+
+const stagger = {
+  initial: { opacity: 0, y: 20 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, margin: "-60px" },
+  transition: { duration: 0.4 },
+};
 
 const FEATURES = [
   { icon: Download, label: "Download Video", desc: "YouTube, TikTok, Instagram — langsung dari aplikasi." },
@@ -15,7 +33,7 @@ const FEATURES = [
 
 const STEPS = [
   { icon: Download, label: "Download & Install", desc: "Download aplikasi YouTube Clipper di laptop Windows Anda." },
-  { icon: CreditCard, label: "Dapatkan Machine ID", desc: "Buka halaman aktivasi, salin 12-digit Machine ID." },
+  { icon: Monitor, label: "Dapatkan Machine ID", desc: "Buka halaman aktivasi, salin 12-digit Machine ID." },
   { icon: Gift, label: "Pilih Paket", desc: "Pilih durasi sewa sesuai kebutuhan — 1, 7, 17, atau 30 hari." },
   { icon: ShieldCheck, label: "Bayar via Midtrans", desc: "QRIS, Virtual Account, atau E-Wallet. Aman & terpercaya." },
   { icon: Sparkles, label: "Key Dikirim", desc: "Lisensi dikirim otomatis ke aplikasi & via WhatsApp." },
@@ -24,10 +42,21 @@ const STEPS = [
 const CASHBACK_ELIGIBLE = CASHBACK_TIERS.filter((t) => t.amount > 0);
 
 export default function HomePage() {
+  const [addonTiers, setAddonTiers] = useState<Set<string>>(new Set());
+
+  function toggleAddon(value: string) {
+    setAddonTiers((prev) => {
+      const next = new Set(prev);
+      if (next.has(value)) next.delete(value);
+      else next.add(value);
+      return next;
+    });
+  }
+
   return (
     <div className="overflow-hidden">
-      {/* ────────────── HERO ────────────── */}
-      <section className="relative max-w-5xl mx-auto px-4 pt-16 sm:pt-24 pb-12 sm:pb-20 text-center">
+      {/* ─── HERO ─── */}
+      <motion.section {...fadeUp} className="relative max-w-5xl mx-auto px-4 pt-16 sm:pt-24 pb-12 sm:pb-20 text-center">
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-emerald-50/60 to-transparent" />
         <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full border border-emerald-200/50 mb-6">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -58,102 +87,137 @@ export default function HomePage() {
           </Link>
         </div>
         <p className="text-xs text-gray-400 mt-4">Windows 10/11 • Pembayaran via Midtrans (QRIS/VA/E-Wallet)</p>
-      </section>
+      </motion.section>
 
-      {/* ────────────── FITUR ────────────── */}
-      <section className="max-w-5xl mx-auto px-4 py-12 sm:py-16">
+      {/* ─── FITUR ─── */}
+      <motion.section {...fadeUp} className="max-w-5xl mx-auto px-4 py-12 sm:py-16">
         <h2 className="text-lg sm:text-2xl font-bold text-gray-900 text-center">Kenapa YouTube Clipper?</h2>
         <p className="text-sm text-gray-500 text-center mt-2 mb-10">Satu software untuk semua kebutuhan konten viral Anda.</p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {FEATURES.map((f) => {
+          {FEATURES.map((f, i) => {
             const Icon = f.icon;
             return (
-              <div key={f.label} className="card-sm hover:shadow-md transition-shadow duration-200 group">
+              <motion.div
+                key={f.label}
+                {...stagger}
+                transition={{ ...stagger.transition, delay: i * 0.1 }}
+                className="card-sm hover:shadow-md transition-shadow duration-200 group"
+              >
                 <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center mb-4 group-hover:bg-emerald-100 transition-colors">
                   <Icon className="w-5 h-5 text-emerald-600" />
                 </div>
                 <h3 className="font-semibold text-gray-900 text-sm">{f.label}</h3>
                 <p className="text-xs text-gray-500 mt-1 leading-relaxed">{f.desc}</p>
-              </div>
+              </motion.div>
             );
           })}
         </div>
-      </section>
+      </motion.section>
 
-      {/* ────────────── HARGA ────────────── */}
-      <section id="harga" className="relative max-w-5xl mx-auto px-4 py-12 sm:py-16">
+      {/* ─── HARGA ─── */}
+      <motion.section id="harga" {...fadeUp} className="relative max-w-5xl mx-auto px-4 py-12 sm:py-16">
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-gray-50/80 to-transparent" />
         <h2 className="text-lg sm:text-2xl font-bold text-gray-900 text-center">Pilih Paket Sewa</h2>
         <p className="text-sm text-gray-500 text-center mt-2 mb-3">Harga spesial — diskon terbatas. Harga sewaktu-waktu bisa berubah.</p>
         <p className="text-xs text-gray-400 text-center mb-10">💰 Setiap pembelian paket 720p tertentu berhak klaim cashback!</p>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {TIERS.map((tier) => {
+          {TIERS.map((tier, i) => {
             const disc = discountPercent(tier);
             const cashback = findCashback(tier.value);
-            const isMonthly = tier.value.includes("monthly");
-            const isWeekly720 = tier.value === "weekly_720";
-            const isSemiMonthly720 = tier.value === "semi_monthly_720";
+            const addonPrice = getAddonPrice(tier.value);
+            const hasAddon = tier.label === "30 Hari" || tier.label === "7 Hari" || tier.label === "17 Hari";
+            const isAddonActive = addonTiers.has(tier.value);
+            const totalPrice = isAddonActive ? tier.amount + addonPrice : tier.amount;
+            const isMonthly = tier.value === "monthly_720";
             const isBestValue = tier.value === "monthly_720";
+            const isWeekly720 = tier.value === "weekly_720" && !isBestValue;
+            const isSemiMonthly720 = tier.value === "semi_monthly_720" && !isBestValue && !isWeekly720;
 
             return (
-              <div
+              <motion.div
                 key={tier.value}
+                {...stagger}
+                transition={{ ...stagger.transition, delay: i * 0.1 }}
                 className={`card-sm flex flex-col relative transition-all duration-200 hover:shadow-lg ${
                   isBestValue ? "ring-2 ring-emerald-400 shadow-md" : ""
                 }`}
               >
                 {isBestValue && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white text-[10px] font-bold rounded-full shadow-sm whitespace-nowrap">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white text-[10px] font-bold rounded-full shadow-sm whitespace-nowrap z-10">
                     ⭐ BEST SELLER
                   </div>
                 )}
-                {isWeekly720 && !isBestValue && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] font-bold rounded-full shadow-sm whitespace-nowrap">
+                {isWeekly720 && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] font-bold rounded-full shadow-sm whitespace-nowrap z-10">
                     🔥 POPULER
                   </div>
                 )}
-                {isSemiMonthly720 && !isBestValue && !isWeekly720 && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-violet-500 to-purple-500 text-white text-[10px] font-bold rounded-full shadow-sm whitespace-nowrap">
+                {isSemiMonthly720 && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-violet-500 to-purple-500 text-white text-[10px] font-bold rounded-full shadow-sm whitespace-nowrap z-10">
                     🎯 TERLARIS
                   </div>
                 )}
 
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="font-semibold text-gray-900 text-sm">{tier.label}</span>
-                    {isMonthly && (
-                      <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-full border border-emerald-200">
-                        SPECIAL
-                      </span>
-                    )}
-                  </div>
+                  <span className="font-semibold text-gray-900 text-sm">{tier.label}</span>
 
                   {/* Harga */}
-                  <div className="mb-3">
+                  <div className="mt-3 mb-3">
                     {disc > 0 && (
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs text-gray-400 line-through">{formatRupiah(tier.originalAmount)}</span>
+                        <span className="text-xs text-gray-400 line-through">
+                          {formatRupiah(isAddonActive ? tier.originalAmount + addonPrice * 2 : tier.originalAmount)}
+                        </span>
                         <span className="px-1.5 py-0.5 bg-red-50 text-red-600 text-[10px] font-bold rounded">
-                          -{disc}%
+                          -{disc > 20 ? disc + 5 : disc}%
                         </span>
                       </div>
                     )}
                     <div className="text-2xl font-extrabold text-gray-900 tracking-tight">
-                      {formatRupiah(tier.amount)}
+                      {formatRupiah(totalPrice)}
                     </div>
-                    <div className="text-[11px] text-gray-400 mt-0.5">
-                      {disc > 0
-                        ? `Hemat ${formatRupiah(tier.originalAmount - tier.amount)}`
-                        : "Harga spesial"}
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <span className="text-[11px] text-gray-400">/{tier.label.toLowerCase().includes("hari") ? "periode" : "bulan"}</span>
+                      {disc > 0 && (
+                        <span className="text-[11px] text-emerald-600 font-medium ml-1">
+                          Hemat {formatRupiah((isAddonActive ? tier.originalAmount + addonPrice * 2 : tier.originalAmount) - totalPrice)}
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  {/* Info tambahan */}
-                  {tier.label.includes("1080p") && (
-                    <div className="flex items-center gap-1 text-[11px] text-emerald-600 font-medium mb-3">
-                      <TrendingUp className="w-3 h-3" /> Resolusi Full HD
-                    </div>
+                  {/* Toggle 1080p (kecuali Daily) */}
+                  {addonPrice > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => toggleAddon(tier.value)}
+                      className={`w-full flex items-center justify-between p-2.5 rounded-lg border transition-all duration-200 mb-3 ${
+                        isAddonActive
+                          ? "bg-blue-50 border-blue-200"
+                          : "bg-gray-50 border-gray-100 hover:border-gray-200"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                          isAddonActive
+                            ? "bg-blue-600 border-blue-600"
+                            : "border-gray-300 bg-white"
+                        }`}>
+                          {isAddonActive && (
+                            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                        <span className={`text-xs font-medium ${isAddonActive ? "text-blue-700" : "text-gray-500"}`}>
+                          +1080p Upgrade
+                        </span>
+                      </div>
+                      <span className={`text-xs font-bold ${isAddonActive ? "text-blue-700" : "text-gray-400"}`}>
+                        +{formatRupiah(addonPrice)}
+                      </span>
+                    </button>
                   )}
 
                   {/* Cashback */}
@@ -166,45 +230,61 @@ export default function HomePage() {
                     </div>
                   )}
 
-                  {/* Bullet poin */}
+                  {/* Bullet */}
                   <ul className="space-y-1.5 mb-4">
                     <li className="flex items-center gap-2 text-xs text-gray-500">
                       <ShieldCheck className="w-3 h-3 text-emerald-500 shrink-0" /> Lisensi non-eksklusif
                     </li>
                     <li className="flex items-center gap-2 text-xs text-gray-500">
-                      <Clock className="w-3 h-3 text-emerald-500 shrink-0" /> Masa aktif {tier.label.split("(")[0].trim().toLowerCase()}
+                      <Clock className="w-3 h-3 text-emerald-500 shrink-0" /> Masa aktif {tier.label.toLowerCase()}
                     </li>
                     <li className="flex items-center gap-2 text-xs text-gray-500">
                       <Sparkles className="w-3 h-3 text-emerald-500 shrink-0" /> Semua fitur premium
                     </li>
+                    {isAddonActive && (
+                      <motion.li
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="flex items-center gap-2 text-xs text-blue-600 font-medium"
+                      >
+                        <TrendingUp className="w-3 h-3 shrink-0" /> Resolusi Full HD 1080p
+                      </motion.li>
+                    )}
                   </ul>
                 </div>
 
                 <Link
-                  href={`/beli?tier=${tier.value}`}
+                  href={`/beli?tier=${tier.value}${isAddonActive ? "&addon1080=1" : ""}`}
                   className={`w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
-                    disc >= 30
-                      ? "bg-gradient-to-r from-emerald-600 to-emerald-500 text-white hover:from-emerald-700 hover:to-emerald-600 shadow-md shadow-emerald-200/50"
-                      : "bg-gray-900 text-white hover:bg-gray-800"
+                    isAddonActive
+                      ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-700 hover:to-blue-600 shadow-md shadow-blue-200/50"
+                      : disc >= 30
+                        ? "bg-gradient-to-r from-emerald-600 to-emerald-500 text-white hover:from-emerald-700 hover:to-emerald-600 shadow-md shadow-emerald-200/50"
+                        : "bg-gray-900 text-white hover:bg-gray-800"
                   }`}
                 >
                   Pilih Paket <ChevronRight className="w-3 h-3" />
                 </Link>
-              </div>
+              </motion.div>
             );
           })}
         </div>
-      </section>
+      </motion.section>
 
-      {/* ────────────── CARA BELI ────────────── */}
-      <section id="cara-beli" className="max-w-5xl mx-auto px-4 py-12 sm:py-16">
+      {/* ─── CARA BELI ─── */}
+      <motion.section id="cara-beli" {...fadeUp} className="max-w-5xl mx-auto px-4 py-12 sm:py-16">
         <h2 className="text-lg sm:text-2xl font-bold text-gray-900 text-center">Cara Pembelian</h2>
         <p className="text-sm text-gray-500 text-center mt-2 mb-10">Cukup 5 langkah — dari install sampai key siap pakai.</p>
         <div className="grid sm:grid-cols-5 gap-4">
           {STEPS.map((step, i) => {
             const Icon = step.icon;
             return (
-              <div key={i} className="card-sm text-center hover:shadow-md transition-shadow duration-200">
+              <motion.div
+                key={i}
+                {...stagger}
+                transition={{ ...stagger.transition, delay: i * 0.12 }}
+                className="card-sm text-center hover:shadow-md transition-shadow duration-200"
+              >
                 <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-3 relative">
                   <Icon className="w-5 h-5 text-emerald-600" />
                   <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center">
@@ -213,7 +293,7 @@ export default function HomePage() {
                 </div>
                 <h3 className="font-semibold text-gray-900 text-xs">{step.label}</h3>
                 <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">{step.desc}</p>
-              </div>
+              </motion.div>
             );
           })}
         </div>
@@ -225,10 +305,10 @@ export default function HomePage() {
             Beli Sekarang <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
-      </section>
+      </motion.section>
 
-      {/* ────────────── MIDTRANS ────────────── */}
-      <section className="relative max-w-5xl mx-auto px-4 py-12 sm:py-16">
+      {/* ─── MIDTRANS ─── */}
+      <motion.section {...fadeUp} className="relative max-w-5xl mx-auto px-4 py-12 sm:py-16">
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-gray-50/80 to-transparent" />
         <div className="card-lg max-w-2xl mx-auto text-center">
           <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center mx-auto mb-4">
@@ -240,18 +320,25 @@ export default function HomePage() {
             Data Anda terenkripsi & aman.
           </p>
           <div className="flex flex-wrap justify-center gap-3 mt-6">
-            {["QRIS", "GoPay", "ShopeePay", "BCA VA", "BNI VA", "BRI VA", "Permata VA"].map((m) => (
-              <span key={m} className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 shadow-sm">
+            {["QRIS", "GoPay", "ShopeePay", "BCA VA", "BNI VA", "BRI VA", "Permata VA"].map((m, i) => (
+              <motion.span
+                key={m}
+                initial={{ opacity: 0, scale: 0.8 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.05 }}
+                className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 shadow-sm"
+              >
                 {m}
-              </span>
+              </motion.span>
             ))}
           </div>
           <p className="text-[11px] text-gray-400 mt-4">Semua transaksi diproses langsung oleh Midtrans — tidak dialihkan ke website lain.</p>
         </div>
-      </section>
+      </motion.section>
 
-      {/* ────────────── CASHBACK ────────────── */}
-      <section id="cashback" className="max-w-5xl mx-auto px-4 py-12 sm:py-16">
+      {/* ─── CASHBACK ─── */}
+      <motion.section id="cashback" {...fadeUp} className="max-w-5xl mx-auto px-4 py-12 sm:py-16">
         <h2 className="text-lg sm:text-2xl font-bold text-gray-900 text-center">Program Cashback</h2>
         <p className="text-sm text-gray-500 text-center mt-2 mb-3">
           Dapatkan uang kembali dengan follow, like & share konten TikTok kami.
@@ -266,7 +353,7 @@ export default function HomePage() {
             <div className="space-y-2">
               {CASHBACK_ELIGIBLE.map((t) => (
                 <div key={t.value} className="flex items-center justify-between p-3 rounded-lg bg-amber-50 border border-amber-100">
-                  <span className="text-sm font-medium text-gray-900">{t.label.replace(" — Rp.*", "")}</span>
+                  <span className="text-sm font-medium text-gray-900">{t.label}</span>
                   <span className="text-sm font-bold text-amber-700">+ {formatRupiah(t.amount)}</span>
                 </div>
               ))}
@@ -292,10 +379,10 @@ export default function HomePage() {
           </ol>
           <p className="mt-3">Cashback ditransfer ke nomor WhatsApp terdaftar. Maksimal 1 klaim per key.</p>
         </div>
-      </section>
+      </motion.section>
 
-      {/* ────────────── KONTAK ────────────── */}
-      <section className="max-w-5xl mx-auto px-4 py-12 sm:py-16">
+      {/* ─── KONTAK ─── */}
+      <motion.section {...fadeUp} className="max-w-5xl mx-auto px-4 py-12 sm:py-16">
         <div className="card-lg max-w-lg mx-auto text-center">
           <h2 className="text-lg font-bold text-gray-900">Hubungi Kami</h2>
           <p className="text-sm text-gray-500 mt-2 mb-6">Ada pertanyaan? Butuh bantuan? Tim kami siap membantu.</p>
@@ -323,7 +410,7 @@ export default function HomePage() {
             </a>
           </div>
         </div>
-      </section>
+      </motion.section>
     </div>
   );
 }
