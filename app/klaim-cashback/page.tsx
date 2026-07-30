@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { CASHBACK_TIERS, getAddonPrice, formatRupiah } from "@/lib/tiers";
-import { Gift, User, Phone, Hash, Key, Tag, Image, FileText, CheckCircle, AlertTriangle, TrendingUp } from "lucide-react";
+import { Gift, User, Phone, Hash, Key, Tag, Image, FileText, CheckCircle, AlertTriangle, TrendingUp, ExternalLink } from "lucide-react";
 
 export default function KlaimCashbackPage() {
   const [fullName, setFullName] = useState("");
@@ -87,7 +87,7 @@ export default function KlaimCashbackPage() {
       <div className="card-sm mb-6 flex items-start gap-3 animate-fade-in">
         <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
         <div className="text-xs text-gray-500 leading-relaxed">
-          <strong className="text-gray-700">Syarat Ringkas:</strong> Follow TikTok @yourstudio &middot; Like & comment video promo terbaru &middot; Share ke 3 teman &middot; Screenshot semua langkah.
+          <strong className="text-gray-700">Syarat Ringkas:</strong> Follow TikTok @yourstudio &middot; Like & comment video promo terbaru &middot; Share ke 3 teman &middot; Screenshot semua langkah. &middot; Harap diisi data yang sebenar-benarnya seperti yang di submit saat pembelian agar mudah untuk kami melakukan tracking untuk pengembalian dana. Jika data yang ditemukan berbeda bukan tanggung jawab kami karena tidak dapat meneruskan cashback.
         </div>
       </div>
 
@@ -202,6 +202,15 @@ export default function KlaimCashbackPage() {
           <button type="button" onClick={() => setSnkOpen((v) => !v)} className="flex items-center justify-between w-full text-left">
             <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
               Syarat & Ketentuan <span className="text-red-400">*</span>
+              <a
+                href="/syarat-ketentuan"
+                target="_blank"
+                className="ml-2 text-violet-500 normal-case font-medium hover:text-violet-700 underline underline-offset-2"
+                onClick={(e) => e.stopPropagation()}
+              >
+                lihat lengkap
+                <ExternalLink className="w-3 h-3 inline ml-0.5" />
+              </a>
             </span>
             <span className={`text-gray-300 transition-transform duration-200 ${snkOpen ? "rotate-180" : ""}`}>▾</span>
           </button>
@@ -218,7 +227,18 @@ export default function KlaimCashbackPage() {
         <label className="flex items-start gap-3 p-4 rounded-xl bg-gradient-to-r from-violet-50 to-violet-50/30 border border-violet-100 cursor-pointer">
           <input type="checkbox" className="mt-0.5 accent-violet-600 w-4 h-4 rounded" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
           <div>
-            <div className="text-sm font-semibold text-violet-900">Saya setuju dengan Syarat & Ketentuan</div>
+            <div className="text-sm font-semibold text-violet-900">
+              Saya setuju dengan{" "}
+              <a
+                href="/syarat-ketentuan"
+                target="_blank"
+                className="underline underline-offset-2 hover:text-violet-800"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Syarat & Ketentuan
+                <ExternalLink className="w-3 h-3 inline ml-0.5" />
+              </a>
+            </div>
             <div className="text-xs text-violet-700/70 mt-0.5">Jika tidak setuju, Anda tidak dapat mengklaim cashback</div>
           </div>
         </label>
