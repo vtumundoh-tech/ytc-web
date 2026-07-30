@@ -199,21 +199,6 @@ export default function KlaimCashbackPage() {
         <hr className="border-gray-100" />
 
         <div>
-          <button type="button" onClick={() => setSnkOpen((v) => !v)} className="flex items-center justify-between w-full text-left">
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
-              Syarat & Ketentuan <span className="text-red-400">*</span>
-              <a
-                href="/syarat-ketentuan"
-                target="_blank"
-                className="ml-2 text-violet-500 normal-case font-medium hover:text-violet-700 underline underline-offset-2"
-                onClick={(e) => e.stopPropagation()}
-              >
-                lihat lengkap
-                <ExternalLink className="w-3 h-3 inline ml-0.5" />
-              </a>
-            </span>
-            <span className={`text-gray-300 transition-transform duration-200 ${snkOpen ? "rotate-180" : ""}`}>▾</span>
-          </button>
           {snkOpen && (
             <div className="mt-3 p-4 rounded-xl bg-gray-50 text-xs text-gray-500 leading-relaxed space-y-2 animate-fade-in">
               <p>Cashback hanya berlaku 1 kali per key, non-tunai, ditransfer ke WhatsApp terdaftar.</p>
