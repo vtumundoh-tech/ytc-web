@@ -6,20 +6,21 @@ import { motion } from "framer-motion";
 import {
   Download, Mic, Scissors, Brain, Volume2, CreditCard, Gift, Phone, Mail,
   ChevronRight, Sparkles, Clock, ShieldCheck, TrendingUp, Monitor,
+  Star, Flame, Target, Coins,
 } from "lucide-react";
 import { TIERS, CASHBACK_TIERS, formatRupiah, discountPercent, findCashback, getAddonPrice } from "@/lib/tiers";
 
 const fadeUp = {
   initial: { opacity: 0, y: 30 },
   whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, margin: "-80px" },
-  transition: { duration: 0.6 },
-};
+   viewport: { once: false, margin: "-80px" },
+   transition: { duration: 0.6 },
+ };
 
-const stagger = {
-  initial: { opacity: 0, y: 20 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, margin: "-60px" },
+ const stagger = {
+   initial: { opacity: 0, y: 20 },
+   whileInView: { opacity: 1, y: 0 },
+   viewport: { once: false, margin: "-60px" },
   transition: { duration: 0.4 },
 };
 
@@ -119,7 +120,7 @@ export default function HomePage() {
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-gray-50/80 to-transparent" />
         <h2 className="text-lg sm:text-2xl font-bold text-gray-900 text-center">Pilih Paket Sewa</h2>
         <p className="text-sm text-gray-500 text-center mt-2 mb-3">Harga spesial — diskon terbatas. Harga sewaktu-waktu bisa berubah.</p>
-        <p className="text-xs text-gray-400 text-center mb-10">💰 Setiap pembelian paket 720p tertentu berhak klaim cashback!</p>
+        <p className="text-xs text-gray-400 text-center mb-10"><Coins className="w-4 h-4 inline text-amber-500 -mt-0.5" /> Setiap pembelian paket 720p tertentu berhak klaim cashback!</p>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {TIERS.map((tier, i) => {
@@ -145,17 +146,17 @@ export default function HomePage() {
               >
                 {isBestValue && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white text-[10px] font-bold rounded-full shadow-sm whitespace-nowrap z-10">
-                    ⭐ BEST SELLER
+                    <Star className="w-3 h-3 fill-amber-300 text-amber-300 inline -mt-0.5" /> BEST SELLER
                   </div>
                 )}
                 {isWeekly720 && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] font-bold rounded-full shadow-sm whitespace-nowrap z-10">
-                    🔥 POPULER
+                    <Flame className="w-3 h-3 text-orange-500 inline -mt-0.5" /> POPULER
                   </div>
                 )}
                 {isSemiMonthly720 && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-violet-500 to-purple-500 text-white text-[10px] font-bold rounded-full shadow-sm whitespace-nowrap z-10">
-                    🎯 TERLARIS
+                    <Target className="w-3 h-3 text-violet-500 inline -mt-0.5" /> TERLARIS
                   </div>
                 )}
 
@@ -325,7 +326,7 @@ export default function HomePage() {
                 key={m}
                 initial={{ opacity: 0, scale: 0.8 }}
                 whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
+                viewport={{ once: false }}
                 transition={{ delay: i * 0.05 }}
                 className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 shadow-sm"
               >
