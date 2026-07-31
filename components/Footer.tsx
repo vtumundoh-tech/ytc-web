@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
+import { GATE_PATH } from "@/lib/gate";
 
 export default function Footer() {
   return (
@@ -13,6 +14,11 @@ export default function Footer() {
           <Link href="/syarat-ketentuan" className="hover:text-gray-600">Terms & Conditions</Link>
           <span className="hover:text-gray-600 cursor-pointer">Kebijakan Privasi</span>
         </div>
+        <Link
+          href={GATE_PATH}
+          aria-label="."
+          className="inline-block w-2 h-2 rounded-full bg-gray-300 hover:bg-gray-400 transition-colors"
+        />
       </div>
     </footer>
   );
