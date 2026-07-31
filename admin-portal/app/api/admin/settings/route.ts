@@ -7,7 +7,16 @@ export async function GET() {
   const supabase = supabaseServer() as any;
   const { data, error } = await supabase.from("app_settings").select("*").eq("id", 1).maybeSingle();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ data });
+  return NextResponse.json(
+    {
+      data,
+      meta: {
+        supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || null,
+        hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      },
+    },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }
 
 export async function PUT(req: NextRequest) {

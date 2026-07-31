@@ -474,12 +474,13 @@ function SettingsTab() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [savedAt, setSavedAt] = useState("");
+  const [connHost, setConnHost] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch("/api/admin/settings");
+        const res = await fetch(`/api/admin/settings?t=${Date.now()}`, { cache: "no-store" });
         const text = await res.text();
         const d = text ? JSON.parse(text) : {};
         if (!res.ok) throw new Error(d.error || `HTTP ${res.status}`);
@@ -501,6 +502,13 @@ function SettingsTab() {
             ),
           });
           if (data.updated_at) setSavedAt(data.updated_at);
+        }
+        if (d.meta?.supabaseUrl) {
+          try {
+            setConnHost(new URL(d.meta.supabaseUrl).hostname);
+          } catch {
+            setConnHost(d.meta.supabaseUrl);
+          }
         }
       } catch (e: any) {
         setError(e.message || "Gagal memuat pengaturan.");
@@ -549,6 +557,7 @@ function SettingsTab() {
       );
       const res = await fetch("/api/admin/settings", {
         method: "PUT",
+        cache: "no-store",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ promo_enabled: form.promo_enabled, tiers, addon_prices, cashback_tiers }),
       });
@@ -711,11 +720,18 @@ function SettingsTab() {
           ))}
         </div>
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <p className="text-xs text-gray-400">
-            {savedAt
-              ? `Terakhir disimpan: ${new Date(savedAt).toLocaleString("id-ID")}`
-              : "Belum pernah disimpan."}
-          </p>
+          <div className="text-xs text-gray-400 space-y-0.5">
+            <p>
+              {savedAt
+                ? `Terakhir disimpan: ${new Date(savedAt).toLocaleString("id-ID")}`
+                : "Belum pernah disimpan."}
+            </p>
+            {connHost && (
+              <p className="text-gray-400">
+                Terkoneksi ke: <span className="font-medium text-gray-600">{connHost}</span>
+              </p>
+            )}
+          </div>
           <button
             onClick={save}
             disabled={saving}

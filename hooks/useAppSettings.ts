@@ -10,7 +10,7 @@ export function useAppSettings(): { settings: AppSettings; loaded: boolean } {
 
   useEffect(() => {
     let active = true;
-    fetch("/api/settings", { cache: "no-store" })
+    fetch(`/api/settings?t=${Date.now()}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((data) => {
         if (!active) return;
