@@ -8,7 +8,7 @@ import {
   ChevronRight, Sparkles, Clock, ShieldCheck, TrendingUp, Monitor,
   Star, Flame, Target, Coins, User, ExternalLink,
 } from "lucide-react";
-import { formatPrice } from "@/lib/tiers";
+import { formatPrice, formatRupiah } from "@/lib/tiers";
 import { useAppSettings } from "@/hooks/useAppSettings";
 
 const fadeUp = {
@@ -176,7 +176,7 @@ export default function HomePage() {
                     {disc > 0 && (
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-xs text-gray-400 line-through">
-                          {formatPrice(isAddonActive ? tier.originalAmount + addonPrice * 2 : tier.originalAmount)}
+                          {formatRupiah(isAddonActive ? tier.originalAmount + addonPrice * 2 : tier.originalAmount)}
                         </span>
                         <span className="px-1.5 py-0.5 bg-red-50 text-red-600 text-[10px] font-bold rounded">
                           -{disc}%
@@ -189,7 +189,7 @@ export default function HomePage() {
                     {disc > 0 && (
                       <div className="flex items-center gap-1 mt-0.5">
                         <span className="text-[11px] text-emerald-600 font-medium">
-                          Hemat {formatPrice((isAddonActive ? tier.originalAmount + addonPrice * 2 : tier.originalAmount) - totalPrice)}
+                          Hemat {formatRupiah((isAddonActive ? tier.originalAmount + addonPrice * 2 : tier.originalAmount) - totalPrice)}
                         </span>
                       </div>
                     )}
@@ -223,7 +223,7 @@ export default function HomePage() {
                         </span>
                       </div>
                       <span className={`text-xs font-bold ${isAddonActive ? "text-blue-700" : "text-gray-400"}`}>
-                        +{formatPrice(addonPrice)}
+                        +{formatRupiah(addonPrice)}
                       </span>
                     </button>
                   )}
@@ -233,7 +233,7 @@ export default function HomePage() {
                     <div className="flex items-center gap-1.5 p-2.5 rounded-lg bg-amber-50 border border-amber-100 mb-3">
                       <Gift className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                       <span className="text-[11px] font-semibold text-amber-800">
-                        Cashback {formatPrice(cashback)}
+                        Cashback {formatRupiah(cashback)}
                       </span>
                     </div>
                   )}
@@ -362,7 +362,7 @@ export default function HomePage() {
               {cashbackEligible.map((t) => (
                 <div key={t.value} className="flex items-center justify-between p-3 rounded-lg bg-amber-50 border border-amber-100">
                   <span className="text-sm font-medium text-gray-900">{t.label}</span>
-                  <span className="text-sm font-bold text-amber-700">+ {formatPrice(settings.cashbackTiers[t.value] || 0)}</span>
+                  <span className="text-sm font-bold text-amber-700">+ {formatRupiah(settings.cashbackTiers[t.value] || 0)}</span>
                 </div>
               ))}
             </div>

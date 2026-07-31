@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { formatPrice } from "@/lib/tiers";
+import { formatPrice, formatRupiah } from "@/lib/tiers";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { CreditCard, User, Phone, Mail, CheckCircle, ArrowRight, ExternalLink, Gift, TrendingUp } from "lucide-react";
 
@@ -213,7 +213,7 @@ function BeliForm() {
                             </span>
                           </div>
                           <span className={`text-xs font-bold ${addon1080 ? "text-blue-700" : "text-gray-400"}`}>
-                            +{formatPrice(aPrice)}
+                            +{formatRupiah(aPrice)}
                           </span>
                         </button>
 
@@ -223,7 +223,7 @@ function BeliForm() {
                             animate={{ opacity: 1, height: "auto" }}
                             className="mt-2 text-xs text-blue-600 font-medium flex items-center gap-1"
                           >
-                            <TrendingUp className="w-3 h-3" /> Total: {formatPrice(totalPrice)}
+                            <TrendingUp className="w-3 h-3" /> Total: {formatRupiah(totalPrice)}
                           </motion.div>
                         )}
                       </div>
@@ -277,7 +277,7 @@ function BeliForm() {
             <Gift className="w-5 h-5 text-amber-600 shrink-0" />
             <div>
               <div className="font-semibold text-amber-800">Paket ini eligible cashback!</div>
-              <div className="text-xs text-amber-700">Dapatkan {formatPrice(cashback)} setelah klaim cashback.</div>
+              <div className="text-xs text-amber-700">Dapatkan {formatRupiah(cashback)} setelah klaim cashback.</div>
             </div>
           </div>
         )}
@@ -292,7 +292,7 @@ function BeliForm() {
           }`}
         >
           {loading ? "Memproses..." : (
-            <>Lanjut ke Pembayaran — {formatPrice(totalPrice)} <ArrowRight className="w-4 h-4" /></>
+            <>Lanjut ke Pembayaran — {formatRupiah(totalPrice)} <ArrowRight className="w-4 h-4" /></>
           )}
         </button>
 

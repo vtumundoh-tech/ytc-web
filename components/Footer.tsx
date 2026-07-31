@@ -18,7 +18,7 @@ export default function Footer() {
         </div>
         <div className="flex items-center gap-4 text-xs text-gray-400">
           <Link href="/syarat-ketentuan" className="hover:text-gray-600">Terms & Conditions</Link>
-          <span className="hover:text-gray-600 cursor-pointer">Kebijakan Privasi</span>
+          <Link href="/syarat-ketentuan#privacy-policy" className="hover:text-gray-600">Kebijakan Privasi</Link>
         </div>
       </div>
       {showGate && (
