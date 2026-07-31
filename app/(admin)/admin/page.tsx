@@ -19,6 +19,11 @@ type Order = {
   license_key: string | null;
   admin_notes: string | null;
   agree_snk: boolean;
+  ip_address: string | null;
+  user_agent: string | null;
+  browser: string | null;
+  os: string | null;
+  device_type: string | null;
 };
 
 type Claim = {
@@ -37,6 +42,11 @@ type Claim = {
   status: string;
   admin_notes: string | null;
   agree_snk: boolean;
+  ip_address: string | null;
+  user_agent: string | null;
+  browser: string | null;
+  os: string | null;
+  device_type: string | null;
 };
 
 const ORDER_STATUSES = ["pending", "paid", "expired", "failed", "cancelled"];
@@ -124,6 +134,26 @@ function StatusBadge({ status }: { status: string }) {
     <span className={cn("text-xs font-semibold px-2.5 py-1 rounded-full border", STATUS_STYLES[status] || "bg-gray-50 text-gray-500")}>
       {status}
     </span>
+  );
+}
+
+function DeviceInfo({
+  ip,
+  browser,
+  os,
+  deviceType,
+}: {
+  ip: string | null;
+  browser: string | null;
+  os: string | null;
+  deviceType: string | null;
+}) {
+  if (!ip && !browser && !os && !deviceType) return null;
+  const parts = [ip, [browser, os].filter(Boolean).join(" / "), deviceType].filter(Boolean);
+  return (
+    <div className="text-[11px] text-gray-400">
+      IP: {parts.join(" · ")}
+    </div>
   );
 }
 
@@ -235,6 +265,8 @@ function OrdersTab() {
                 {new Date(o.created_at).toLocaleString("id-ID")}
                 {o.payment_type ? <><span className="mx-1.5">·</span>{o.payment_type}</> : ""}
               </div>
+
+              <DeviceInfo ip={o.ip_address} browser={o.browser} os={o.os} deviceType={o.device_type} />
 
               <div className="grid sm:grid-cols-4 gap-3 items-end">
                 <div>
@@ -391,6 +423,8 @@ function ClaimsTab() {
               <div className="text-xs text-gray-400">
                 {new Date(c.created_at).toLocaleString("id-ID")}
               </div>
+
+              <DeviceInfo ip={c.ip_address} browser={c.browser} os={c.os} deviceType={c.device_type} />
 
               <div className="flex flex-wrap gap-2">
                 <ProofLink url={c.screenshot_follow_url} label="Bukti Follow" />

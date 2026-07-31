@@ -3,11 +3,12 @@ import { supabaseServer } from "@/lib/supabaseServer";
 import { createSnapTransaction } from "@/lib/midtrans";
 import { getSettings } from "@/lib/settings";
 import { checkRateLimit, rateLimitKey } from "@/lib/rateLimit";
+import { getRequestMeta } from "@/lib/requestMeta";
 
 export async function POST(req: NextRequest) {
   try {
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-    const rl = checkRateLimit(rateLimitKey("checkout", ip), 10, 60_000);
+    const meta = getRequestMeta(req);
+    const rl = checkRateLimit(rateLimitKey("checkout", meta.ip), 10, 60_000);
     if (!rl.allowed) {
       return NextResponse.json({ error: "Terlalu banyak permintaan. Coba lagi nanti." }, { status: 429 });
     }
@@ -48,6 +49,11 @@ export async function POST(req: NextRequest) {
       status: "pending",
       midtrans_order_id: orderId,
       agree_snk: true,
+      ip_address: meta.ip,
+      user_agent: meta.userAgent,
+      browser: meta.browser,
+      os: meta.os,
+      device_type: meta.deviceType,
     });
     if (insertError) throw insertError;
 

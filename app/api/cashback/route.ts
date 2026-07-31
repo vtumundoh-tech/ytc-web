@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { checkRateLimit, rateLimitKey } from "@/lib/rateLimit";
+import { getRequestMeta } from "@/lib/requestMeta";
 import {
   validateFileSignature,
   validateFileSize,
@@ -35,8 +36,8 @@ async function uploadProof(supabase: ReturnType<typeof supabaseServer>, file: Fi
 
 export async function POST(req: NextRequest) {
   try {
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-    const rl = checkRateLimit(rateLimitKey("cashback", ip), 5, 60_000);
+    const meta = getRequestMeta(req);
+    const rl = checkRateLimit(rateLimitKey("cashback", meta.ip), 5, 60_000);
     if (!rl.allowed) {
       return NextResponse.json({ error: "Terlalu banyak permintaan. Coba lagi nanti." }, { status: 429 });
     }
@@ -87,6 +88,11 @@ export async function POST(req: NextRequest) {
       notes,
       agree_snk: true,
       status: "pending",
+      ip_address: meta.ip,
+      user_agent: meta.userAgent,
+      browser: meta.browser,
+      os: meta.os,
+      device_type: meta.deviceType,
     });
     if (insertError) throw insertError;
 

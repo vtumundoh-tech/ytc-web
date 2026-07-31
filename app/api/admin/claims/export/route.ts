@@ -12,7 +12,7 @@ export async function GET() {
   const headers = [
     "Claim ID", "Tanggal", "Nama", "WhatsApp", "Machine ID",
     "Key Lisensi", "Tier", "Addon 1080p", "Jumlah Bayar",
-    "Status", "Catatan Admin",
+    "Status", "Catatan Admin", "IP", "Browser", "OS", "Device",
   ];
 
   const csvRows = rows.map((c: any) => [
@@ -27,6 +27,10 @@ export async function GET() {
     c.amount_paid,
     c.status,
     escapeCsv(c.admin_notes || ""),
+    c.ip_address || "",
+    c.browser || "",
+    c.os || "",
+    c.device_type || "",
   ]);
 
   const csv = [

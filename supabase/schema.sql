@@ -19,7 +19,12 @@ create table if not exists orders (
   license_key text, -- diisi manual oleh admin setelah key dibuat & dikirim
   admin_notes text,
   paid_at timestamptz,
-  agree_snk boolean not null default false -- rekam jejak persetujuan S&K
+  agree_snk boolean not null default false, -- rekam jejak persetujuan S&K
+  ip_address text, -- IP pelanggan saat checkout (dari x-forwarded-for)
+  user_agent text, -- User-Agent mentah dari browser
+  browser text, -- contoh: Chrome, Firefox, Safari
+  os text, -- contoh: Windows, Android, iOS
+  device_type text -- Desktop | Mobile | Tablet
 );
 
 create index if not exists idx_orders_status on orders(status);
@@ -42,7 +47,12 @@ create table if not exists cashback_claims (
   notes text,
   status text not null default 'pending', -- pending | approved | paid | rejected
   admin_notes text,
-  agree_snk boolean not null default false -- rekam jejak persetujuan S&K
+  agree_snk boolean not null default false, -- rekam jejak persetujuan S&K
+  ip_address text, -- IP pelanggan saat klaim (dari x-forwarded-for)
+  user_agent text, -- User-Agent mentah dari browser
+  browser text, -- contoh: Chrome, Firefox, Safari
+  os text, -- contoh: Windows, Android, iOS
+  device_type text -- Desktop | Mobile | Tablet
 );
 
 create index if not exists idx_claims_status on cashback_claims(status);
