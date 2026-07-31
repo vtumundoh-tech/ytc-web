@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const supabase = supabaseServer() as any;
   const { data, error } = await supabase.from("orders").select("*").order("created_at", { ascending: true });

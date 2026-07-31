@@ -476,9 +476,12 @@ function SettingsTab() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("/api/admin/settings")
-      .then((r) => r.json())
-      .then((d) => {
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/settings");
+        const text = await res.text();
+        const d = text ? JSON.parse(text) : {};
+        if (!res.ok) throw new Error(d.error || `HTTP ${res.status}`);
         const data = d.data;
         if (data && Array.isArray(data.tiers)) {
           setForm({
@@ -498,9 +501,12 @@ function SettingsTab() {
             ),
           });
         }
+      } catch (e: any) {
+        setError(e.message || "Gagal memuat pengaturan.");
+      } finally {
         setLoading(false);
-      })
-      .catch(() => setLoading(false));
+      }
+    })();
   }, []);
 
   function setTier(value: string, patch: Partial<TierForm>) {
@@ -535,8 +541,9 @@ function SettingsTab() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ promo_enabled: form.promo_enabled, tiers, addon_prices, cashback_tiers }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Gagal menyimpan.");
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : {};
+      if (!res.ok) throw new Error(data.error || `Gagal menyimpan. (HTTP ${res.status})`);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (err: any) {
