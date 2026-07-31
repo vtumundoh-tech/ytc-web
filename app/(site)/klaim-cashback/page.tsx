@@ -3,21 +3,25 @@
 import { useState } from "react";
 import { formatRupiah } from "@/lib/tiers";
 import { useAppSettings } from "@/hooks/useAppSettings";
-import { Gift, User, Phone, Hash, Key, Tag, Image, FileText, CheckCircle, AlertTriangle, TrendingUp, ExternalLink } from "lucide-react";
+import { Gift, User, Phone, Hash, Key, Tag, Image, FileText, CheckCircle, AlertTriangle, TrendingUp, ExternalLink, Search } from "lucide-react";
 
 export default function KlaimCashbackPage() {
   const { settings } = useAppSettings();
   const tiers = settings.tiers;
 
+  const [machineId, setMachineId] = useState("");
+  const [checking, setChecking] = useState(false);
+  const [checkState, setCheckState] = useState<"idle" | "ok" | "notfound">("idle");
+  const [unlocked, setUnlocked] = useState(false);
   const [fullName, setFullName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
-  const [machineId, setMachineId] = useState("");
   const [licenseKey, setLicenseKey] = useState("");
   const [tier, setTier] = useState("");
   const [addon1080, setAddon1080] = useState(false);
   const [amountPaid, setAmountPaid] = useState("");
   const [notes, setNotes] = useState("");
   const [captcha, setCaptcha] = useState("");
+  const [fPayment, setFPayment] = useState<File | null>(null);
   const [fFollow, setFFollow] = useState<File | null>(null);
   const [fLike, setFLike] = useState<File | null>(null);
   const [fShare, setFShare] = useState<File | null>(null);
@@ -28,7 +32,36 @@ export default function KlaimCashbackPage() {
   const [done, setDone] = useState(false);
 
   const requiredFilled =
-    fullName && whatsapp && machineId && licenseKey && tier && amountPaid && fFollow && fLike && fShare && agree && captcha === "15";
+    machineId && fullName && whatsapp && licenseKey && tier && amountPaid && fPayment && fFollow && fLike && fShare && agree && captcha === "15";
+
+  async function handleCheck() {
+    setChecking(true);
+    setError("");
+    setCheckState("idle");
+    try {
+      const res = await fetch(`/api/cashback/check?q=${encodeURIComponent(machineId.trim())}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal memeriksa data.");
+      if (!data.found) {
+        setCheckState("notfound");
+        setUnlocked(false);
+        return;
+      }
+      const d = data.data;
+      setFullName(d.full_name || "");
+      setWhatsapp(d.whatsapp || "");
+      setLicenseKey(d.license_key || "");
+      setTier(d.tier || "");
+      setAddon1080(Boolean(d.addon1080));
+      setAmountPaid(d.amount ? String(d.amount) : "");
+      setUnlocked(true);
+      setCheckState("ok");
+    } catch (err: any) {
+      setError(err.message || "Terjadi kesalahan, coba lagi.");
+    } finally {
+      setChecking(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -46,6 +79,7 @@ export default function KlaimCashbackPage() {
       fd.append("amountPaid", amountPaid);
       fd.append("notes", notes);
       fd.append("agreeSnk", "yes");
+      fd.append("paymentProof", fPayment as File);
       fd.append("screenshotFollow", fFollow as File);
       fd.append("screenshotLike", fLike as File);
       fd.append("screenshotShare", fShare as File);
@@ -86,7 +120,7 @@ export default function KlaimCashbackPage() {
           <Gift className="w-5 h-5 text-white" />
         </div>
         <h1 className="text-xl font-bold text-gray-900">Klaim Cashback</h1>
-        <p className="text-sm text-gray-500 mt-1">Lampirkan bukti follow, like & share untuk klaim cashback Anda.</p>
+        <p className="text-sm text-gray-500 mt-1">Lampirkan bukti bayar & bukti follow, like & share untuk klaim cashback Anda.</p>
       </div>
 
       <div className="card-sm mb-6 flex items-start gap-3 animate-fade-in">
@@ -98,22 +132,83 @@ export default function KlaimCashbackPage() {
 
       <form onSubmit={handleSubmit} className="card-lg space-y-6 animate-slide-up">
         <div className="space-y-5">
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Cek Data Pembelian</h2>
+
+          <div>
+            <label className="field-label">
+              <Hash className="w-3.5 h-3.5 inline mr-1.5 text-violet-500" />
+              Machine ID <span className="text-red-400">*</span>
+            </label>
+            <div className="flex gap-2">
+              <input
+                className="input-field flex-1 font-mono uppercase disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50"
+                maxLength={12}
+                placeholder="12 digit dari aplikasi"
+                value={machineId}
+                onChange={(e) => setMachineId(e.target.value)}
+                disabled={checking}
+                required
+              />
+              <button
+                type="button"
+                onClick={handleCheck}
+                disabled={checking || machineId.trim().length < 3}
+                className="inline-flex items-center gap-1.5 px-4 py-3 rounded-xl text-sm font-semibold bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shrink-0"
+              >
+                <Search className="w-4 h-4" />
+                {checking ? "Mengecek..." : "Check Data"}
+              </button>
+            </div>
+            <p className="field-hint">Isi Machine ID dari aplikasi. Untuk pembelian lama bisa gunakan key lisensi atau nama lengkap.</p>
+            {checkState === "ok" && (
+              <div className="mt-3 p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-sm text-emerald-700 flex items-start gap-2 animate-fade-in">
+                <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>Data ditemukan! Field di bawah terbuka & sudah terisi otomatis. Anda bisa mengubahnya jika perlu.</span>
+              </div>
+            )}
+            {checkState === "notfound" && (
+              <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-100 text-sm text-amber-700 flex items-start gap-2 animate-fade-in">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>Data tidak ditemukan. Pastikan Machine ID, key lisensi, atau nama lengkap sesuai saat pembelian.</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <hr className="border-gray-100" />
+
+        <div className="space-y-5">
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Informasi Pengguna</h2>
 
           <Field icon={User} label="Nama Lengkap" required>
-            <input className="input-field" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+            <input
+              className="input-field disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              disabled={!unlocked}
+              required
+            />
           </Field>
 
           <Field icon={Phone} label="Nomor WhatsApp" required hint="Aktif — untuk konfirmasi dan transfer cashback">
-            <input className="input-field" type="tel" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} required />
-          </Field>
-
-          <Field icon={Hash} label="Machine ID (12 digit)" required hint="Buka aplikasi, lihat di halaman aktivasi">
-            <input className="input-field font-mono uppercase" maxLength={12} value={machineId} onChange={(e) => setMachineId(e.target.value)} required />
+            <input
+              className="input-field disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50"
+              type="tel"
+              value={whatsapp}
+              onChange={(e) => setWhatsapp(e.target.value)}
+              disabled={!unlocked}
+              required
+            />
           </Field>
 
           <Field icon={Key} label="Key Lisensi" required hint="Key utama (720p) yang dibeli">
-            <input className="input-field font-mono" value={licenseKey} onChange={(e) => setLicenseKey(e.target.value)} required />
+            <input
+              className="input-field font-mono disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50"
+              value={licenseKey}
+              onChange={(e) => setLicenseKey(e.target.value)}
+              disabled={!unlocked}
+              required
+            />
           </Field>
         </div>
 
@@ -123,7 +218,13 @@ export default function KlaimCashbackPage() {
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Informasi Pembelian</h2>
 
           <Field icon={Tag} label="Tier yang Dibeli" required>
-            <select className="input-field" value={tier} onChange={(e) => { setTier(e.target.value); setAddon1080(false); }} required>
+            <select
+              className="input-field disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50"
+              value={tier}
+              onChange={(e) => { setTier(e.target.value); setAddon1080(false); }}
+              disabled={!unlocked}
+              required
+            >
               <option value="">— Pilih —</option>
               {tiers.map((t) => (
                 <option key={t.value} value={t.value}>{t.label}</option>
@@ -138,10 +239,10 @@ export default function KlaimCashbackPage() {
             </label>
             <button
               type="button"
-              disabled={!tier}
+              disabled={!unlocked || !tier}
               onClick={() => setAddon1080(!addon1080)}
               className={`w-full flex items-center justify-between p-3.5 rounded-xl border transition-all duration-200 ${
-                !tier
+                !unlocked || !tier
                   ? "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed"
                   : addon1080
                     ? "bg-blue-50 border-blue-200"
@@ -150,7 +251,7 @@ export default function KlaimCashbackPage() {
             >
               <div className="flex items-center gap-2.5">
                 <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                  !tier ? "border-gray-200 bg-gray-50" :
+                  !unlocked || !tier ? "border-gray-200 bg-gray-50" :
                   addon1080 ? "bg-blue-600 border-blue-600" : "border-gray-300 bg-white"
                 }`}>
                   {addon1080 && (
@@ -159,7 +260,7 @@ export default function KlaimCashbackPage() {
                     </svg>
                   )}
                 </div>
-                <span className={`text-sm font-medium ${!tier ? "text-gray-300" : addon1080 ? "text-blue-700" : "text-gray-600"}`}>
+                <span className={`text-sm font-medium ${!unlocked || !tier ? "text-gray-300" : addon1080 ? "text-blue-700" : "text-gray-600"}`}>
                   Saya membeli upgrade 1080p
                 </span>
               </div>
@@ -170,10 +271,6 @@ export default function KlaimCashbackPage() {
               )}
             </button>
           </div>
-
-          <Field icon={Tag} label="Nominal yang Dibayarkan" required hint="Jumlah yang Anda transfer">
-            <input className="input-field" type="number" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} required />
-          </Field>
         </div>
 
         <hr className="border-gray-100" />
@@ -181,6 +278,7 @@ export default function KlaimCashbackPage() {
         <div className="space-y-5">
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Upload Bukti</h2>
 
+          <FileUpload label="Bukti Bayar" file={fPayment} onChange={setFPayment} required />
           <FileUpload label="Screenshot — Follow TikTok" file={fFollow} onChange={setFFollow} required />
           <FileUpload label="Screenshot — Like & Comment" file={fLike} onChange={setFLike} required />
           <FileUpload label="Screenshot — Share ke Teman" file={fShare} onChange={setFShare} required />
@@ -229,7 +327,6 @@ export default function KlaimCashbackPage() {
                 <ExternalLink className="w-3 h-3 inline ml-0.5" />
               </a>
             </div>
-            <div className="text-xs text-violet-700/70 mt-0.5">Jika tidak setuju, Anda tidak dapat mengklaim cashback</div>
           </div>
         </label>
 

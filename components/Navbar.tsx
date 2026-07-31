@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CreditCard, Gift, Clapperboard } from "lucide-react";
+import { CreditCard, Gift, Clapperboard, Menu, X } from "lucide-react";
 
 const links = [
   { href: "/", label: "Beranda" },
@@ -14,11 +15,21 @@ const links = [
 
 export default function Navbar() {
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+
+  function isActive(link: { href: string }) {
+    if (link.href.startsWith("/#")) return pathname === "/";
+    return pathname === link.href;
+  }
+
+  function close() {
+    setOpen(false);
+  }
 
   return (
     <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
       <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2.5 group">
+        <Link href="/" onClick={close} className="flex items-center gap-2.5 group">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center text-white shadow-sm">
             <Clapperboard className="w-4 h-4" />
           </div>
@@ -27,16 +38,13 @@ export default function Navbar() {
           </span>
         </Link>
 
-        <div className="flex items-center gap-1">
+        <div className="hidden sm:flex items-center gap-1">
           {links.map((link) => {
             const Icon = link.icon as React.ElementType | undefined;
-            const isActive = pathname === link.href || (link.href.startsWith("/#") && pathname === "/");
-            const activeStyle = link.href.startsWith("/") && !link.href.startsWith("/#") && pathname === link.href;
-
-            let style = "text-gray-500 hover:text-gray-900 hover:bg-gray-50";
-            if (isActive && activeStyle) style = "bg-gray-100 text-gray-900";
-            else if (isActive) style = "bg-gray-100 text-gray-900";
-
+            const active = isActive(link);
+            const style = active
+              ? "bg-gray-100 text-gray-900"
+              : "text-gray-500 hover:text-gray-900 hover:bg-gray-50";
             return (
               <Link
                 key={link.href}
@@ -44,12 +52,47 @@ export default function Navbar() {
                 className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${style}`}
               >
                 {Icon && <Icon className="w-3.5 h-3.5" />}
-                <span className="hidden sm:inline">{link.label}</span>
+                {link.label}
               </Link>
             );
           })}
         </div>
+
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          aria-label={open ? "Tutup menu" : "Buka menu"}
+          aria-expanded={open}
+          className="sm:hidden inline-flex items-center justify-center w-10 h-10 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-all duration-200"
+        >
+          {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
       </div>
+
+      {open && (
+        <div className="sm:hidden border-t border-gray-100 bg-white/95 backdrop-blur-lg">
+          <div className="max-w-5xl mx-auto px-4 py-3 space-y-1">
+            {links.map((link) => {
+              const Icon = link.icon as React.ElementType | undefined;
+              const active = isActive(link);
+              const style = active
+                ? "bg-gray-100 text-gray-900"
+                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50";
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={close}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${style}`}
+                >
+                  {Icon && <Icon className="w-4 h-4" />}
+                  {link.label}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

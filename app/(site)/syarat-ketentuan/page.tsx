@@ -16,14 +16,14 @@ export default function TermsPage() {
         <Section title="1. License Terms">
           <p>1.1 The license is non-exclusive, non-transferable, and limited to the selected rental duration.</p>
           <p>1.2 Each license is tied to a specific device Machine ID. It cannot be transferred to another device without written permission from the developer.</p>
-          <p>1.3 The license key is delivered after payment is confirmed. The key is digital — sent via WhatsApp.</p>
+          <p>1.3 The license key and application are delivered after payment is confirmed. They are digital — sent via email or WhatsApp.</p>
           <p>1.4 Prices include VAT (if applicable). Prices may change at any time. Purchases follow the price at the time of transaction.</p>
         </Section>
 
         <Section title="2. Payment Methods">
-          <p>2.1 Payments are processed through Midtrans (Virtual Account, QRIS, E-Wallet).</p>
+          <p>2.1 Payments are processed via QRIS or bank transfer.</p>
           <p>2.2 After successful payment, the system automatically generates the license key.</p>
-          <p>2.3 The key is sent directly to the application and via WhatsApp.</p>
+          <p>2.3 The key and application are sent via email or WhatsApp.</p>
         </Section>
 
         <Section title="3. No Refund Policy">

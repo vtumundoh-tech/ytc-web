@@ -16,6 +16,7 @@ type Order = {
   status: string;
   payment_type: string | null;
   midtrans_order_id: string;
+  machine_id: string | null;
   license_key: string | null;
   admin_notes: string | null;
   agree_snk: boolean;
@@ -35,6 +36,7 @@ type Claim = {
   license_key: string;
   tier: string;
   amount_paid: number;
+  payment_proof_url: string | null;
   screenshot_follow_url: string;
   screenshot_like_url: string;
   screenshot_share_url: string;
@@ -174,7 +176,7 @@ function LoadingSkeleton() {
 function OrdersTab() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  type OrderDraft = { status: string; license_key: string; admin_notes: string };
+  type OrderDraft = { status: string; machine_id: string; license_key: string; admin_notes: string };
   const [drafts, setDrafts] = useState<Record<string, Partial<OrderDraft>>>({});
   const [saving, setSaving] = useState<string | null>(null);
 
@@ -189,7 +191,7 @@ function OrdersTab() {
   useEffect(() => { load(); }, []);
 
   function draftFor(o: Order): OrderDraft {
-    return { status: o.status, license_key: o.license_key || "", admin_notes: o.admin_notes || "", ...drafts[o.id] };
+    return { status: o.status, machine_id: o.machine_id || "", license_key: o.license_key || "", admin_notes: o.admin_notes || "", ...drafts[o.id] };
   }
 
   function setDraft(id: string, patch: Partial<OrderDraft>) {
@@ -202,7 +204,7 @@ function OrdersTab() {
     await fetch("/api/admin/orders", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: o.id, status: d.status, license_key: d.license_key, admin_notes: d.admin_notes }),
+      body: JSON.stringify({ id: o.id, status: d.status, machine_id: d.machine_id, license_key: d.license_key, admin_notes: d.admin_notes }),
     });
     setSaving(null);
     load();
@@ -268,7 +270,7 @@ function OrdersTab() {
 
               <DeviceInfo ip={o.ip_address} browser={o.browser} os={o.os} deviceType={o.device_type} />
 
-              <div className="grid sm:grid-cols-4 gap-3 items-end">
+              <div className="grid sm:grid-cols-6 gap-3 items-end">
                 <div>
                   <label className="text-xs font-medium text-gray-500 block mb-1">Status</label>
                   <select
@@ -280,6 +282,16 @@ function OrdersTab() {
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-500 block mb-1">Machine ID</label>
+                  <input
+                    className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 placeholder:text-gray-300"
+                    maxLength={12}
+                    value={d.machine_id}
+                    onChange={(e) => setDraft(o.id, { machine_id: e.target.value.toUpperCase() })}
+                    placeholder="Diisi setelah user install aplikasi"
+                  />
                 </div>
                 <div className="sm:col-span-2">
                   <label className="text-xs font-medium text-gray-500 block mb-1">Key Lisensi</label>
@@ -427,6 +439,7 @@ function ClaimsTab() {
               <DeviceInfo ip={c.ip_address} browser={c.browser} os={c.os} deviceType={c.device_type} />
 
               <div className="flex flex-wrap gap-2">
+                {c.payment_proof_url && <ProofLink url={c.payment_proof_url} label="Bukti Bayar" />}
                 <ProofLink url={c.screenshot_follow_url} label="Bukti Follow" />
                 <ProofLink url={c.screenshot_like_url} label="Bukti Like" />
                 <ProofLink url={c.screenshot_share_url} label="Bukti Share" />

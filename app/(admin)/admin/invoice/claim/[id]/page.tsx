@@ -15,6 +15,7 @@ type Claim = {
   tier: string;
   addon_1080p: string | null;
   amount_paid: number;
+  payment_proof_url: string | null;
   screenshot_follow_url: string;
   screenshot_like_url: string;
   screenshot_share_url: string;
@@ -168,6 +169,19 @@ export default function InvoiceClaimPage() {
             </tr>
           </tfoot>
         </table>
+
+        {/* Bukti */}
+        <div>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Bukti Lampiran</h3>
+          <div className="flex flex-wrap gap-2">
+            {claim.payment_proof_url && (
+              <a href={claim.payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-violet-600 hover:text-violet-800 bg-violet-50 border border-violet-200 px-3 py-1.5 rounded-lg">Bukti Bayar</a>
+            )}
+            <a href={claim.screenshot_follow_url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-gray-600 hover:text-gray-800 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-lg">Bukti Follow</a>
+            <a href={claim.screenshot_like_url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-gray-600 hover:text-gray-800 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-lg">Bukti Like</a>
+            <a href={claim.screenshot_share_url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-gray-600 hover:text-gray-800 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-lg">Bukti Share</a>
+          </div>
+        </div>
       </div>
     </div>
   );

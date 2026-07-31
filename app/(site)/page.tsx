@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import {
   Download, Mic, Scissors, Brain, Volume2, CreditCard, Gift, Phone, Mail,
   ChevronRight, Sparkles, Clock, ShieldCheck, TrendingUp, Monitor,
-  Star, Flame, Target, Coins,
+  Star, Flame, Target, Coins, User,
 } from "lucide-react";
 import { formatRupiah } from "@/lib/tiers";
 import { useAppSettings } from "@/hooks/useAppSettings";
@@ -34,11 +34,9 @@ const FEATURES = [
 ];
 
 const STEPS = [
-  { icon: Download, label: "Download & Install", desc: "Download aplikasi YouTube Clipper di laptop Windows Anda." },
-  { icon: Monitor, label: "Dapatkan Machine ID", desc: "Buka halaman aktivasi, salin 12-digit Machine ID." },
-  { icon: Gift, label: "Pilih Paket", desc: "Pilih durasi sewa sesuai kebutuhan — 1, 7, 17, atau 30 hari." },
-  { icon: ShieldCheck, label: "Bayar via Midtrans", desc: "QRIS, Virtual Account, atau E-Wallet. Aman & terpercaya." },
-  { icon: Sparkles, label: "Key Dikirim", desc: "Lisensi dikirim otomatis ke aplikasi & via WhatsApp." },
+  { icon: User, label: "Isi Data & Pilih Paket", desc: "Isi nama, WhatsApp & email, lalu pilih paket sewa di halaman beli." },
+  { icon: Coins, label: "Pilih Metode Bayar", desc: "Bayar via QRIS atau transfer bank sesuai metode yang Anda pilih." },
+  { icon: Gift, label: "Key & Aplikasi Dikirim", desc: "Key lisensi & aplikasi dikirim via email atau WhatsApp sesuai data yang diisi." },
 ];
 
 export default function HomePage() {
@@ -90,7 +88,7 @@ export default function HomePage() {
             Beli Langsung
           </Link>
         </div>
-        <p className="text-xs text-gray-400 mt-4">Windows 10/11 • Pembayaran via Midtrans (QRIS/VA/E-Wallet)</p>
+        <p className="text-xs text-gray-400 mt-4">Windows 10/11 • Pembayaran via QRIS / Transfer Bank</p>
       </motion.section>
 
       {/* ─── FITUR ─── */}
@@ -105,9 +103,9 @@ export default function HomePage() {
                 key={f.label}
                 {...stagger}
                 transition={{ ...stagger.transition, delay: i * 0.1 }}
-                className="card-sm hover:shadow-md transition-shadow duration-200 group"
+                className="card-sm hover:shadow-md transition-shadow duration-200 group flex flex-col items-center text-center"
               >
-                <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center mb-4 group-hover:bg-emerald-100 transition-colors">
+                <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center mb-4 mx-auto group-hover:bg-emerald-100 transition-colors">
                   <Icon className="w-5 h-5 text-emerald-600" />
                 </div>
                 <h3 className="font-semibold text-gray-900 text-sm">{f.label}</h3>
@@ -281,8 +279,8 @@ export default function HomePage() {
       {/* ─── CARA BELI ─── */}
       <motion.section id="cara-beli" {...fadeUp} className="max-w-5xl mx-auto px-4 py-12 sm:py-16">
         <h2 className="text-lg sm:text-2xl font-bold text-gray-900 text-center">Cara Pembelian</h2>
-        <p className="text-sm text-gray-500 text-center mt-2 mb-10">Cukup 5 langkah — dari install sampai key siap pakai.</p>
-        <div className="grid sm:grid-cols-5 gap-4">
+        <p className="text-sm text-gray-500 text-center mt-2 mb-10">Cukup 3 langkah — dari beli sampai key siap pakai.</p>
+        <div className="grid sm:grid-cols-3 gap-4">
           {STEPS.map((step, i) => {
             const Icon = step.icon;
             return (
@@ -314,20 +312,20 @@ export default function HomePage() {
         </div>
       </motion.section>
 
-      {/* ─── MIDTRANS ─── */}
+      {/* ─── PEMBAYARAN ─── */}
       <motion.section {...fadeUp} className="relative max-w-5xl mx-auto px-4 py-12 sm:py-16">
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-gray-50/80 to-transparent" />
         <div className="card-lg max-w-2xl mx-auto text-center">
           <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center mx-auto mb-4">
             <ShieldCheck className="w-6 h-6 text-blue-600" />
           </div>
-          <h2 className="text-lg font-bold text-gray-900">Pembayaran Aman via Midtrans</h2>
+          <h2 className="text-lg font-bold text-gray-900">Pembayaran via QRIS / Transfer Bank</h2>
           <p className="text-sm text-gray-500 mt-2 max-w-md mx-auto leading-relaxed">
-            Pembayaran diproses oleh <strong>Midtrans</strong> — payment gateway tepercaya di Indonesia.
+            Pilih metode pembayaran yang tersedia — QRIS atau transfer bank.
             Data Anda terenkripsi & aman.
           </p>
           <div className="flex flex-wrap justify-center gap-3 mt-6">
-            {["QRIS", "GoPay", "ShopeePay", "BCA VA", "BNI VA", "BRI VA", "Permata VA"].map((m, i) => (
+            {["QRIS", "Transfer Bank", "E-Wallet"].map((m, i) => (
               <motion.span
                 key={m}
                 initial={{ opacity: 0, scale: 0.8 }}
@@ -340,7 +338,7 @@ export default function HomePage() {
               </motion.span>
             ))}
           </div>
-          <p className="text-[11px] text-gray-400 mt-4">Semua transaksi diproses langsung oleh Midtrans — tidak dialihkan ke website lain.</p>
+          <p className="text-[11px] text-gray-400 mt-4">Semua transaksi diproses langsung oleh sistem — tidak dialihkan ke website lain.</p>
         </div>
       </motion.section>
 

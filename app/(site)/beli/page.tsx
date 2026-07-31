@@ -297,7 +297,7 @@ function BeliForm() {
         </button>
 
         <p className="text-xs text-gray-400 text-center">
-          Pembayaran diproses oleh Midtrans — data Anda aman & terenkripsi.
+          Pembayaran Anda aman & terenkripsi.
         </p>
       </motion.form>
     </div>

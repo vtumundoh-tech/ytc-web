@@ -41,6 +41,7 @@ create table if not exists cashback_claims (
   tier text not null,
   addon_1080p text, -- 'no' atau kode addon
   amount_paid integer not null,
+  payment_proof_url text, -- bukti bayar (screenshot transfer / QRIS)
   screenshot_follow_url text not null,
   screenshot_like_url text not null,
   screenshot_share_url text not null,
@@ -115,3 +116,8 @@ on conflict (id) do nothing;
 -- Bucket dibuat public agar admin/user bisa lihat gambar via URL langsung.
 -- Upload tetap hanya lewat API route server (service role), jadi tidak ada
 -- resiko orang lain upload sembarangan ke bucket ini.
+
+-- ========== MIGRASI DB YANG SUDAH ADA ==========
+-- Jalankan statement di bawah ini SEKALI untuk DB yang sudah dibuat sebelumnya
+-- (create table if not exists tidak akan menambah kolom baru).
+-- alter table cashback_claims add column if not exists payment_proof_url text;

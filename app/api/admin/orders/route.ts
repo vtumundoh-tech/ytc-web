@@ -10,11 +10,11 @@ export async function GET() {
 
 export async function PATCH(req: NextRequest) {
   const body = await req.json();
-  const { id, status, license_key, admin_notes } = body;
+  const { id, status, machine_id, license_key, admin_notes } = body;
   if (!id) return NextResponse.json({ error: "id wajib diisi" }, { status: 400 });
 
   const supabase = supabaseServer() as any;
-  const { error } = await supabase.from("orders").update({ status, license_key, admin_notes }).eq("id", id);
+  const { error } = await supabase.from("orders").update({ status, machine_id, license_key, admin_notes }).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

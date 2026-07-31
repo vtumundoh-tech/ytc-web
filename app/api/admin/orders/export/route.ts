@@ -12,7 +12,7 @@ export async function GET() {
   const headers = [
     "Order ID", "Tanggal", "Nama", "WhatsApp", "Email",
     "Tier", "Jumlah", "Status", "Metode Bayar",
-    "Key Lisensi", "Catatan Admin", "IP", "Browser", "OS", "Device",
+    "Machine ID", "Key Lisensi", "Catatan Admin", "IP", "Browser", "OS", "Device",
   ];
 
   const csvRows = rows.map((o: any) => [
@@ -25,6 +25,7 @@ export async function GET() {
     o.amount,
     o.status,
     o.payment_type || "",
+    o.machine_id || "",
     o.license_key || "",
     escapeCsv(o.admin_notes || ""),
     o.ip_address || "",

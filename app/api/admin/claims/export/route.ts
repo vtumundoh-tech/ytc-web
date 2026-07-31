@@ -11,7 +11,7 @@ export async function GET() {
   const rows = data || [];
   const headers = [
     "Claim ID", "Tanggal", "Nama", "WhatsApp", "Machine ID",
-    "Key Lisensi", "Tier", "Addon 1080p", "Jumlah Bayar",
+    "Key Lisensi", "Tier", "Addon 1080p", "Jumlah Bayar", "Bukti Bayar",
     "Status", "Catatan Admin", "IP", "Browser", "OS", "Device",
   ];
 
@@ -25,6 +25,7 @@ export async function GET() {
     c.tier,
     c.addon_1080p === "yes" ? "Ya" : "Tidak",
     c.amount_paid,
+    c.payment_proof_url || "",
     c.status,
     escapeCsv(c.admin_notes || ""),
     c.ip_address || "",

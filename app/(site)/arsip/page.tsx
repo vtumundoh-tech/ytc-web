@@ -18,7 +18,7 @@ export default function NotFoundPage() {
           <Home className="w-4 h-4" /> Kembali ke Halaman Utama
         </Link>
 
-        <div className="mt-14 flex justify-center">
+        <div className="fixed bottom-4 right-4">
           <GateClient />
         </div>
       </div>

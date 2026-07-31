@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
     const amountPaid = Number(form.get("amountPaid"));
     const notes = (form.get("notes") as string) || null;
     const agreeSnk = form.get("agreeSnk") as string;
+    const paymentProof = form.get("paymentProof") as File | null;
     const screenshotFollow = form.get("screenshotFollow") as File | null;
     const screenshotLike = form.get("screenshotLike") as File | null;
     const screenshotShare = form.get("screenshotShare") as File | null;
@@ -59,8 +60,8 @@ export async function POST(req: NextRequest) {
     if (!fullName || !whatsapp || !machineId || !licenseKey || !tier || !amountPaid) {
       return NextResponse.json({ error: "Data belum lengkap." }, { status: 400 });
     }
-    if (!screenshotFollow || !screenshotLike || !screenshotShare) {
-      return NextResponse.json({ error: "Semua screenshot bukti wajib dilampirkan." }, { status: 400 });
+    if (!paymentProof || !screenshotFollow || !screenshotLike || !screenshotShare) {
+      return NextResponse.json({ error: "Bukti bayar & semua screenshot bukti wajib dilampirkan." }, { status: 400 });
     }
     if (agreeSnk !== "yes") {
       return NextResponse.json({ error: "Anda harus setuju dengan Syarat & Ketentuan." }, { status: 400 });
@@ -68,7 +69,8 @@ export async function POST(req: NextRequest) {
 
     const supabase = supabaseServer();
 
-    const [followUrl, likeUrl, shareUrl] = await Promise.all([
+    const [paymentUrl, followUrl, likeUrl, shareUrl] = await Promise.all([
+      uploadProof(supabase, paymentProof, "payment"),
       uploadProof(supabase, screenshotFollow, "follow"),
       uploadProof(supabase, screenshotLike, "like"),
       uploadProof(supabase, screenshotShare, "share"),
@@ -82,6 +84,7 @@ export async function POST(req: NextRequest) {
       tier,
       addon_1080p: addon,
       amount_paid: amountPaid,
+      payment_proof_url: paymentUrl,
       screenshot_follow_url: followUrl,
       screenshot_like_url: likeUrl,
       screenshot_share_url: shareUrl,

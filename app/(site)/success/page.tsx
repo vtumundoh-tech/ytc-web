@@ -15,7 +15,7 @@ export default function SuccessPage() {
         </div>
         <h1 className="text-xl font-bold text-gray-900 mb-3">Pembayaran Berhasil!</h1>
         <p className="text-gray-500 text-sm leading-relaxed">
-          Key lisensi akan dikirim ke nomor WhatsApp yang Anda daftarkan begitu pembayaran terkonfirmasi (biasanya beberapa menit).
+          Key lisensi dan aplikasi akan dikirim ke email atau WhatsApp yang Anda daftarkan begitu pembayaran terkonfirmasi (biasanya beberapa menit).
         </p>
       </div>
     </div>
