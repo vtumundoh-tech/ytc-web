@@ -461,7 +461,7 @@ function ClaimsTab() {
 }
 
 function SettingsTab() {
-  type TierForm = { value: string; label: string; amount: string; originalAmount: string; discountPercent: string };
+  type TierForm = { value: string; label: string; originalAmount: string; discountPercent: string };
   type SettingsForm = {
     promo_enabled: boolean;
     tiers: TierForm[];
@@ -489,7 +489,6 @@ function SettingsTab() {
             tiers: data.tiers.map((t: any) => ({
               value: t.value,
               label: t.label,
-              amount: String(t.amount ?? ""),
               originalAmount: String(t.originalAmount ?? ""),
               discountPercent: String(t.discountPercent ?? ""),
             })),
@@ -517,19 +516,29 @@ function SettingsTab() {
     setForm((f) => (f ? { ...f, addon_prices: { ...f.addon_prices, [value]: val } } : f));
   }
 
+  function computedPromo(originalAmount: number, discountPercent: number): number {
+    const pct = Math.min(100, Math.max(0, discountPercent));
+    const price = originalAmount * (1 - pct / 100);
+    return Math.round(price / 1000) * 1000;
+  }
+
   async function save() {
     if (!form) return;
     setSaving(true);
     setError("");
     setSaved(false);
     try {
-      const tiers = form.tiers.map((t) => ({
-        value: t.value,
-        label: t.label,
-        amount: Number(t.amount) || 0,
-        originalAmount: Number(t.originalAmount) || 0,
-        discountPercent: Number(t.discountPercent) || 0,
-      }));
+      const tiers = form.tiers.map((t) => {
+        const originalAmount = Number(t.originalAmount) || 0;
+        const discountPercent = Number(t.discountPercent) || 0;
+        return {
+          value: t.value,
+          label: t.label,
+          amount: computedPromo(originalAmount, discountPercent),
+          originalAmount,
+          discountPercent,
+        };
+      });
       const addon_prices = Object.fromEntries(
         Object.entries(form.addon_prices).map(([k, v]) => [k, Number(v) || 0])
       );
@@ -612,7 +621,7 @@ function SettingsTab() {
       <div className="card-sm space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-gray-900 text-sm">Harga Paket</h3>
-          <span className="text-[10px] text-gray-400">% Diskon = angka badge yang tampil</span>
+          <span className="text-[10px] text-gray-400">Harga promo otomatis mengikuti % Diskon · % Diskon = angka badge yang tampil</span>
         </div>
 
         <div className="overflow-x-auto">
@@ -621,7 +630,7 @@ function SettingsTab() {
               <tr className="border-b border-gray-100">
                 <th className="text-left font-semibold text-gray-500 pb-2">Paket</th>
                 <th className="text-right font-semibold text-gray-500 pb-2">Harga Normal</th>
-                <th className="text-right font-semibold text-gray-500 pb-2">Harga Promo</th>
+                <th className="text-right font-semibold text-gray-500 pb-2">Harga Promo (otomatis)</th>
                 <th className="text-right font-semibold text-gray-500 pb-2">% Diskon</th>
               </tr>
             </thead>
@@ -638,12 +647,9 @@ function SettingsTab() {
                     />
                   </td>
                   <td className="py-3">
-                    <input
-                      type="number"
-                      className="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400"
-                      value={t.amount}
-                      onChange={(e) => setTier(t.value, { amount: e.target.value })}
-                    />
+                    <div className="text-right font-semibold text-emerald-600 whitespace-nowrap">
+                      {rupiah(computedPromo(Number(t.originalAmount) || 0, Number(t.discountPercent) || 0))}
+                    </div>
                   </td>
                   <td className="py-3">
                     <div className="flex items-center justify-end gap-1">
