@@ -473,6 +473,7 @@ function SettingsTab() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [savedAt, setSavedAt] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -499,6 +500,7 @@ function SettingsTab() {
               Object.entries(data.cashback_tiers || {}).map(([k, v]) => [k, String(v)])
             ),
           });
+          if (data.updated_at) setSavedAt(data.updated_at);
         }
       } catch (e: any) {
         setError(e.message || "Gagal memuat pengaturan.");
@@ -554,6 +556,7 @@ function SettingsTab() {
       const data = text ? JSON.parse(text) : {};
       if (!res.ok) throw new Error(data.error || `Gagal menyimpan. (HTTP ${res.status})`);
       setSaved(true);
+      setSavedAt(new Date().toISOString());
       setTimeout(() => setSaved(false), 2500);
     } catch (err: any) {
       setError(err.message || "Gagal menyimpan pengaturan.");
@@ -707,13 +710,20 @@ function SettingsTab() {
             </div>
           ))}
         </div>
-        <button
-          onClick={save}
-          disabled={saving}
-          className="flex items-center gap-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white px-5 py-2.5 rounded-xl transition-all duration-200"
-        >
-          <Save className="w-3.5 h-3.5" /> {saving ? "Menyimpan..." : "Simpan Pengaturan"}
-        </button>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <p className="text-xs text-gray-400">
+            {savedAt
+              ? `Terakhir disimpan: ${new Date(savedAt).toLocaleString("id-ID")}`
+              : "Belum pernah disimpan."}
+          </p>
+          <button
+            onClick={save}
+            disabled={saving}
+            className="flex items-center gap-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white px-5 py-2.5 rounded-xl transition-all duration-200"
+          >
+            <Save className="w-3.5 h-3.5" /> {saving ? "Menyimpan..." : "Simpan Pengaturan"}
+          </button>
+        </div>
       </div>
     </div>
   );
