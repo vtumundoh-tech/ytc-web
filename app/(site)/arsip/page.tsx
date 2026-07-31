@@ -18,7 +18,7 @@ export default function NotFoundPage() {
           <Home className="w-4 h-4" /> Kembali ke Halaman Utama
         </Link>
 
-        <div className="fixed bottom-4 right-4">
+        <div className="fixed bottom-4 right-4 z-50">
           <GateClient />
         </div>
       </div>

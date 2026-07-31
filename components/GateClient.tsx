@@ -36,17 +36,12 @@ export default function GateClient() {
 
   return (
     <>
-      <div className="flex items-center gap-2">
-        <span className="text-[11px] font-bold text-white bg-gray-900 px-2.5 py-1 rounded-lg shadow-md">
-          &larr; Admin di sini
-        </span>
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          aria-label="."
-          className="inline-block w-4 h-4 rounded-full bg-black ring-2 ring-white shadow-md hover:scale-110 transition-all duration-200 cursor-pointer"
-        />
-      </div>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label="."
+        className="inline-block w-2 h-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors cursor-pointer"
+      />
       {open && (
         <div
           className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
