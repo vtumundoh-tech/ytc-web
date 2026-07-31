@@ -11,5 +11,9 @@ export function supabaseServer() {
   }
   return createClient(url, key, {
     auth: { persistSession: false },
+    global: {
+      fetch: (input: any, init?: any) =>
+        fetch(input, { ...init, cache: "no-store" }),
+    },
   });
 }
