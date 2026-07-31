@@ -519,7 +519,7 @@ function SettingsTab() {
   function computedPromo(originalAmount: number, discountPercent: number): number {
     const pct = Math.min(100, Math.max(0, discountPercent));
     const price = originalAmount * (1 - pct / 100);
-    return Math.round(price / 1000) * 1000;
+    return Math.round(price);
   }
 
   async function save() {
