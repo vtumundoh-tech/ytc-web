@@ -65,9 +65,9 @@ values (
   false,
   '[
     {"value": "daily_720", "label": "1 Hari", "amount": 5000, "originalAmount": 10000, "discountPercent": 50},
-    {"value": "weekly_720", "label": "7 Hari", "amount": 25000, "originalAmount": 35000, "discountPercent": 29},
-    {"value": "semi_monthly_720", "label": "17 Hari", "amount": 39000, "originalAmount": 55000, "discountPercent": 29},
-    {"value": "monthly_720", "label": "30 Hari", "amount": 49000, "originalAmount": 69000, "discountPercent": 29}
+    {"value": "weekly_720", "label": "7 Hari", "amount": 24850, "originalAmount": 35000, "discountPercent": 29},
+    {"value": "semi_monthly_720", "label": "17 Hari", "amount": 39050, "originalAmount": 55000, "discountPercent": 29},
+    {"value": "monthly_720", "label": "30 Hari", "amount": 48990, "originalAmount": 69000, "discountPercent": 29}
   ]'::jsonb,
   '{
     "daily_720": 3000,
