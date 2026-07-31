@@ -3,7 +3,10 @@
 import { useState } from "react";
 import { formatRupiah } from "@/lib/tiers";
 import { useAppSettings } from "@/hooks/useAppSettings";
-import { Gift, User, Phone, Hash, Key, Tag, Image, FileText, CheckCircle, AlertTriangle, TrendingUp, ExternalLink, Search } from "lucide-react";
+import { Gift, User, Phone, Hash, Key, Tag, Image, FileText, CheckCircle, AlertTriangle, TrendingUp, ExternalLink, Search, X } from "lucide-react";
+
+const TIKTOK_URL = "https://www.tiktok.com/@mineclipstudio";
+const YOUTUBE_URL = "https://www.youtube.com/@Mineclips_collection";
 
 export default function KlaimCashbackPage() {
   const { settings } = useAppSettings();
@@ -21,10 +24,10 @@ export default function KlaimCashbackPage() {
   const [amountPaid, setAmountPaid] = useState("");
   const [notes, setNotes] = useState("");
   const [captcha, setCaptcha] = useState("");
-  const [fPayment, setFPayment] = useState<File | null>(null);
-  const [fFollow, setFFollow] = useState<File | null>(null);
-  const [fLike, setFLike] = useState<File | null>(null);
-  const [fShare, setFShare] = useState<File | null>(null);
+  const [fPayment, setFPayment] = useState<File[]>([]);
+  const [fFollow, setFFollow] = useState<File[]>([]);
+  const [fLike, setFLike] = useState<File[]>([]);
+  const [fShare, setFShare] = useState<File[]>([]);
   const [agree, setAgree] = useState(false);
   const [snkOpen, setSnkOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -32,7 +35,9 @@ export default function KlaimCashbackPage() {
   const [done, setDone] = useState(false);
 
   const requiredFilled =
-    machineId && fullName && whatsapp && licenseKey && tier && amountPaid && fPayment && fFollow && fLike && fShare && agree && captcha === "15";
+    machineId && fullName && whatsapp && licenseKey && tier && amountPaid &&
+    fPayment.length > 0 && fFollow.length > 0 && fLike.length > 0 && fShare.length > 0 &&
+    agree && captcha === "15";
 
   async function handleCheck() {
     setChecking(true);
@@ -79,10 +84,10 @@ export default function KlaimCashbackPage() {
       fd.append("amountPaid", amountPaid);
       fd.append("notes", notes);
       fd.append("agreeSnk", "yes");
-      fd.append("paymentProof", fPayment as File);
-      fd.append("screenshotFollow", fFollow as File);
-      fd.append("screenshotLike", fLike as File);
-      fd.append("screenshotShare", fShare as File);
+      fPayment.forEach((f) => fd.append("paymentProof", f));
+      fFollow.forEach((f) => fd.append("screenshotFollow", f));
+      fLike.forEach((f) => fd.append("screenshotLike", f));
+      fShare.forEach((f) => fd.append("screenshotShare", f));
 
       const res = await fetch("/api/cashback", { method: "POST", body: fd });
       const data = await res.json();
@@ -120,13 +125,24 @@ export default function KlaimCashbackPage() {
           <Gift className="w-5 h-5 text-white" />
         </div>
         <h1 className="text-xl font-bold text-gray-900">Klaim Cashback</h1>
-        <p className="text-sm text-gray-500 mt-1">Lampirkan bukti bayar & bukti follow, like & share untuk klaim cashback Anda.</p>
+        <p className="text-sm text-gray-500 mt-1">Lampirkan bukti bayar & bukti follow/subscribe, like &amp; comment, dan share untuk klaim cashback Anda.</p>
       </div>
 
       <div className="card-sm mb-6 flex items-start gap-3 animate-fade-in">
         <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
         <div className="text-xs text-gray-500 leading-relaxed">
-          <strong className="text-gray-700">Syarat Ringkas:</strong> Follow TikTok @yourstudio &middot; Like & comment video promo terbaru &middot; Share ke 3 teman &middot; Screenshot semua langkah. &middot; Harap diisi data yang sebenar-benarnya seperti yang di submit saat pembelian agar mudah untuk kami melakukan tracking untuk pengembalian dana. Jika data yang ditemukan berbeda bukan tanggung jawab kami karena tidak dapat meneruskan cashback.
+          <strong className="text-gray-700">Syarat Ringkas:</strong>{" "}
+          Follow{" "}
+          <a href={TIKTOK_URL} target="_blank" rel="noopener noreferrer" className="text-violet-600 font-semibold underline underline-offset-2 hover:text-violet-700">
+            TikTok @mineclipstudio
+            <ExternalLink className="w-3 h-3 inline ml-0.5" />
+          </a>{" "}
+          atau subscribe{" "}
+          <a href={YOUTUBE_URL} target="_blank" rel="noopener noreferrer" className="text-violet-600 font-semibold underline underline-offset-2 hover:text-violet-700">
+            YouTube @Mineclips_collection
+            <ExternalLink className="w-3 h-3 inline ml-0.5" />
+          </a>{" "}
+          &middot; Like &amp; comment minimal 3 post kami &middot; Share ke minimal 3 teman atau unggah ke Story &middot; Semua wajib dipertahankan minimal 7 hari — jika kedapatan berhenti lebih awal, cashback tidak dapat dicairkan &middot; Lampirkan screenshot bukti setiap langkah. Pencairan dilakukan minimal 7 hari setelah key diaktifkan. Harap diisi data yang sebenar-benarnya seperti yang di submit saat pembelian agar mudah untuk kami melakukan tracking untuk pengembalian dana. Jika data yang ditemukan berbeda bukan tanggung jawab kami karena tidak dapat meneruskan cashback.
         </div>
       </div>
 
@@ -278,10 +294,29 @@ export default function KlaimCashbackPage() {
         <div className="space-y-5">
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Upload Bukti</h2>
 
-          <FileUpload label="Bukti Bayar" file={fPayment} onChange={setFPayment} required />
-          <FileUpload label="Screenshot — Follow TikTok" file={fFollow} onChange={setFFollow} required />
-          <FileUpload label="Screenshot — Like & Comment" file={fLike} onChange={setFLike} required />
-          <FileUpload label="Screenshot — Share ke Teman" file={fShare} onChange={setFShare} required />
+          <FileUpload label="Bukti Bayar" files={fPayment} onChange={setFPayment} required />
+          <FileUpload
+            label="Screenshot — Bukti Follow / Subscribe"
+            files={fFollow}
+            onChange={setFFollow}
+            required
+            hint="Screenshot akun yang sudah follow TikTok atau subscribe YouTube."
+          />
+          <FileUpload
+            label="Screenshot — Like & Comment (minimal 3 post, maks 6 gambar)"
+            files={fLike}
+            onChange={setFLike}
+            required
+            maxFiles={6}
+            hint="Post di TikTok maupun YouTube — wajib berbeda untuk setiap klaim."
+          />
+          <FileUpload
+            label="Screenshot — Share ke Teman / Story"
+            files={fShare}
+            onChange={setFShare}
+            required
+            hint="Bukti share ke minimal 3 teman, atau screenshot Story saat sudah tayang."
+          />
         </div>
 
         <hr className="border-gray-100" />
@@ -305,8 +340,10 @@ export default function KlaimCashbackPage() {
           {snkOpen && (
             <div className="mt-3 p-4 rounded-xl bg-gray-50 text-xs text-gray-500 leading-relaxed space-y-2 animate-fade-in">
               <p>Cashback hanya berlaku 1 kali per key, non-tunai, ditransfer ke WhatsApp terdaftar.</p>
-              <p>Video like & comment wajib berbeda setiap klaim — mengulang video yang sama dianggap tidak sah.</p>
-              <p>Kecurangan mengakibatkan blacklist permanen & key dapat dicabut tanpa refund.</p>
+              <p>Follow, like, comment, dan subscribe wajib dipertahankan minimal 7 hari — jika kedapatan berhenti lebih awal, cashback tidak dapat dicairkan.</p>
+              <p>Like &amp; comment wajib minimal 3 post yang berbeda setiap klaim — mengulang post yang sama dianggap tidak sah.</p>
+              <p>Pencairan dilakukan minimal 7 hari setelah key diaktifkan.</p>
+              <p>Kecurangan mengakibatkan blacklist permanen &amp; key dapat dicabut tanpa refund.</p>
               <p>Keputusan Admin bersifat mutlak.</p>
             </div>
           )}
@@ -363,35 +400,73 @@ function Field({ icon: Icon, label, required, hint, children }: {
   );
 }
 
-function FileUpload({ label, file, onChange, required }: {
+function FileUpload({ label, files, onChange, maxFiles = 1, required, hint }: {
   label: string;
-  file: File | null;
-  onChange: (f: File | null) => void;
+  files: File[];
+  onChange: (f: File[]) => void;
+  maxFiles?: number;
   required?: boolean;
+  hint?: string;
 }) {
+  const canAdd = files.length < maxFiles;
+
+  function handleSelect(list: FileList | null) {
+    if (!list) return;
+    const next = [...files];
+    for (const f of Array.from(list)) {
+      if (next.length >= maxFiles) break;
+      next.push(f);
+    }
+    onChange(next);
+  }
+
   return (
     <div>
       <label className="field-label">
         <Image className="w-3.5 h-3.5 inline mr-1.5 text-violet-500" />
         {label} {required && <span className="text-red-400">*</span>}
+        {maxFiles > 1 && <span className="text-gray-400 font-normal">({files.length}/{maxFiles})</span>}
       </label>
-      <label className="flex flex-col items-center justify-center w-full p-6 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-violet-300 hover:bg-violet-50/30 transition-all duration-200">
-        {file ? (
-          <div className="text-center">
-            <Image className="w-8 h-8 text-violet-500 mx-auto mb-2" />
-            <p className="text-sm font-medium text-gray-700">{file.name}</p>
-            <p className="text-xs text-gray-400 mt-0.5">{(file.size / 1024 / 1024).toFixed(1)} MB</p>
-            <span className="inline-block mt-2 text-xs text-violet-600 font-medium">Tap untuk ganti file</span>
-          </div>
-        ) : (
+
+      {files.length > 0 && (
+        <div className="space-y-2 mb-2">
+          {files.map((file, i) => (
+            <div key={`${file.name}-${i}`} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
+              <div className="flex items-center gap-2 min-w-0">
+                <Image className="w-4 h-4 text-violet-500 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-gray-700 truncate">{file.name}</p>
+                  <p className="text-[11px] text-gray-400">{(file.size / 1024 / 1024).toFixed(1)} MB</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onChange(files.filter((_, idx) => idx !== i))}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
+                aria-label="Hapus file"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {canAdd ? (
+        <label className={`flex flex-col items-center justify-center w-full p-6 border-2 border-dashed rounded-xl cursor-pointer transition-all duration-200 ${
+          files.length > 0 ? "border-violet-200 bg-violet-50/30 hover:border-violet-300" : "border-gray-200 hover:border-violet-300 hover:bg-violet-50/30"
+        }`}>
           <div className="text-center">
             <Image className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-            <p className="text-sm text-gray-500">Tap untuk pilih gambar</p>
-            <p className="text-xs text-gray-400 mt-0.5">JPEG, PNG, atau WebP (maks 5MB)</p>
+            <p className="text-sm text-gray-500">{files.length > 0 ? "Tap untuk tambah gambar" : "Tap untuk pilih gambar"}</p>
+            <p className="text-xs text-gray-400 mt-0.5">JPEG, PNG, atau WebP (maks 5MB){maxFiles > 1 ? `, maksimal ${maxFiles} gambar` : ""}</p>
           </div>
-        )}
-        <input type="file" accept="image/*" className="hidden" onChange={(e) => onChange(e.target.files?.[0] || null)} required={required} />
-      </label>
+          <input type="file" accept="image/*" multiple={maxFiles > 1} className="hidden" onChange={(e) => handleSelect(e.target.files)} />
+        </label>
+      ) : (
+        <p className="text-xs text-emerald-600 font-medium">Sudah mencapai maksimal {maxFiles} gambar.</p>
+      )}
+      {hint && <p className="field-hint">{hint}</p>}
     </div>
   );
 }

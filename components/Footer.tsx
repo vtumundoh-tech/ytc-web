@@ -14,7 +14,7 @@ export default function Footer() {
       <div className="max-w-5xl mx-auto px-4 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-2 text-xs text-gray-400">
           <ShieldCheck className="w-3.5 h-3.5" />
-          <span>&copy; {new Date().getFullYear()} YouTube Clipper. All rights reserved.</span>
+          <span>&copy; {new Date().getFullYear()} Mineclip Studio. All rights reserved.</span>
         </div>
         <div className="flex items-center gap-4 text-xs text-gray-400">
           <Link href="/syarat-ketentuan" className="hover:text-gray-600">Terms & Conditions</Link>

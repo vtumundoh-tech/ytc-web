@@ -54,14 +54,17 @@ export async function POST(req: NextRequest) {
     const agreeSnk = form.get("agreeSnk") as string;
     const paymentProof = form.get("paymentProof") as File | null;
     const screenshotFollow = form.get("screenshotFollow") as File | null;
-    const screenshotLike = form.get("screenshotLike") as File | null;
+    const screenshotLike = form.getAll("screenshotLike") as File[];
     const screenshotShare = form.get("screenshotShare") as File | null;
 
     if (!fullName || !whatsapp || !machineId || !licenseKey || !tier || !amountPaid) {
       return NextResponse.json({ error: "Data belum lengkap." }, { status: 400 });
     }
-    if (!paymentProof || !screenshotFollow || !screenshotLike || !screenshotShare) {
-      return NextResponse.json({ error: "Bukti bayar & semua screenshot bukti wajib dilampirkan." }, { status: 400 });
+    if (!paymentProof || !screenshotFollow || screenshotLike.length < 1 || !screenshotShare) {
+      return NextResponse.json({ error: "Bukti bayar, bukti follow/subscribe, like & comment, dan share wajib dilampirkan." }, { status: 400 });
+    }
+    if (screenshotLike.length > 6) {
+      return NextResponse.json({ error: "Screenshot like & comment maksimal 6 gambar." }, { status: 400 });
     }
     if (agreeSnk !== "yes") {
       return NextResponse.json({ error: "Anda harus setuju dengan Syarat & Ketentuan." }, { status: 400 });
@@ -69,12 +72,10 @@ export async function POST(req: NextRequest) {
 
     const supabase = supabaseServer();
 
-    const [paymentUrl, followUrl, likeUrl, shareUrl] = await Promise.all([
-      uploadProof(supabase, paymentProof, "payment"),
-      uploadProof(supabase, screenshotFollow, "follow"),
-      uploadProof(supabase, screenshotLike, "like"),
-      uploadProof(supabase, screenshotShare, "share"),
-    ]);
+    const paymentUrl = await uploadProof(supabase, paymentProof, "payment");
+    const followUrl = await uploadProof(supabase, screenshotFollow, "follow");
+    const likeUrls = await Promise.all(screenshotLike.map((f, i) => uploadProof(supabase, f, `like-${i + 1}`)));
+    const shareUrl = await uploadProof(supabase, screenshotShare, "share");
 
     const { error: insertError } = await supabase.from("cashback_claims").insert({
       full_name: fullName,
@@ -86,7 +87,7 @@ export async function POST(req: NextRequest) {
       amount_paid: amountPaid,
       payment_proof_url: paymentUrl,
       screenshot_follow_url: followUrl,
-      screenshot_like_url: likeUrl,
+      screenshot_like_url: JSON.stringify(likeUrls),
       screenshot_share_url: shareUrl,
       notes,
       agree_snk: true,

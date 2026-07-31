@@ -51,6 +51,11 @@ export function formatRupiah(n: number): string {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
 }
 
+export function formatPrice(n: number): string {
+  const k = Math.round((n / 1000) * 10) / 10;
+  return String(k).replace(".", ",") + "k";
+}
+
 export function discountPercent(tier: Tier): number {
   if (tier.originalAmount <= tier.amount) return 0;
   return Math.round((1 - tier.amount / tier.originalAmount) * 100);

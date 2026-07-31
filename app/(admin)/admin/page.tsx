@@ -440,9 +440,9 @@ function ClaimsTab() {
 
               <div className="flex flex-wrap gap-2">
                 {c.payment_proof_url && <ProofLink url={c.payment_proof_url} label="Bukti Bayar" />}
-                <ProofLink url={c.screenshot_follow_url} label="Bukti Follow" />
-                <ProofLink url={c.screenshot_like_url} label="Bukti Like" />
-                <ProofLink url={c.screenshot_share_url} label="Bukti Share" />
+                {c.screenshot_follow_url && <ProofLink url={c.screenshot_follow_url} label="Bukti Follow/Subscribe" />}
+                <LikeProofLinks value={c.screenshot_like_url} />
+                {c.screenshot_share_url && <ProofLink url={c.screenshot_share_url} label="Bukti Share" />}
               </div>
 
               {c.notes && (
@@ -829,5 +829,24 @@ function ProofLink({ url, label }: { url: string; label: string }) {
       <ExternalLink className="w-3 h-3" />
       {label}
     </a>
+  );
+}
+
+function LikeProofLinks({ value }: { value: string | null }) {
+  if (!value) return null;
+  let urls: string[] = [];
+  try {
+    const parsed = JSON.parse(value);
+    urls = Array.isArray(parsed) ? parsed : [value];
+  } catch {
+    urls = [value];
+  }
+  if (urls.length === 0) return null;
+  return (
+    <>
+      {urls.map((u, i) => (
+        <ProofLink key={`${u}-${i}`} url={u} label={urls.length > 1 ? `Bukti Like & Comment #${i + 1}` : "Bukti Like & Comment"} />
+      ))}
+    </>
   );
 }

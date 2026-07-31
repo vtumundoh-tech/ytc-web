@@ -29,6 +29,16 @@ function rupiah(n: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
 }
 
+function parseLikeUrls(value: string): string[] {
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) return parsed;
+  } catch {
+    /* fallthrough */
+  }
+  return [value];
+}
+
 export default function InvoiceClaimPage() {
   const params = useParams();
   const [claim, setClaim] = useState<Claim | null>(null);
@@ -177,9 +187,20 @@ export default function InvoiceClaimPage() {
             {claim.payment_proof_url && (
               <a href={claim.payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-violet-600 hover:text-violet-800 bg-violet-50 border border-violet-200 px-3 py-1.5 rounded-lg">Bukti Bayar</a>
             )}
-            <a href={claim.screenshot_follow_url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-gray-600 hover:text-gray-800 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-lg">Bukti Follow</a>
-            <a href={claim.screenshot_like_url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-gray-600 hover:text-gray-800 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-lg">Bukti Like</a>
-            <a href={claim.screenshot_share_url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-gray-600 hover:text-gray-800 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-lg">Bukti Share</a>
+            {claim.screenshot_follow_url && (
+              <a href={claim.screenshot_follow_url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-gray-600 hover:text-gray-800 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-lg">Bukti Follow/Subscribe</a>
+            )}
+            {claim.screenshot_like_url && parseLikeUrls(claim.screenshot_like_url).map((u, i) => {
+              const multiple = parseLikeUrls(claim.screenshot_like_url).length > 1;
+              return (
+                <a key={`${u}-${i}`} href={u} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-gray-600 hover:text-gray-800 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-lg">
+                  {multiple ? `Bukti Like & Comment #${i + 1}` : "Bukti Like & Comment"}
+                </a>
+              );
+            })}
+            {claim.screenshot_share_url && (
+              <a href={claim.screenshot_share_url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-gray-600 hover:text-gray-800 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-lg">Bukti Share</a>
+            )}
           </div>
         </div>
       </div>

@@ -6,9 +6,9 @@ import { motion } from "framer-motion";
 import {
   Download, Mic, Scissors, Brain, Volume2, CreditCard, Gift, Phone, Mail,
   ChevronRight, Sparkles, Clock, ShieldCheck, TrendingUp, Monitor,
-  Star, Flame, Target, Coins, User,
+  Star, Flame, Target, Coins, User, ExternalLink,
 } from "lucide-react";
-import { formatRupiah } from "@/lib/tiers";
+import { formatPrice } from "@/lib/tiers";
 import { useAppSettings } from "@/hooks/useAppSettings";
 
 const fadeUp = {
@@ -30,7 +30,7 @@ const FEATURES = [
   { icon: Mic, label: "Transkripsi AI", desc: "Otomatis transkrip audio pakai Whisper AI. Akurat & cepat." },
   { icon: Scissors, label: "Potong Klip Viral", desc: "Buat klip pendek siap upload ke TikTok, Reels, Shorts." },
   { icon: Brain, label: "AI Scoring", desc: "Skor konten pakai Gemini/OpenRouter/Claude." },
-  { icon: Volume2, label: "Narator Otomatis", desc: "Suara narasi realistik dari Azure TTS." },
+  { icon: Volume2, label: "Narator Otomatis", desc: "Suara narasi realistik." },
 ];
 
 const STEPS = [
@@ -38,6 +38,9 @@ const STEPS = [
   { icon: Coins, label: "Pilih Metode Bayar", desc: "Bayar via QRIS atau transfer bank sesuai metode yang Anda pilih." },
   { icon: Gift, label: "Key & Aplikasi Dikirim", desc: "Key lisensi & aplikasi dikirim via email atau WhatsApp sesuai data yang diisi." },
 ];
+
+const TIKTOK_URL = "https://www.tiktok.com/@mineclipstudio";
+const YOUTUBE_URL = "https://www.youtube.com/@Mineclips_collection";
 
 export default function HomePage() {
   const [addonTiers, setAddonTiers] = useState<Set<string>>(new Set());
@@ -67,7 +70,7 @@ export default function HomePage() {
         <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight leading-tight">
           Download, Transkrip, Potong,{" "}
           <span className="bg-gradient-to-r from-emerald-600 to-emerald-400 bg-clip-text text-transparent">
-            Viral.
+            Viral, dan Cuan.
           </span>
         </h1>
         <p className="mt-5 text-base sm:text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
@@ -173,7 +176,7 @@ export default function HomePage() {
                     {disc > 0 && (
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-xs text-gray-400 line-through">
-                          {formatRupiah(isAddonActive ? tier.originalAmount + addonPrice * 2 : tier.originalAmount)}
+                          {formatPrice(isAddonActive ? tier.originalAmount + addonPrice * 2 : tier.originalAmount)}
                         </span>
                         <span className="px-1.5 py-0.5 bg-red-50 text-red-600 text-[10px] font-bold rounded">
                           -{disc}%
@@ -181,12 +184,12 @@ export default function HomePage() {
                       </div>
                     )}
                     <div className="text-2xl font-extrabold text-gray-900 tracking-tight">
-                      {formatRupiah(totalPrice)}
+                      {formatPrice(totalPrice)}
                     </div>
                     {disc > 0 && (
                       <div className="flex items-center gap-1 mt-0.5">
                         <span className="text-[11px] text-emerald-600 font-medium">
-                          Hemat {formatRupiah((isAddonActive ? tier.originalAmount + addonPrice * 2 : tier.originalAmount) - totalPrice)}
+                          Hemat {formatPrice((isAddonActive ? tier.originalAmount + addonPrice * 2 : tier.originalAmount) - totalPrice)}
                         </span>
                       </div>
                     )}
@@ -220,7 +223,7 @@ export default function HomePage() {
                         </span>
                       </div>
                       <span className={`text-xs font-bold ${isAddonActive ? "text-blue-700" : "text-gray-400"}`}>
-                        +{formatRupiah(addonPrice)}
+                        +{formatPrice(addonPrice)}
                       </span>
                     </button>
                   )}
@@ -230,7 +233,7 @@ export default function HomePage() {
                     <div className="flex items-center gap-1.5 p-2.5 rounded-lg bg-amber-50 border border-amber-100 mb-3">
                       <Gift className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                       <span className="text-[11px] font-semibold text-amber-800">
-                        Cashback {formatRupiah(cashback)}
+                        Cashback {formatPrice(cashback)}
                       </span>
                     </div>
                   )}
@@ -338,7 +341,7 @@ export default function HomePage() {
               </motion.span>
             ))}
           </div>
-          <p className="text-[11px] text-gray-400 mt-4">Semua transaksi diproses langsung oleh sistem — tidak dialihkan ke website lain.</p>
+          <p className="text-[11px] text-gray-400 mt-4">Semua transaksi diproses dengan aman — tidak dialihkan ke website lain.</p>
         </div>
       </motion.section>
 
@@ -349,7 +352,7 @@ export default function HomePage() {
           Dapatkan uang kembali dengan follow, like & share konten TikTok kami.
         </p>
         <p className="text-xs text-gray-400 text-center mb-10">
-          Syarat & Ketentuan berlaku — lihat detail di halaman klaim cashback.
+          Syarat & Ketentuan berlaku
         </p>
 
         {cashbackEligible.length > 0 && (
@@ -359,7 +362,7 @@ export default function HomePage() {
               {cashbackEligible.map((t) => (
                 <div key={t.value} className="flex items-center justify-between p-3 rounded-lg bg-amber-50 border border-amber-100">
                   <span className="text-sm font-medium text-gray-900">{t.label}</span>
-                  <span className="text-sm font-bold text-amber-700">+ {formatRupiah(settings.cashbackTiers[t.value] || 0)}</span>
+                  <span className="text-sm font-bold text-amber-700">+ {formatPrice(settings.cashbackTiers[t.value] || 0)}</span>
                 </div>
               ))}
             </div>
@@ -377,12 +380,24 @@ export default function HomePage() {
         <div className="max-w-lg mx-auto mt-6 card-sm text-xs text-gray-500 leading-relaxed space-y-2">
           <p><strong>Syarat Klaim:</strong></p>
           <ol className="list-decimal list-inside space-y-1">
-            <li>Follow TikTok @yourstudio</li>
-            <li>Like & comment video promo terbaru (WAJIB video berbeda untuk setiap klaim)</li>
-            <li>Share video ke minimal 3 teman (DM/Story)</li>
-            <li>Lampirkan screenshot bukti setiap langkah</li>
+            <li>
+              Support kami dengan follow{" "}
+              <a href={TIKTOK_URL} target="_blank" rel="noopener noreferrer" className="text-violet-600 font-semibold underline underline-offset-2 hover:text-violet-700">
+                TikTok @mineclipstudio
+                <ExternalLink className="w-3 h-3 inline ml-0.5" />
+              </a>{" "}
+              atau subscribe{" "}
+              <a href={YOUTUBE_URL} target="_blank" rel="noopener noreferrer" className="text-violet-600 font-semibold underline underline-offset-2 hover:text-violet-700">
+                YouTube Channel @Mineclips_collection
+                <ExternalLink className="w-3 h-3 inline ml-0.5" />
+              </a>
+            </li>
+            <li>Like &amp; comment minimal 3 post kami — baik di TikTok maupun YouTube (wajib post yang berbeda untuk setiap klaim)</li>
+            <li>Share video ke minimal 3 teman atau unggah video ke Story (share boleh dilakukan 3× ke akun kami; untuk Story cukup screenshot saat sudah tayang)</li>
+            <li>Follow, like, comment, dan subscribe wajib dipertahankan minimal 7 hari — jika kedapatan berhenti lebih awal, cashback tidak dapat dicairkan</li>
+            <li>Lampirkan screenshot bukti dari setiap langkah</li>
           </ol>
-          <p className="mt-3">Cashback ditransfer ke nomor WhatsApp terdaftar. Maksimal 1 klaim per key.</p>
+          <p className="mt-3">Pencairan dilakukan minimal 7 hari setelah key diaktifkan. Bukti transfer cashback dikirim ke nomor WhatsApp atau email terdaftar. Maksimal 1 klaim per key.</p>
         </div>
       </motion.section>
 
@@ -393,24 +408,24 @@ export default function HomePage() {
           <p className="text-sm text-gray-500 mt-2 mb-6">Ada pertanyaan? Butuh bantuan? Tim kami siap membantu.</p>
           <div className="space-y-3 text-left max-w-xs mx-auto">
             <a
-              href="https://wa.me/6281234567890"
+              href="https://wa.me/6282395912267"
               target="_blank"
               className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 transition-colors"
             >
               <Phone className="w-4 h-4 text-emerald-600" />
               <div>
                 <div className="text-xs font-semibold text-gray-900">WhatsApp</div>
-                <div className="text-xs text-gray-500">+62 812-3456-7890</div>
+                <div className="text-xs text-gray-500">+62 823-9591-2267</div>
               </div>
             </a>
             <a
-              href="mailto:support@youtubeclipper.com"
+              href="mailto:mineclipstudios@gmail.com"
               className="flex items-center gap-3 p-3 rounded-xl bg-blue-50 border border-blue-100 hover:bg-blue-100 transition-colors"
             >
               <Mail className="w-4 h-4 text-blue-600" />
               <div>
                 <div className="text-xs font-semibold text-gray-900">Email</div>
-                <div className="text-xs text-gray-500">support@youtubeclipper.com</div>
+                <div className="text-xs text-gray-500">mineclipstudios@gmail.com</div>
               </div>
             </a>
           </div>

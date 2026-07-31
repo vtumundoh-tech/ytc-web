@@ -1,6 +1,9 @@
 import { ShieldCheck, FileText } from "lucide-react";
 import Link from "next/link";
 
+const TIKTOK_URL = "https://www.tiktok.com/@mineclipstudio";
+const YOUTUBE_URL = "https://www.youtube.com/@Mineclips_collection";
+
 export default function TermsPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-10 sm:py-14">
@@ -101,9 +104,19 @@ export default function TermsPage() {
 
           <p className="font-semibold text-gray-700">9.2 Claim Requirements</p>
           <ol className="list-decimal list-inside pl-2 space-y-1 mb-3">
-            <li>Follow TikTok @yourstudio</li>
-            <li>Like & comment on the latest promo video — MUST be a different video for each claim. Liking/commenting on the same video repeatedly is not valid.</li>
-            <li>Share the video to at least 3 friends (DM/Story)</li>
+            <li>
+              Support us by following{" "}
+              <a href={TIKTOK_URL} target="_blank" rel="noopener noreferrer" className="text-violet-600 font-semibold underline underline-offset-2 hover:text-violet-700">
+                TikTok @mineclipstudio
+              </a>{" "}
+              or subscribing to the{" "}
+              <a href={YOUTUBE_URL} target="_blank" rel="noopener noreferrer" className="text-violet-600 font-semibold underline underline-offset-2 hover:text-violet-700">
+                YouTube Channel @Mineclips_collection
+              </a>
+            </li>
+            <li>Like &amp; comment on at least 3 of our posts — on TikTok or YouTube — MUST be different posts for each claim.</li>
+            <li>Share the video to at least 3 friends, or upload it to your Story (sharing 3× to our account is allowed; for Story, a screenshot once it is live is enough)</li>
+            <li>Follow, like, comment, and subscribe must be maintained for at least 7 days (1 week). If you are found to have stopped earlier, the cashback cannot be disbursed.</li>
             <li>Attach screenshots as proof for each step</li>
             <li>Fill in the data correctly and completely</li>
           </ol>
@@ -117,12 +130,13 @@ export default function TermsPage() {
             <li>Customer fills in the cashback claim form</li>
             <li>Admin verifies proof within a maximum of 1x24 hours</li>
             <li>If valid → status set to Approved</li>
+            <li>Payout is processed no earlier than 7 days after the key is activated (subject to the 9.2 maintenance requirements being met)</li>
             <li>Cashback is transferred via WhatsApp → status set to Paid</li>
             <li>If proof is invalid → Rejected</li>
           </ol>
 
           <p className="font-semibold text-gray-700">9.5 Penalties & Blacklist</p>
-          <p>Customers found to be committing fraud (including: fake accounts, bots, duplicate claims, using the same video for repeated claims):</p>
+          <p>Customers found to be committing fraud (including: fake accounts, bots, duplicate claims, using the same post for repeated claims, or stopping follow/subscribe/like/comment before the required 7 days):</p>
           <ul className="list-disc list-inside pl-2 space-y-1 mb-3">
             <li>Cashback claim permanently rejected</li>
             <li>Blacklisted & unable to purchase new keys</li>
