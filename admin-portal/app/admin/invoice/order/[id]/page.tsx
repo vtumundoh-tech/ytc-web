@@ -65,6 +65,13 @@ export default function InvoiceOrderPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
+      <style jsx>{`
+        @media print {
+          @page { margin: 0; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .no-print { display: none !important; }
+        }
+      `}</style>
       <div className="no-print flex items-center justify-between mb-6">
         <Link
           href="/admin"
@@ -143,32 +150,6 @@ export default function InvoiceOrderPage() {
             </tr>
           </tfoot>
         </table>
-
-        {/* Status & Key */}
-        <div className="grid sm:grid-cols-2 gap-4 mb-6 p-4 rounded-xl bg-gray-50">
-          <div>
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Status</h3>
-            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
-              order.status === "paid" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-              order.status === "pending" ? "bg-amber-50 text-amber-700 border-amber-200" :
-              "bg-red-50 text-red-700 border-red-200"
-            }`}>
-              {order.status}
-            </span>
-          </div>
-          {order.license_key && (
-            <div>
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Key Lisensi</h3>
-              <p className="text-sm font-mono font-bold text-gray-900">{order.license_key}</p>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="pt-6 border-t border-gray-100 text-center text-xs text-gray-400">
-          <p>Terima kasih telah membeli lisensi YouTube Clipper.</p>
-          <p className="mt-1">Key dikirim otomatis ke WhatsApp setelah pembayaran dikonfirmasi.</p>
-        </div>
       </div>
     </div>
   );

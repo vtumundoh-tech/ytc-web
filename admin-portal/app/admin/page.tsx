@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { LogOut, ShoppingBag, Gift, Users, DollarSign, ExternalLink, Save, Download, FileText } from "lucide-react";
+import { LogOut, ShoppingBag, Gift, Users, DollarSign, ExternalLink, Save, Download, FileText, Settings, Power } from "lucide-react";
 
 type Order = {
   id: string;
@@ -61,7 +61,7 @@ function cn(...classes: (string | false | undefined | null)[]) {
 }
 
 export default function AdminPage() {
-  const [tab, setTab] = useState<"orders" | "claims">("orders");
+  const [tab, setTab] = useState<"orders" | "claims" | "settings">("orders");
   const router = useRouter();
 
   async function logout() {
@@ -91,10 +91,13 @@ export default function AdminPage() {
         <TabBtn active={tab === "claims"} onClick={() => setTab("claims")}>
           <Gift className="w-3.5 h-3.5" /> Klaim Cashback
         </TabBtn>
+        <TabBtn active={tab === "settings"} onClick={() => setTab("settings")}>
+          <Settings className="w-3.5 h-3.5" /> Pengaturan
+        </TabBtn>
       </div>
 
       <div className="animate-slide-up" key={tab}>
-        {tab === "orders" ? <OrdersTab /> : <ClaimsTab />}
+        {tab === "orders" ? <OrdersTab /> : tab === "claims" ? <ClaimsTab /> : <SettingsTab />}
       </div>
     </div>
   );
@@ -453,6 +456,252 @@ function ClaimsTab() {
           );
         })
       )}
+    </div>
+  );
+}
+
+function SettingsTab() {
+  type TierForm = { value: string; label: string; amount: string; originalAmount: string; discountPercent: string };
+  type SettingsForm = {
+    promo_enabled: boolean;
+    tiers: TierForm[];
+    addon_prices: Record<string, string>;
+    cashback_tiers: Record<string, string>;
+  };
+
+  const [form, setForm] = useState<SettingsForm | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetch("/api/admin/settings")
+      .then((r) => r.json())
+      .then((d) => {
+        const data = d.data;
+        if (data && Array.isArray(data.tiers)) {
+          setForm({
+            promo_enabled: data.promo_enabled === true,
+            tiers: data.tiers.map((t: any) => ({
+              value: t.value,
+              label: t.label,
+              amount: String(t.amount ?? ""),
+              originalAmount: String(t.originalAmount ?? ""),
+              discountPercent: String(t.discountPercent ?? ""),
+            })),
+            addon_prices: Object.fromEntries(
+              Object.entries(data.addon_prices || {}).map(([k, v]) => [k, String(v)])
+            ),
+            cashback_tiers: Object.fromEntries(
+              Object.entries(data.cashback_tiers || {}).map(([k, v]) => [k, String(v)])
+            ),
+          });
+        }
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  function setTier(value: string, patch: Partial<TierForm>) {
+    setForm((f) => (f ? { ...f, tiers: f.tiers.map((t) => (t.value === value ? { ...t, ...patch } : t)) } : f));
+  }
+
+  function setAddon(value: string, val: string) {
+    setForm((f) => (f ? { ...f, addon_prices: { ...f.addon_prices, [value]: val } } : f));
+  }
+
+  async function save() {
+    if (!form) return;
+    setSaving(true);
+    setError("");
+    setSaved(false);
+    try {
+      const tiers = form.tiers.map((t) => ({
+        value: t.value,
+        label: t.label,
+        amount: Number(t.amount) || 0,
+        originalAmount: Number(t.originalAmount) || 0,
+        discountPercent: Number(t.discountPercent) || 0,
+      }));
+      const addon_prices = Object.fromEntries(
+        Object.entries(form.addon_prices).map(([k, v]) => [k, Number(v) || 0])
+      );
+      const cashback_tiers = Object.fromEntries(
+        Object.entries(form.cashback_tiers).map(([k, v]) => [k, Number(v) || 0])
+      );
+      const res = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ promo_enabled: form.promo_enabled, tiers, addon_prices, cashback_tiers }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal menyimpan.");
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err: any) {
+      setError(err.message || "Gagal menyimpan pengaturan.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) return <LoadingSkeleton />;
+  if (!form) {
+    return (
+      <div className="card-sm text-center py-12">
+        <Settings className="w-8 h-8 text-gray-200 mx-auto mb-3" />
+        <p className="text-sm text-gray-400">Pengaturan tidak ditemukan. Jalankan schema terbaru di Supabase.</p>
+      </div>
+    );
+  }
+
+  const promoActive = form.promo_enabled;
+
+  return (
+    <div className="space-y-4">
+      <div className={cn("card-sm space-y-4", promoActive ? "border-emerald-200" : "border-gray-200")}>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
+              <Power className={cn("w-4 h-4", promoActive ? "text-emerald-600" : "text-gray-400")} />
+              Promo / Diskon
+            </h3>
+            <p className="text-xs text-gray-500 mt-1">
+              {promoActive
+                ? "Promo AKTIF — harga promo ditampilkan & ditagih ke pelanggan."
+                : "Promo NONAKTIF — harga normal (originalAmount) ditampilkan & ditagih."}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setForm((f) => (f ? { ...f, promo_enabled: !f.promo_enabled } : f))}
+            className={cn(
+              "relative w-14 h-8 rounded-full transition-colors duration-300",
+              promoActive ? "bg-emerald-500" : "bg-gray-300"
+            )}
+          >
+            <span
+              className={cn(
+                "absolute top-1 w-6 h-6 rounded-full bg-white shadow-md transition-all duration-300",
+                promoActive ? "left-7" : "left-1"
+              )}
+            />
+          </button>
+        </div>
+
+        {saved && (
+          <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-sm text-emerald-700">
+            Pengaturan berhasil disimpan.
+          </div>
+        )}
+        {error && (
+          <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+      </div>
+
+      <div className="card-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-gray-900 text-sm">Harga Paket</h3>
+          <span className="text-[10px] text-gray-400">% Diskon = angka badge yang tampil</span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100">
+                <th className="text-left font-semibold text-gray-500 pb-2">Paket</th>
+                <th className="text-right font-semibold text-gray-500 pb-2">Harga Normal</th>
+                <th className="text-right font-semibold text-gray-500 pb-2">Harga Promo</th>
+                <th className="text-right font-semibold text-gray-500 pb-2">% Diskon</th>
+              </tr>
+            </thead>
+            <tbody>
+              {form.tiers.map((t) => (
+                <tr key={t.value} className="border-b border-gray-50">
+                  <td className="py-3 font-medium text-gray-900">{t.label}</td>
+                  <td className="py-3">
+                    <input
+                      type="number"
+                      className="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400"
+                      value={t.originalAmount}
+                      onChange={(e) => setTier(t.value, { originalAmount: e.target.value })}
+                    />
+                  </td>
+                  <td className="py-3">
+                    <input
+                      type="number"
+                      className="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400"
+                      value={t.amount}
+                      onChange={(e) => setTier(t.value, { amount: e.target.value })}
+                    />
+                  </td>
+                  <td className="py-3">
+                    <div className="flex items-center justify-end gap-1">
+                      <input
+                        type="number"
+                        className="w-20 rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400"
+                        value={t.discountPercent}
+                        onChange={(e) => setTier(t.value, { discountPercent: e.target.value })}
+                      />
+                      <span className="text-gray-400 text-xs">%</span>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="card-sm space-y-4">
+        <h3 className="font-semibold text-gray-900 text-sm">Harga Addon 1080p</h3>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {form.tiers.map((t) => (
+            <div key={t.value}>
+              <label className="text-xs font-medium text-gray-500 block mb-1">{t.label}</label>
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  className="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+                  value={form.addon_prices[t.value] ?? ""}
+                  onChange={(e) => setAddon(t.value, e.target.value)}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="card-sm space-y-4">
+        <h3 className="font-semibold text-gray-900 text-sm">Cashback per Paket</h3>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {form.tiers.map((t) => (
+            <div key={t.value}>
+              <label className="text-xs font-medium text-gray-500 block mb-1">{t.label}</label>
+              <input
+                type="number"
+                className="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400"
+                value={form.cashback_tiers[t.value] ?? ""}
+                onChange={(e) =>
+                  setForm((f) =>
+                    f ? { ...f, cashback_tiers: { ...f.cashback_tiers, [t.value]: e.target.value } } : f
+                  )
+                }
+              />
+            </div>
+          ))}
+        </div>
+        <button
+          onClick={save}
+          disabled={saving}
+          className="flex items-center gap-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white px-5 py-2.5 rounded-xl transition-all duration-200"
+        >
+          <Save className="w-3.5 h-3.5" /> {saving ? "Menyimpan..." : "Simpan Pengaturan"}
+        </button>
+      </div>
     </div>
   );
 }

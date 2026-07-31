@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { FileText, Printer, ArrowLeft, ExternalLink } from "lucide-react";
+import { FileText, Printer, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 type Claim = {
@@ -70,6 +70,13 @@ export default function InvoiceClaimPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
+      <style jsx>{`
+        @media print {
+          @page { margin: 0; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .no-print { display: none !important; }
+        }
+      `}</style>
       <div className="no-print flex items-center justify-between mb-6">
         <Link
           href="/admin"
@@ -161,40 +168,6 @@ export default function InvoiceClaimPage() {
             </tr>
           </tfoot>
         </table>
-
-        {/* Proof links */}
-        <div className="mb-6 p-4 rounded-xl bg-gray-50">
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Bukti Screenshot</h3>
-          <div className="flex flex-wrap gap-2">
-            <a href={claim.screenshot_follow_url} target="_blank" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-xs font-medium text-gray-600 hover:text-violet-600 hover:border-violet-200 transition-all">
-              <ExternalLink className="w-3 h-3" /> Bukti Follow
-            </a>
-            <a href={claim.screenshot_like_url} target="_blank" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-xs font-medium text-gray-600 hover:text-violet-600 hover:border-violet-200 transition-all">
-              <ExternalLink className="w-3 h-3" /> Bukti Like
-            </a>
-            <a href={claim.screenshot_share_url} target="_blank" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-xs font-medium text-gray-600 hover:text-violet-600 hover:border-violet-200 transition-all">
-              <ExternalLink className="w-3 h-3" /> Bukti Share
-            </a>
-          </div>
-        </div>
-
-        {claim.notes && (
-          <div className="mb-6 text-xs text-gray-500 italic p-4 rounded-xl bg-gray-50">
-            "{claim.notes}"
-          </div>
-        )}
-
-        {claim.admin_notes && (
-          <div className="mb-6 text-xs text-gray-500 p-4 rounded-xl bg-gray-50">
-            <span className="font-semibold text-gray-700">Catatan Admin:</span> {claim.admin_notes}
-          </div>
-        )}
-
-        {/* Footer */}
-        <div className="pt-6 border-t border-gray-100 text-center text-xs text-gray-400">
-          <p>Cashback ditransfer ke nomor WhatsApp terdaftar: {claim.whatsapp}</p>
-          <p className="mt-1">Terima kasih telah berpartisipasi dalam program cashback YouTube Clipper.</p>
-        </div>
       </div>
     </div>
   );

@@ -8,7 +8,8 @@ import {
   ChevronRight, Sparkles, Clock, ShieldCheck, TrendingUp, Monitor,
   Star, Flame, Target, Coins,
 } from "lucide-react";
-import { TIERS, CASHBACK_TIERS, formatRupiah, discountPercent, findCashback, getAddonPrice } from "@/lib/tiers";
+import { formatRupiah } from "@/lib/tiers";
+import { useAppSettings } from "@/hooks/useAppSettings";
 
 const fadeUp = {
   initial: { opacity: 0, y: 30 },
@@ -40,10 +41,12 @@ const STEPS = [
   { icon: Sparkles, label: "Key Dikirim", desc: "Lisensi dikirim otomatis ke aplikasi & via WhatsApp." },
 ];
 
-const CASHBACK_ELIGIBLE = CASHBACK_TIERS.filter((t) => t.amount > 0);
-
 export default function HomePage() {
   const [addonTiers, setAddonTiers] = useState<Set<string>>(new Set());
+  const { settings } = useAppSettings();
+  const promoEnabled = settings.promoEnabled;
+  const tiers = settings.tiers;
+  const cashbackEligible = tiers.filter((t) => (settings.cashbackTiers[t.value] || 0) > 0);
 
   function toggleAddon(value: string) {
     setAddonTiers((prev) => {
@@ -119,18 +122,22 @@ export default function HomePage() {
       <motion.section id="harga" {...fadeUp} className="relative max-w-5xl mx-auto px-4 py-12 sm:py-16">
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-gray-50/80 to-transparent" />
         <h2 className="text-lg sm:text-2xl font-bold text-gray-900 text-center">Pilih Paket Sewa</h2>
-        <p className="text-sm text-gray-500 text-center mt-2 mb-3">Harga spesial — diskon terbatas. Harga sewaktu-waktu bisa berubah.</p>
+        {promoEnabled ? (
+          <p className="text-sm text-gray-500 text-center mt-2 mb-3">Harga spesial — diskon terbatas. Harga sewaktu-waktu bisa berubah.</p>
+        ) : (
+          <p className="text-sm text-gray-500 text-center mt-2 mb-3">Harga normal tanpa potongan. Harga sewaktu-waktu bisa berubah.</p>
+        )}
         <p className="text-xs text-gray-400 text-center mb-10"><Coins className="w-4 h-4 inline text-amber-500 -mt-0.5" /> Setiap pembelian paket 720p tertentu berhak klaim cashback!</p>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {TIERS.map((tier, i) => {
-            const disc = discountPercent(tier);
-            const cashback = findCashback(tier.value);
-            const addonPrice = getAddonPrice(tier.value);
+          {tiers.map((tier, i) => {
+            const disc = promoEnabled ? tier.discountPercent : 0;
+            const cashback = settings.cashbackTiers[tier.value] || 0;
+            const addonPrice = settings.addonPrices[tier.value] || 0;
             const hasAddon = tier.label === "30 Hari" || tier.label === "7 Hari" || tier.label === "17 Hari";
             const isAddonActive = addonTiers.has(tier.value);
-            const totalPrice = isAddonActive ? tier.amount + addonPrice : tier.amount;
-            const isMonthly = tier.value === "monthly_720";
+            const basePrice = promoEnabled ? tier.amount : tier.originalAmount;
+            const totalPrice = isAddonActive ? basePrice + addonPrice : basePrice;
             const isBestValue = tier.value === "monthly_720";
             const isWeekly720 = tier.value === "weekly_720" && !isBestValue;
             const isSemiMonthly720 = tier.value === "semi_monthly_720" && !isBestValue && !isWeekly720;
@@ -171,21 +178,20 @@ export default function HomePage() {
                           {formatRupiah(isAddonActive ? tier.originalAmount + addonPrice * 2 : tier.originalAmount)}
                         </span>
                         <span className="px-1.5 py-0.5 bg-red-50 text-red-600 text-[10px] font-bold rounded">
-                          -{disc > 20 ? disc + 5 : disc}%
+                          -{disc}%
                         </span>
                       </div>
                     )}
                     <div className="text-2xl font-extrabold text-gray-900 tracking-tight">
                       {formatRupiah(totalPrice)}
                     </div>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <span className="text-[11px] text-gray-400">/{tier.label.toLowerCase().includes("hari") ? "periode" : "bulan"}</span>
-                      {disc > 0 && (
-                        <span className="text-[11px] text-emerald-600 font-medium ml-1">
+                    {disc > 0 && (
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <span className="text-[11px] text-emerald-600 font-medium">
                           Hemat {formatRupiah((isAddonActive ? tier.originalAmount + addonPrice * 2 : tier.originalAmount) - totalPrice)}
                         </span>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Toggle 1080p (kecuali Daily) */}
@@ -348,14 +354,14 @@ export default function HomePage() {
           Syarat & Ketentuan berlaku — lihat detail di halaman klaim cashback.
         </p>
 
-        {CASHBACK_ELIGIBLE.length > 0 && (
+        {cashbackEligible.length > 0 && (
           <div className="max-w-lg mx-auto card-sm">
             <h3 className="font-semibold text-gray-900 text-sm mb-4">Besaran Cashback</h3>
             <div className="space-y-2">
-              {CASHBACK_ELIGIBLE.map((t) => (
+              {cashbackEligible.map((t) => (
                 <div key={t.value} className="flex items-center justify-between p-3 rounded-lg bg-amber-50 border border-amber-100">
                   <span className="text-sm font-medium text-gray-900">{t.label}</span>
-                  <span className="text-sm font-bold text-amber-700">+ {formatRupiah(t.amount)}</span>
+                  <span className="text-sm font-bold text-amber-700">+ {formatRupiah(settings.cashbackTiers[t.value] || 0)}</span>
                 </div>
               ))}
             </div>

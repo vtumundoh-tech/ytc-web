@@ -3,7 +3,8 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { TIERS, formatRupiah, findCashback, getAddonPrice, getTotalPrice } from "@/lib/tiers";
+import { formatRupiah } from "@/lib/tiers";
+import { useAppSettings } from "@/hooks/useAppSettings";
 import { CreditCard, User, Phone, Mail, CheckCircle, ArrowRight, ExternalLink, Gift, TrendingUp } from "lucide-react";
 
 function BeliForm() {
@@ -11,6 +12,9 @@ function BeliForm() {
   const searchParams = useSearchParams();
   const preselected = searchParams.get("tier") || "";
   const preselectedAddon = searchParams.get("addon1080") === "1";
+  const { settings } = useAppSettings();
+  const tiers = settings.tiers;
+  const promoEnabled = settings.promoEnabled;
 
   const [fullName, setFullName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
@@ -22,7 +26,7 @@ function BeliForm() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (preselected && TIERS.some((t) => t.value === preselected)) {
+    if (preselected && tiers.some((t) => t.value === preselected)) {
       setTier(preselected);
       setAddon1080(preselectedAddon);
     }
@@ -68,10 +72,11 @@ function BeliForm() {
     }
   }
 
-  const selected = TIERS.find((t) => t.value === tier);
-  const cashback = tier ? findCashback(tier) : 0;
-  const addonPrice = tier ? getAddonPrice(tier) : 0;
-  const totalPrice = tier ? getTotalPrice(tier, addon1080) : 0;
+  const selected = tiers.find((t) => t.value === tier);
+  const cashback = tier ? settings.cashbackTiers[tier] || 0 : 0;
+  const addonPrice = tier ? settings.addonPrices[tier] || 0 : 0;
+  const basePrice = selected ? (promoEnabled ? selected.amount : selected.originalAmount) : 0;
+  const totalPrice = tier ? basePrice + (addon1080 ? addonPrice : 0) : 0;
   const canSubmit = fullName && whatsapp && tier && agree && !loading;
 
   return (
@@ -150,9 +155,10 @@ function BeliForm() {
         <div>
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Pilih Paket</h2>
           <div className="grid sm:grid-cols-2 gap-3">
-            {TIERS.map((t, i) => {
-              const aPrice = getAddonPrice(t.value);
+            {tiers.map((t, i) => {
+              const aPrice = settings.addonPrices[t.value] || 0;
               const isSelected = tier === t.value;
+              const cardPrice = isSelected ? basePrice : (promoEnabled ? t.amount : t.originalAmount);
               return (
                 <motion.div
                   key={t.value}
@@ -174,7 +180,7 @@ function BeliForm() {
                     )}
                     <div className="font-semibold text-sm text-gray-900">{t.label}</div>
                     <div className="text-base font-bold text-emerald-600 mt-1">
-                      {formatRupiah(addon1080 && isSelected ? totalPrice : t.amount)}
+                      {formatRupiah(addon1080 && isSelected ? totalPrice : cardPrice)}
                     </div>
 
                     {/* Toggle 1080p di dalam kartu aktif */}

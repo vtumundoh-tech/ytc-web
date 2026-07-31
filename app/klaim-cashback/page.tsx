@@ -1,10 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { CASHBACK_TIERS, getAddonPrice, formatRupiah } from "@/lib/tiers";
+import { formatRupiah } from "@/lib/tiers";
+import { useAppSettings } from "@/hooks/useAppSettings";
 import { Gift, User, Phone, Hash, Key, Tag, Image, FileText, CheckCircle, AlertTriangle, TrendingUp, ExternalLink } from "lucide-react";
 
 export default function KlaimCashbackPage() {
+  const { settings } = useAppSettings();
+  const tiers = settings.tiers;
+
   const [fullName, setFullName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [machineId, setMachineId] = useState("");
@@ -121,7 +125,7 @@ export default function KlaimCashbackPage() {
           <Field icon={Tag} label="Tier yang Dibeli" required>
             <select className="input-field" value={tier} onChange={(e) => { setTier(e.target.value); setAddon1080(false); }} required>
               <option value="">— Pilih —</option>
-              {CASHBACK_TIERS.map((t) => (
+              {tiers.map((t) => (
                 <option key={t.value} value={t.value}>{t.label}</option>
               ))}
             </select>
@@ -159,9 +163,9 @@ export default function KlaimCashbackPage() {
                   Saya membeli upgrade 1080p
                 </span>
               </div>
-              {tier && getAddonPrice(tier) > 0 && (
+              {tier && (settings.addonPrices[tier] || 0) > 0 && (
                 <span className={`text-xs font-bold ${addon1080 ? "text-blue-700" : "text-gray-400"}`}>
-                  +{formatRupiah(getAddonPrice(tier))}
+                  +{formatRupiah(settings.addonPrices[tier] || 0)}
                 </span>
               )}
             </button>

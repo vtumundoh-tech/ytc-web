@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CreditCard, Gift } from "lucide-react";
+import { CreditCard, Gift, Clapperboard } from "lucide-react";
 
 const links = [
   { href: "/", label: "Beranda" },
@@ -19,8 +19,8 @@ export default function Navbar() {
     <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
       <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
-            YC
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center text-white shadow-sm">
+            <Clapperboard className="w-4 h-4" />
           </div>
           <span className="font-bold text-gray-900 text-sm tracking-tight">
             YouTube <span className="text-emerald-600">Clipper</span>

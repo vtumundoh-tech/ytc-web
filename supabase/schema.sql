@@ -48,6 +48,45 @@ create table if not exists cashback_claims (
 create index if not exists idx_claims_status on cashback_claims(status);
 create index if not exists idx_claims_created_at on cashback_claims(created_at desc);
 
+-- ========== TABEL APP_SETTINGS (konfigurasi global: promo & harga) ==========
+create table if not exists app_settings (
+  id integer primary key default 1 check (id = 1), -- selalu satu baris
+  promo_enabled boolean not null default false,
+  tiers jsonb not null default '[]'::jsonb,
+  addon_prices jsonb not null default '{}'::jsonb,
+  cashback_tiers jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+-- Seed awal: nilai sama dengan lib/tiers.ts (promo default OFF)
+insert into app_settings (id, promo_enabled, tiers, addon_prices, cashback_tiers)
+values (
+  1,
+  false,
+  '[
+    {"value": "daily_720", "label": "1 Hari", "amount": 5000, "originalAmount": 10000, "discountPercent": 50},
+    {"value": "weekly_720", "label": "7 Hari", "amount": 25000, "originalAmount": 35000, "discountPercent": 29},
+    {"value": "semi_monthly_720", "label": "17 Hari", "amount": 39000, "originalAmount": 55000, "discountPercent": 29},
+    {"value": "monthly_720", "label": "30 Hari", "amount": 49000, "originalAmount": 69000, "discountPercent": 29}
+  ]'::jsonb,
+  '{
+    "daily_720": 3000,
+    "weekly_720": 12000,
+    "semi_monthly_720": 12000,
+    "monthly_720": 13000
+  }'::jsonb,
+  '{
+    "daily_720": 0,
+    "weekly_720": 6000,
+    "semi_monthly_720": 3000,
+    "monthly_720": 9000
+  }'::jsonb
+)
+on conflict (id) do nothing;
+
+alter table app_settings enable row level security;
+-- Tidak ada policy untuk anon/authenticated -> hanya bisa diakses lewat service role key di server.
+
 -- ========== ROW LEVEL SECURITY ==========
 -- RLS diaktifkan. Karena semua akses tulis/baca dari app dilakukan lewat API route
 -- server (pakai Service Role Key yang otomatis bypass RLS), maka dari sisi client

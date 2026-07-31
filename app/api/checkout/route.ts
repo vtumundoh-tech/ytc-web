@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { createSnapTransaction } from "@/lib/midtrans";
-import { findTier, getAddonPrice, getTotalPrice } from "@/lib/tiers";
+import { getSettings } from "@/lib/settings";
 import { checkRateLimit, rateLimitKey } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
@@ -22,13 +22,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Anda harus setuju dengan Syarat & Ketentuan." }, { status: 400 });
     }
 
-    const tierData = findTier(tier);
+    const settings = await getSettings();
+    const tierData = settings.tiers.find((t) => t.value === tier);
     if (!tierData) {
       return NextResponse.json({ error: "Paket tidak valid." }, { status: 400 });
     }
 
     const hasAddon = addon1080 === true;
-    const totalAmount = getTotalPrice(tier, hasAddon);
+    const basePrice = settings.promoEnabled ? tierData.amount : tierData.originalAmount;
+    const addonPrice = hasAddon ? settings.addonPrices[tier] || 0 : 0;
+    const totalAmount = basePrice + addonPrice;
     const tierLabel = hasAddon ? `${tierData.label} (1080p)` : `${tierData.label} (720p)`;
     const itemName = `Lisensi YouTube Clipper - ${tierLabel}`;
 
