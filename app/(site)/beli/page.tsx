@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { formatPrice, formatRupiah } from "@/lib/tiers";
 import { useAppSettings } from "@/hooks/useAppSettings";
-import { CreditCard, User, Phone, Mail, CheckCircle, ArrowRight, ExternalLink, Gift, TrendingUp } from "lucide-react";
+import { CreditCard, User, Phone, Mail, CheckCircle, ArrowRight, ExternalLink, Gift, TrendingUp, Download, Loader2 } from "lucide-react";
 
 function BeliForm() {
   const router = useRouter();
@@ -24,6 +24,50 @@ function BeliForm() {
   const [agree, setAgree] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [cashbackCode, setCashbackCode] = useState("");
+  const [paidModal, setPaidModal] = useState(false);
+  const [downloadToken, setDownloadToken] = useState("");
+  const [downloadUrl, setDownloadUrl] = useState("");
+  const [dlState, setDlState] = useState<"prep" | "countdown" | "error">("prep");
+  const [countdown, setCountdown] = useState(5);
+  const autoFired = useRef(false);
+
+  useEffect(() => {
+    if (!paidModal || !downloadToken) return;
+    autoFired.current = false;
+    let counter = 5;
+    setDlState("prep");
+    setCountdown(counter);
+    (async () => {
+      try {
+        const res = await fetch(`/api/download?token=${encodeURIComponent(downloadToken)}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Gagal membuat tautan unduh.");
+        setDownloadUrl(data.url);
+        setDlState("countdown");
+        const timer = setInterval(() => {
+          counter -= 1;
+          setCountdown(counter);
+          if (counter <= 0) {
+            clearInterval(timer);
+            if (!autoFired.current) {
+              autoFired.current = true;
+              const a = document.createElement("a");
+              a.href = data.url;
+              a.rel = "noopener";
+              a.download = "";
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+            }
+          }
+        }, 1000);
+      } catch (err: any) {
+        setDlState("error");
+        setError(err.message || "Gagal menyiapkan unduhan.");
+      }
+    })();
+  }, [paidModal, downloadToken]);
 
   useEffect(() => {
     if (preselected && tiers.some((t) => t.value === preselected)) {
@@ -35,7 +79,7 @@ function BeliForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    if (!fullName || !whatsapp || !tier || !agree) return;
+    if (!fullName || !email || !tier || !agree) return;
     setLoading(true);
     try {
       const res = await fetch("/api/checkout", {
@@ -46,26 +90,12 @@ function BeliForm() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal membuat transaksi");
 
-      const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY;
-      const isProd = process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === "true";
-      const snapUrl = isProd
-        ? "https://app.midtrans.com/snap/snap.js"
-        : "https://app.sandbox.midtrans.com/snap/snap.js";
-
-      if (typeof window !== "undefined" && data.token && clientKey) {
-        await loadSnapScript(snapUrl, clientKey);
-        (window as any).snap.pay(data.token, {
-          onSuccess: () => { router.push("/success"); },
-          onPending: () => { router.push("/success"); },
-          onError: (result: any) => {
-            setError(result?.status_message || "Pembayaran gagal, coba lagi.");
-            setLoading(false);
-          },
-          onClose: () => { setLoading(false); },
-        });
-      } else {
-        window.location.href = data.redirectUrl;
-      }
+      // Midtrans dinonaktifkan sementara (mode tes) — langsung tampilkan modal.
+      setCashbackCode(data.cashbackCode || "");
+      setDownloadToken(data.downloadToken || "");
+      setDlState("prep");
+      setCountdown(5);
+      setPaidModal(true);
     } catch (err: any) {
       setError(err.message || "Terjadi kesalahan, coba lagi.");
       setLoading(false);
@@ -77,7 +107,8 @@ function BeliForm() {
   const addonPrice = tier ? settings.addonPrices[tier] || 0 : 0;
   const basePrice = selected ? (promoEnabled ? selected.amount : selected.originalAmount) : 0;
   const totalPrice = tier ? basePrice + (addon1080 ? addonPrice : 0) : 0;
-  const canSubmit = fullName && whatsapp && tier && agree && !loading;
+  const canSubmit = fullName && email && tier && agree && !loading;
+  const isCashbackEligible = cashback > 0;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 sm:py-12">
@@ -121,7 +152,7 @@ function BeliForm() {
           <div>
             <label className="field-label">
               <Phone className="w-3.5 h-3.5 inline mr-1.5 text-emerald-500" />
-              Nomor WhatsApp <span className="text-red-400">*</span>
+              Nomor WhatsApp
             </label>
             <input
               className="input-field"
@@ -129,16 +160,15 @@ function BeliForm() {
               placeholder="Contoh: 08123456789"
               value={whatsapp}
               onChange={(e) => setWhatsapp(e.target.value)}
-              required
             />
-            <p className="field-hint">Aktif — untuk konfirmasi dan pengiriman key lisensi</p>
+            <p className="field-hint">Opsional — alternatif jika email tidak bisa dihubungi. Wajib jika ingin klaim cashback.</p>
             <p className="field-hint">Harap gunakan nomor yang sama jika anda ingin mengklaim cashback</p>
           </div>
 
           <div>
             <label className="field-label">
               <Mail className="w-3.5 h-3.5 inline mr-1.5 text-emerald-500" />
-              Alamat Email
+              Alamat Email <span className="text-red-400">*</span>
             </label>
             <input
               className="input-field"
@@ -146,8 +176,9 @@ function BeliForm() {
               placeholder="contoh@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              required
             />
-            <p className="field-hint">Opsional — alternatif jika WA tidak bisa dihubungi</p>
+            <p className="field-hint">Wajib — untuk pengiriman invoice & konfirmasi</p>
           </div>
         </div>
 
@@ -292,7 +323,7 @@ function BeliForm() {
           }`}
         >
           {loading ? "Memproses..." : (
-            <>Lanjut ke Pembayaran — {formatRupiah(totalPrice)} <ArrowRight className="w-4 h-4" /></>
+            <>Submit Pembelian — {formatRupiah(totalPrice)} <ArrowRight className="w-4 h-4" /></>
           )}
         </button>
 
@@ -300,20 +331,82 @@ function BeliForm() {
           Pembayaran Anda aman.
         </p>
       </motion.form>
+
+      {paidModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 no-print">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl text-center animate-scale-in">
+            <div className="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-7 h-7 text-amber-600" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-900 mb-1">Pembayaran Berhasil!</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Terima kasih, {fullName}. Pembayaran Anda telah berhasil diproses.
+            </p>
+
+            {/* Download aplikasi */}
+            <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-left mb-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Download className="w-4 h-4 text-emerald-600" />
+                <h3 className="text-sm font-semibold text-emerald-800">Download Aplikasi</h3>
+              </div>
+              {dlState === "prep" && (
+                <p className="text-xs text-emerald-700 flex items-center gap-2">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Menyiapkan unduhan…
+                </p>
+              )}
+              {dlState === "countdown" && (
+                <p className="text-xs text-emerald-700">
+                  Mengunduh otomatis dalam <strong className="text-emerald-800">{countdown} detik</strong>…
+                </p>
+              )}
+              {dlState === "error" && (
+                <p className="text-xs text-red-600">{error || "Gagal menyiapkan unduhan."}</p>
+              )}
+              {downloadUrl && (
+                <>
+                  <a
+                    href={downloadUrl}
+                    className="mt-3 inline-flex items-center justify-center gap-2 w-full px-6 py-2.5 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 shadow-md"
+                  >
+                    <Download className="w-4 h-4" /> Unduh Aplikasi
+                  </a>
+                  <p className="text-[11px] text-emerald-700 mt-2">
+                    Harap unduh di <strong>Komputer</strong>, bukan di HP. Tautan juga dikirim ke email{" "}
+                    <strong>{email}</strong> bila perlu mengunduh kembali dalam 24 jam.
+                  </p>
+                </>
+              )}
+            </div>
+
+            {/* Kode unik cashback (hanya paket eligible) */}
+            {isCashbackEligible && (
+              <div className="text-left mb-4">
+                <p className="text-xs text-amber-800 font-semibold mb-2 flex items-center gap-1">
+                  <Gift className="w-3.5 h-3.5" /> Paket ini dapat cashback
+                </p>
+                <div className="p-4 rounded-xl bg-gray-900 text-white font-mono text-xl tracking-widest mb-2 select-all text-center">
+                  {cashbackCode}
+                </div>
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  Demi alasan keamanan, kode ini <strong>hanya dibuat sekali</strong> dan{" "}
+                  <strong>tidak akan ditampilkan lagi</strong>. Harap simpan baik-baik — akan dibutuhkan saat{" "}
+                  <strong>klaim cashback</strong>.
+                </p>
+              </div>
+            )}
+
+            <button
+              onClick={() => router.push("/")}
+              className="w-full inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 shadow-md"
+            >
+              OK <ArrowRight className="w-4 h-4" />
+            </button>
+            <p className="text-xs text-gray-400 mt-3">Klik OK untuk kembali ke beranda.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
-}
-
-function loadSnapScript(snapUrl: string, clientKey: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if ((window as any).snap) { resolve(); return; }
-    const script = document.createElement("script");
-    script.src = snapUrl;
-    script.setAttribute("data-client-key", clientKey);
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Gagal memuat pembayaran."));
-    document.body.appendChild(script);
-  });
 }
 
 export default function BeliPage() {

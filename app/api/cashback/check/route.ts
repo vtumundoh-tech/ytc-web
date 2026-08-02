@@ -5,19 +5,19 @@ import { getRequestMeta } from "@/lib/requestMeta";
 
 type OrderMatch = {
   full_name: string;
-  whatsapp: string;
+  whatsapp: string | null;
   email: string | null;
   tier: string;
   tier_label: string;
   amount: number;
   license_key: string | null;
-  machine_id: string | null;
+  cashback_code: string | null;
 };
 
 export const dynamic = "force-dynamic";
 
 function normalize(value: string): string {
-  return value.trim().replace(/\s+/g, " ").toLowerCase();
+  return value.trim().replace(/\s+/g, " ").toUpperCase();
 }
 
 export async function GET(req: NextRequest) {
@@ -28,44 +28,36 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Terlalu banyak permintaan. Coba lagi nanti." }, { status: 429 });
     }
 
-    const q = (req.nextUrl.searchParams.get("q") || "").trim();
-    if (q.length < 3) {
-      return NextResponse.json({ error: "Isi Machine ID, key lisensi, atau nama lengkap (min 3 karakter)." }, { status: 400 });
+    const q = normalize((req.nextUrl.searchParams.get("q") || "").trim());
+    if (q.length < 6) {
+      return NextResponse.json({ error: "Isi kode unik cashback dengan benar." }, { status: 400 });
     }
 
     const supabase = supabaseServer();
     const { data, error } = await supabase
       .from("orders")
-      .select("full_name, whatsapp, email, tier, tier_label, amount, license_key, machine_id")
+      .select("full_name, whatsapp, email, tier, tier_label, amount, license_key, cashback_code")
       .eq("status", "paid")
-      .order("created_at", { ascending: false })
-      .limit(100);
+      .eq("cashback_code", q)
+      .maybeSingle();
 
     if (error) throw error;
 
-    const list = (data || []) as OrderMatch[];
-    const needle = normalize(q);
-
-    const found = list.find((o) => {
-      if (o.machine_id && normalize(o.machine_id) === needle) return true;
-      if (o.license_key && normalize(o.license_key) === needle) return true;
-      return normalize(o.full_name) === needle;
-    });
-
-    if (!found) {
+    if (!data) {
       return NextResponse.json({ found: false });
     }
 
     return NextResponse.json({
       found: true,
       data: {
-        full_name: found.full_name,
-        whatsapp: found.whatsapp,
-        email: found.email || "",
-        tier: found.tier,
-        addon1080: /1080p/i.test(found.tier_label || ""),
-        amount: found.amount,
-        license_key: found.license_key || "",
+        full_name: data.full_name,
+        whatsapp: data.whatsapp || "",
+        email: data.email || "",
+        tier: data.tier,
+        addon1080: /1080p/i.test(data.tier_label || ""),
+        amount: data.amount,
+        license_key: data.license_key || "",
+        cashback_code: data.cashback_code || "",
       },
     });
   } catch (err: any) {

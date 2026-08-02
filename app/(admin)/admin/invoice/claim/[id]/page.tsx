@@ -10,6 +10,7 @@ type Claim = {
   created_at: string;
   full_name: string;
   whatsapp: string;
+  email: string | null;
   machine_id: string;
   license_key: string;
   tier: string;
@@ -129,8 +130,7 @@ export default function InvoiceClaimPage() {
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Pelanggan</h3>
             <p className="text-sm font-semibold text-gray-900">{claim.full_name}</p>
             <p className="text-xs text-gray-500">{claim.whatsapp}</p>
-            <p className="text-xs text-gray-500 mt-1">Machine ID: {claim.machine_id}</p>
-            <p className="text-xs text-gray-500">Key: {claim.license_key}</p>
+            {claim.email && <p className="text-xs text-gray-500">{claim.email}</p>}
           </div>
           <div className="sm:text-right">
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Tanggal Klaim</h3>

@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { LogOut, ShoppingBag, Gift, Users, DollarSign, ExternalLink, Save, Download, FileText, Settings, Power } from "lucide-react";
+import { LogOut, ShoppingBag, Gift, Users, DollarSign, ExternalLink, Save, Download, FileText, Settings, Power, Search, Calendar, Filter, X } from "lucide-react";
+import { useMemo } from "react";
 
 type Order = {
   id: string;
@@ -18,6 +19,8 @@ type Order = {
   midtrans_order_id: string;
   machine_id: string | null;
   license_key: string | null;
+  cashback_code: string | null;
+  email_status: string | null;
   admin_notes: string | null;
   agree_snk: boolean;
   ip_address: string | null;
@@ -32,6 +35,7 @@ type Claim = {
   created_at: string;
   full_name: string;
   whatsapp: string;
+  email: string | null;
   machine_id: string;
   license_key: string;
   tier: string;
@@ -173,12 +177,135 @@ function LoadingSkeleton() {
   );
 }
 
+type FilterState = {
+  query: string;
+  fromDate: string;
+  toDate: string;
+  tier: string;
+};
+
+function FilterBar({
+  state,
+  onState,
+  tierOptions,
+  placeholder,
+  accent,
+}: {
+  state: FilterState;
+  onState: (s: FilterState) => void;
+  tierOptions: string[];
+  placeholder: string;
+  accent: "emerald" | "violet";
+}) {
+  const focus = accent === "emerald"
+    ? "focus:ring-emerald-500/20 focus:border-emerald-400"
+    : "focus:ring-violet-500/20 focus:border-violet-400";
+
+  function preset(days: number) {
+    const to = new Date();
+    const from = new Date();
+    from.setDate(from.getDate() - (days - 1));
+    return {
+      fromDate: from.toISOString().slice(0, 10),
+      toDate: to.toISOString().slice(0, 10),
+    };
+  }
+
+  function hasAnyFilter() {
+    return state.query.trim() !== "" || state.fromDate !== "" || state.toDate !== "" || state.tier !== "";
+  }
+
+  return (
+    <div className="card-sm space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <Filter className="w-4 h-4 text-gray-400" />
+        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Filter</span>
+
+        <div className="relative flex-1 min-w-[180px]">
+          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            className={cn("w-full rounded-xl border border-gray-200 pl-9 pr-3 py-2 text-sm focus:outline-none placeholder:text-gray-300", focus)}
+            value={state.query}
+            onChange={(e) => onState({ ...state, query: e.target.value })}
+            placeholder={placeholder}
+          />
+        </div>
+
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <button
+            type="button"
+            onClick={() => onState({ ...state, ...preset(1) })}
+            className="px-3 py-2 rounded-xl text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors duration-200"
+          >
+            Hari Ini
+          </button>
+          <button
+            type="button"
+            onClick={() => onState({ ...state, ...preset(7) })}
+            className="px-3 py-2 rounded-xl text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors duration-200"
+          >
+            Minggu Ini
+          </button>
+          <button
+            type="button"
+            onClick={() => onState({ ...state, ...preset(30) })}
+            className="px-3 py-2 rounded-xl text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors duration-200"
+          >
+            Bulan Ini
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-gray-400" />
+          <input
+            type="date"
+            className={cn("rounded-lg border border-gray-200 px-2.5 py-2 text-sm focus:outline-none", focus)}
+            value={state.fromDate}
+            onChange={(e) => onState({ ...state, fromDate: e.target.value })}
+          />
+          <span className="text-gray-400 text-sm">—</span>
+          <input
+            type="date"
+            className={cn("rounded-lg border border-gray-200 px-2.5 py-2 text-sm focus:outline-none", focus)}
+            value={state.toDate}
+            onChange={(e) => onState({ ...state, toDate: e.target.value })}
+          />
+        </div>
+
+        <select
+          className={cn("rounded-lg border border-gray-200 px-2.5 py-2 text-sm bg-white focus:outline-none", focus)}
+          value={state.tier}
+          onChange={(e) => onState({ ...state, tier: e.target.value })}
+        >
+          <option value="">Semua Paket</option>
+          {tierOptions.map((t) => (
+            <option key={t} value={t}>{t}</option>
+          ))}
+        </select>
+
+        {hasAnyFilter() && (
+          <button
+            type="button"
+            onClick={() => onState({ query: "", fromDate: "", toDate: "", tier: "" })}
+            className="inline-flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-100 transition-colors duration-200"
+          >
+            <X className="w-3.5 h-3.5" /> Reset
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function OrdersTab() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  type OrderDraft = { status: string; machine_id: string; license_key: string; admin_notes: string };
+  type OrderDraft = { status: string; admin_notes: string };
   const [drafts, setDrafts] = useState<Record<string, Partial<OrderDraft>>>({});
   const [saving, setSaving] = useState<string | null>(null);
+  const [filter, setFilter] = useState<FilterState>({ query: "", fromDate: "", toDate: "", tier: "" });
 
   async function load() {
     setLoading(true);
@@ -191,7 +318,7 @@ function OrdersTab() {
   useEffect(() => { load(); }, []);
 
   function draftFor(o: Order): OrderDraft {
-    return { status: o.status, machine_id: o.machine_id || "", license_key: o.license_key || "", admin_notes: o.admin_notes || "", ...drafts[o.id] };
+    return { status: o.status, admin_notes: o.admin_notes || "", ...drafts[o.id] };
   }
 
   function setDraft(id: string, patch: Partial<OrderDraft>) {
@@ -204,7 +331,7 @@ function OrdersTab() {
     await fetch("/api/admin/orders", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: o.id, status: d.status, machine_id: d.machine_id, license_key: d.license_key, admin_notes: d.admin_notes }),
+      body: JSON.stringify({ id: o.id, status: d.status, admin_notes: d.admin_notes }),
     });
     setSaving(null);
     load();
@@ -213,6 +340,24 @@ function OrdersTab() {
   const paid = orders.filter((o) => o.status === "paid").length;
   const pending = orders.filter((o) => o.status === "pending").length;
   const total = orders.reduce((s, o) => s + (o.status === "paid" ? o.amount : 0), 0);
+
+  const tierOptions = Array.from(new Set(orders.map((o) => o.tier_label).filter(Boolean))).sort();
+
+  const filtered = useMemo(() => {
+    const q = filter.query.trim().toLowerCase();
+    const from = filter.fromDate ? new Date(filter.fromDate + "T00:00:00").getTime() : null;
+    const to = filter.toDate ? new Date(filter.toDate + "T23:59:59.999").getTime() : null;
+    return orders.filter((o) => {
+      if (filter.tier && o.tier_label !== filter.tier) return false;
+      if (q && !`${o.full_name} ${o.whatsapp} ${o.email || ""} ${o.midtrans_order_id} ${o.cashback_code || ""}`.toLowerCase().includes(q)) return false;
+      if (from || to) {
+        const t = new Date(o.created_at).getTime();
+        if (from && t < from) return false;
+        if (to && t > to) return false;
+      }
+      return true;
+    });
+  }, [orders, filter]);
 
   if (loading) return <LoadingSkeleton />;
 
@@ -232,13 +377,30 @@ function OrdersTab() {
         </a>
       </div>
 
-      {orders.length === 0 ? (
+      <FilterBar
+        state={filter}
+        onState={setFilter}
+        tierOptions={tierOptions}
+        placeholder="Cari nama / WA / email / ID…"
+        accent="emerald"
+      />
+
+      {filtered.length !== orders.length && (
+        <div className="text-xs text-gray-500">
+          Menampilkan <strong className="text-gray-700">{filtered.length}</strong> dari{" "}
+          <strong className="text-gray-700">{orders.length}</strong> data pembelian.
+        </div>
+      )}
+
+      {filtered.length === 0 ? (
         <div className="card-sm text-center py-12">
           <ShoppingBag className="w-8 h-8 text-gray-200 mx-auto mb-3" />
-          <p className="text-sm text-gray-400">Belum ada data pembelian.</p>
+          <p className="text-sm text-gray-400">
+            {orders.length === 0 ? "Belum ada data pembelian." : "Tidak ada data yang cocok dengan filter."}
+          </p>
         </div>
       ) : (
-        orders.map((o) => {
+        filtered.map((o) => {
           const d = draftFor(o);
           const isSaving = saving === o.id;
           return (
@@ -263,6 +425,7 @@ function OrdersTab() {
 
               <div className="text-xs text-gray-400">
                 ID: {o.midtrans_order_id}
+                {o.cashback_code ? <><span className="mx-1.5">·</span><span className="font-mono">{o.cashback_code}</span></> : ""}
                 <span className="mx-1.5">·</span>
                 {new Date(o.created_at).toLocaleString("id-ID")}
                 {o.payment_type ? <><span className="mx-1.5">·</span>{o.payment_type}</> : ""}
@@ -271,7 +434,7 @@ function OrdersTab() {
               <DeviceInfo ip={o.ip_address} browser={o.browser} os={o.os} deviceType={o.device_type} />
 
               <div className="grid sm:grid-cols-6 gap-3 items-end">
-                <div>
+                <div className="sm:col-span-2">
                   <label className="text-xs font-medium text-gray-500 block mb-1">Status</label>
                   <select
                     className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400"
@@ -284,25 +447,6 @@ function OrdersTab() {
                   </select>
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="text-xs font-medium text-gray-500 block mb-1">Machine ID</label>
-                  <input
-                    className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 placeholder:text-gray-300"
-                    maxLength={12}
-                    value={d.machine_id}
-                    onChange={(e) => setDraft(o.id, { machine_id: e.target.value.toUpperCase() })}
-                    placeholder="Diisi setelah user install aplikasi"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="text-xs font-medium text-gray-500 block mb-1">Key Lisensi</label>
-                  <input
-                    className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 placeholder:text-gray-300"
-                    value={d.license_key}
-                    onChange={(e) => setDraft(o.id, { license_key: e.target.value })}
-                    placeholder="Isi setelah key dibuat"
-                  />
-                </div>
-                <div>
                   <label className="text-xs font-medium text-gray-500 block mb-1">Catatan</label>
                   <input
                     className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 placeholder:text-gray-300"
@@ -310,6 +454,12 @@ function OrdersTab() {
                     onChange={(e) => setDraft(o.id, { admin_notes: e.target.value })}
                     placeholder="Catatan"
                   />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-500 block mb-1">Status Email</label>
+                  <div className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm bg-gray-50 text-gray-500">
+                    {o.email_status === "sent" ? "Terkirim" : o.email_status === "failed" ? "Gagal" : "—"}
+                  </div>
                 </div>
               </div>
 
@@ -351,6 +501,7 @@ function ClaimsTab() {
   type ClaimDraft = { status: string; admin_notes: string };
   const [drafts, setDrafts] = useState<Record<string, Partial<ClaimDraft>>>({});
   const [saving, setSaving] = useState<string | null>(null);
+  const [filter, setFilter] = useState<FilterState>({ query: "", fromDate: "", toDate: "", tier: "" });
 
   async function load() {
     setLoading(true);
@@ -385,6 +536,25 @@ function ClaimsTab() {
   const pending = claims.filter((c) => c.status === "pending").length;
   const total = claims.reduce((s, c) => s + (c.status === "paid" ? c.amount_paid : 0), 0);
 
+  const tierOptions = Array.from(new Set(claims.map((c) => c.tier.replace("_", " ")).filter(Boolean))).sort();
+
+  const filtered = useMemo(() => {
+    const q = filter.query.trim().toLowerCase();
+    const from = filter.fromDate ? new Date(filter.fromDate + "T00:00:00").getTime() : null;
+    const to = filter.toDate ? new Date(filter.toDate + "T23:59:59.999").getTime() : null;
+    return claims.filter((c) => {
+      const readableTier = c.tier.replace("_", " ");
+      if (filter.tier && readableTier !== filter.tier) return false;
+      if (q && !`${c.full_name} ${c.whatsapp} ${c.email || ""} ${c.machine_id} ${c.license_key}`.toLowerCase().includes(q)) return false;
+      if (from || to) {
+        const t = new Date(c.created_at).getTime();
+        if (from && t < from) return false;
+        if (to && t > to) return false;
+      }
+      return true;
+    });
+  }, [claims, filter]);
+
   if (loading) return <LoadingSkeleton />;
 
   return (
@@ -403,13 +573,30 @@ function ClaimsTab() {
         </a>
       </div>
 
-      {claims.length === 0 ? (
+      <FilterBar
+        state={filter}
+        onState={setFilter}
+        tierOptions={tierOptions}
+        placeholder="Cari nama / WA / email / key…"
+        accent="violet"
+      />
+
+      {filtered.length !== claims.length && (
+        <div className="text-xs text-gray-500">
+          Menampilkan <strong className="text-gray-700">{filtered.length}</strong> dari{" "}
+          <strong className="text-gray-700">{claims.length}</strong> klaim cashback.
+        </div>
+      )}
+
+      {filtered.length === 0 ? (
         <div className="card-sm text-center py-12">
           <Gift className="w-8 h-8 text-gray-200 mx-auto mb-3" />
-          <p className="text-sm text-gray-400">Belum ada klaim cashback.</p>
+          <p className="text-sm text-gray-400">
+            {claims.length === 0 ? "Belum ada klaim cashback." : "Tidak ada data yang cocok dengan filter."}
+          </p>
         </div>
       ) : (
-        claims.map((c) => {
+        filtered.map((c) => {
           const d = draftFor(c);
           const isSaving = saving === c.id;
           return (
@@ -422,13 +609,13 @@ function ClaimsTab() {
                   <div>
                     <div className="font-semibold text-gray-900 text-sm">{c.full_name}</div>
                     <div className="text-xs text-gray-500 mt-0.5">
-                      {c.whatsapp} · Machine ID: {c.machine_id}
+                      {c.whatsapp}{c.email ? ` · ${c.email}` : ""}
                     </div>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="font-bold text-gray-900">{rupiah(c.amount_paid)}</div>
-                  <div className="text-xs text-gray-500">Key: {c.license_key}</div>
+                  <div className="text-xs text-gray-500">{c.tier.replace("_", " ")}</div>
                 </div>
               </div>
 

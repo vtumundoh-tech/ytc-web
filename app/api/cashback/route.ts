@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { checkRateLimit, rateLimitKey } from "@/lib/rateLimit";
 import { getRequestMeta } from "@/lib/requestMeta";
+import { sendCashbackConfirmationEmail } from "@/lib/mail";
 import {
   validateFileSignature,
   validateFileSize,
@@ -45,8 +46,8 @@ export async function POST(req: NextRequest) {
     const form = await req.formData();
     const fullName = form.get("fullName") as string;
     const whatsapp = form.get("whatsapp") as string;
-    const machineId = form.get("machineId") as string;
-    const licenseKey = form.get("licenseKey") as string;
+    const email = form.get("email") as string;
+    const cashbackCode = form.get("cashbackCode") as string;
     const tier = form.get("tier") as string;
     const addon = (form.get("addon1080") || form.get("addon")) as string;
     const amountPaid = Number(form.get("amountPaid"));
@@ -57,14 +58,11 @@ export async function POST(req: NextRequest) {
     const screenshotLike = form.getAll("screenshotLike") as File[];
     const screenshotShare = form.get("screenshotShare") as File | null;
 
-    if (!fullName || !whatsapp || !machineId || !licenseKey || !tier || !amountPaid) {
+    if (!fullName || !email || !cashbackCode || !tier || !amountPaid) {
       return NextResponse.json({ error: "Data belum lengkap." }, { status: 400 });
     }
-    if (!paymentProof || !screenshotFollow || screenshotLike.length < 1 || !screenshotShare) {
-      return NextResponse.json({ error: "Bukti bayar, bukti follow/subscribe, like & comment, dan share wajib dilampirkan." }, { status: 400 });
-    }
-    if (screenshotLike.length > 6) {
-      return NextResponse.json({ error: "Screenshot like & comment maksimal 6 gambar." }, { status: 400 });
+    if (!paymentProof || !screenshotFollow || screenshotLike.length !== 6 || !screenshotShare) {
+      return NextResponse.json({ error: "Bukti bayar, bukti follow/subscribe, like & comment (wajib 6 foto: 3 postingan × like & komentar), dan share wajib dilampirkan." }, { status: 400 });
     }
     if (agreeSnk !== "yes") {
       return NextResponse.json({ error: "Anda harus setuju dengan Syarat & Ketentuan." }, { status: 400 });
@@ -79,9 +77,10 @@ export async function POST(req: NextRequest) {
 
     const { error: insertError } = await supabase.from("cashback_claims").insert({
       full_name: fullName,
-      whatsapp,
-      machine_id: machineId,
-      license_key: licenseKey,
+      whatsapp: whatsapp || null,
+      email: email || null,
+      machine_id: null,
+      license_key: null,
       tier,
       addon_1080p: addon,
       amount_paid: amountPaid,
@@ -99,6 +98,8 @@ export async function POST(req: NextRequest) {
       device_type: meta.deviceType,
     });
     if (insertError) throw insertError;
+
+    void sendCashbackConfirmationEmail({ full_name: fullName, email });
 
     return NextResponse.json({ ok: true });
   } catch (err: any) {

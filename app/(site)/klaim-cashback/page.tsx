@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatRupiah } from "@/lib/tiers";
 import { useAppSettings } from "@/hooks/useAppSettings";
-import { Gift, User, Phone, Hash, Key, Tag, Image, FileText, CheckCircle, AlertTriangle, TrendingUp, ExternalLink, Search, X } from "lucide-react";
+import { Gift, User, Phone, Mail, Hash, Tag, Image, FileText, CheckCircle, AlertTriangle, TrendingUp, ExternalLink, Search, X } from "lucide-react";
 
 const TIKTOK_URL = "https://www.tiktok.com/@mineclipstudio";
 const YOUTUBE_URL = "https://www.youtube.com/@Mineclips_collection";
@@ -12,18 +12,20 @@ export default function KlaimCashbackPage() {
   const { settings } = useAppSettings();
   const tiers = settings.tiers;
 
-  const [machineId, setMachineId] = useState("");
+  const [cashbackCode, setCashbackCode] = useState("");
   const [checking, setChecking] = useState(false);
   const [checkState, setCheckState] = useState<"idle" | "ok" | "notfound">("idle");
   const [unlocked, setUnlocked] = useState(false);
   const [fullName, setFullName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
-  const [licenseKey, setLicenseKey] = useState("");
+  const [email, setEmail] = useState("");
   const [tier, setTier] = useState("");
   const [addon1080, setAddon1080] = useState(false);
   const [amountPaid, setAmountPaid] = useState("");
   const [notes, setNotes] = useState("");
   const [captcha, setCaptcha] = useState("");
+  const [vA, setVA] = useState<number | null>(null);
+  const [vB, setVB] = useState<number | null>(null);
   const [fPayment, setFPayment] = useState<File[]>([]);
   const [fFollow, setFFollow] = useState<File[]>([]);
   const [fLike, setFLike] = useState<File[]>([]);
@@ -34,17 +36,25 @@ export default function KlaimCashbackPage() {
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
 
+  const expectedAnswer = vA !== null && vB !== null ? String(vA + vB) : "";
   const requiredFilled =
-    machineId && fullName && whatsapp && licenseKey && tier && amountPaid &&
-    fPayment.length > 0 && fFollow.length > 0 && fLike.length > 0 && fShare.length > 0 &&
-    agree && captcha === "15";
+    cashbackCode && fullName && email && tier && amountPaid &&
+    fPayment.length > 0 && fFollow.length > 0 && fLike.length === 6 && fShare.length > 0 &&
+    agree && vA !== null && vB !== null && String(captcha).trim() === expectedAnswer;
+
+  useEffect(() => {
+    const a = Math.floor(Math.random() * 8) + 2;
+    const b = Math.floor(Math.random() * 8) + 2;
+    setVA(a);
+    setVB(b);
+  }, []);
 
   async function handleCheck() {
     setChecking(true);
     setError("");
     setCheckState("idle");
     try {
-      const res = await fetch(`/api/cashback/check?q=${encodeURIComponent(machineId.trim())}`);
+      const res = await fetch(`/api/cashback/check?q=${encodeURIComponent(cashbackCode.trim())}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal memeriksa data.");
       if (!data.found) {
@@ -55,7 +65,7 @@ export default function KlaimCashbackPage() {
       const d = data.data;
       setFullName(d.full_name || "");
       setWhatsapp(d.whatsapp || "");
-      setLicenseKey(d.license_key || "");
+      setEmail(d.email || "");
       setTier(d.tier || "");
       setAddon1080(Boolean(d.addon1080));
       setAmountPaid(d.amount ? String(d.amount) : "");
@@ -77,8 +87,8 @@ export default function KlaimCashbackPage() {
       const fd = new FormData();
       fd.append("fullName", fullName);
       fd.append("whatsapp", whatsapp);
-      fd.append("machineId", machineId.toUpperCase());
-      fd.append("licenseKey", licenseKey);
+      fd.append("email", email);
+      fd.append("cashbackCode", cashbackCode.toUpperCase().trim());
       fd.append("tier", tier);
       fd.append("addon1080", addon1080 ? "yes" : "no");
       fd.append("amountPaid", amountPaid);
@@ -153,39 +163,39 @@ export default function KlaimCashbackPage() {
           <div>
             <label className="field-label">
               <Hash className="w-3.5 h-3.5 inline mr-1.5 text-violet-500" />
-              Machine ID <span className="text-red-400">*</span>
+              Kode Unik <span className="text-red-400">*</span>
             </label>
             <div className="flex gap-2">
               <input
                 className="input-field flex-1 font-mono uppercase disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50"
                 maxLength={12}
-                placeholder="12 digit dari aplikasi"
-                value={machineId}
-                onChange={(e) => setMachineId(e.target.value)}
+                placeholder="Contoh: YTC-XXXXXXX"
+                value={cashbackCode}
+                onChange={(e) => setCashbackCode(e.target.value)}
                 disabled={checking}
                 required
               />
               <button
                 type="button"
                 onClick={handleCheck}
-                disabled={checking || machineId.trim().length < 3}
+                disabled={checking || cashbackCode.trim().length < 6}
                 className="inline-flex items-center gap-1.5 px-4 py-3 rounded-xl text-sm font-semibold bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shrink-0"
               >
                 <Search className="w-4 h-4" />
                 {checking ? "Mengecek..." : "Check Data"}
               </button>
             </div>
-            <p className="field-hint">Isi Machine ID dari aplikasi. Untuk pembelian lama bisa gunakan key lisensi atau nama lengkap.</p>
+            <p className="field-hint">Isi kode unik yang muncul saat pembayaran berhasil (hanya muncul sekali — simpan baik-baik).</p>
             {checkState === "ok" && (
               <div className="mt-3 p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-sm text-emerald-700 flex items-start gap-2 animate-fade-in">
                 <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>Data ditemukan! Field di bawah terbuka & sudah terisi otomatis. Anda bisa mengubahnya jika perlu.</span>
+                <span>Data ditemukan! Field data di bawah sudah terisi otomatis dan terkunci — Anda hanya perlu mengunggah bukti.</span>
               </div>
             )}
             {checkState === "notfound" && (
               <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-100 text-sm text-amber-700 flex items-start gap-2 animate-fade-in">
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>Data tidak ditemukan. Pastikan Machine ID, key lisensi, atau nama lengkap sesuai saat pembelian.</span>
+                <span>Kode tidak ditemukan. Pastikan kode unik sesuai saat pembelian.</span>
               </div>
             )}
           </div>
@@ -198,32 +208,29 @@ export default function KlaimCashbackPage() {
 
           <Field icon={User} label="Nama Lengkap" required>
             <input
-              className="input-field disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50"
+              className="input-field readOnly:bg-gray-50 readOnly:opacity-80 readOnly:cursor-not-allowed"
               value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              disabled={!unlocked}
+              readOnly
               required
             />
           </Field>
 
-          <Field icon={Phone} label="Nomor WhatsApp" required hint="Aktif — untuk konfirmasi dan transfer cashback">
+          <Field icon={Mail} label="Alamat Email" required hint="Untuk konfirmasi pengajuan cashback">
             <input
-              className="input-field disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50"
+              className="input-field readOnly:bg-gray-50 readOnly:opacity-80 readOnly:cursor-not-allowed"
+              type="email"
+              value={email}
+              readOnly
+              required
+            />
+          </Field>
+
+          <Field icon={Phone} label="Nomor WhatsApp" hint="Aktif — untuk transfer cashback">
+            <input
+              className="input-field readOnly:bg-gray-50 readOnly:opacity-80 readOnly:cursor-not-allowed"
               type="tel"
               value={whatsapp}
-              onChange={(e) => setWhatsapp(e.target.value)}
-              disabled={!unlocked}
-              required
-            />
-          </Field>
-
-          <Field icon={Key} label="Key Lisensi" required hint="Key utama (720p) yang dibeli">
-            <input
-              className="input-field font-mono disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50"
-              value={licenseKey}
-              onChange={(e) => setLicenseKey(e.target.value)}
-              disabled={!unlocked}
-              required
+              readOnly
             />
           </Field>
         </div>
@@ -235,10 +242,9 @@ export default function KlaimCashbackPage() {
 
           <Field icon={Tag} label="Tier yang Dibeli" required>
             <select
-              className="input-field disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50"
+              className="input-field disabled:opacity-70 disabled:cursor-not-allowed disabled:bg-gray-50"
               value={tier}
-              onChange={(e) => { setTier(e.target.value); setAddon1080(false); }}
-              disabled={!unlocked}
+              disabled
               required
             >
               <option value="">— Pilih —</option>
@@ -255,19 +261,15 @@ export default function KlaimCashbackPage() {
             </label>
             <button
               type="button"
-              disabled={!unlocked || !tier}
-              onClick={() => setAddon1080(!addon1080)}
+              disabled
               className={`w-full flex items-center justify-between p-3.5 rounded-xl border transition-all duration-200 ${
-                !unlocked || !tier
-                  ? "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed"
-                  : addon1080
-                    ? "bg-blue-50 border-blue-200"
-                    : "bg-white border-gray-200 hover:border-gray-300"
+                addon1080
+                  ? "bg-blue-50 border-blue-200"
+                  : "bg-white border-gray-200"
               }`}
             >
               <div className="flex items-center gap-2.5">
                 <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                  !unlocked || !tier ? "border-gray-200 bg-gray-50" :
                   addon1080 ? "bg-blue-600 border-blue-600" : "border-gray-300 bg-white"
                 }`}>
                   {addon1080 && (
@@ -276,7 +278,7 @@ export default function KlaimCashbackPage() {
                     </svg>
                   )}
                 </div>
-                <span className={`text-sm font-medium ${!unlocked || !tier ? "text-gray-300" : addon1080 ? "text-blue-700" : "text-gray-600"}`}>
+                <span className={`text-sm font-medium ${addon1080 ? "text-blue-700" : "text-gray-600"}`}>
                   Saya membeli upgrade 1080p
                 </span>
               </div>
@@ -303,12 +305,12 @@ export default function KlaimCashbackPage() {
             hint="Screenshot akun yang sudah follow TikTok atau subscribe YouTube."
           />
           <FileUpload
-            label="Screenshot — Like & Comment (minimal 3 post, maks 6 gambar)"
+            label="Screenshot — Like & Comment (wajib 6 foto)"
             files={fLike}
             onChange={setFLike}
             required
             maxFiles={6}
-            hint="Post di TikTok maupun YouTube — wajib berbeda untuk setiap klaim."
+            hint="Wajib 6 foto: 3 postingan × 1 like + 1 komentar (masing-masing). Post di TikTok maupun YouTube — tidak boleh mengulang postingan yang sama."
           />
           <FileUpload
             label="Screenshot — Share ke Teman / Story"
@@ -330,8 +332,15 @@ export default function KlaimCashbackPage() {
             <CheckCircle className="w-3.5 h-3.5 inline mr-1.5 text-violet-500" />
             Verifikasi <span className="text-red-400">*</span>
           </label>
-          <input className="input-field max-w-[160px]" type="number" placeholder="7 + 8 = ?" value={captcha} onChange={(e) => setCaptcha(e.target.value)} required />
-          <p className="field-hint">Berapa hasil dari 7 + 8?</p>
+          <input
+            className="input-field max-w-[160px]"
+            type="number"
+            placeholder={vA !== null && vB !== null ? `${vA} + ${vB} = ?` : "…"}
+            value={captcha}
+            onChange={(e) => setCaptcha(e.target.value)}
+            required
+          />
+          <p className="field-hint">Berapa hasil dari {vA} + {vB}? (angka acak setiap kali)</p>
         </div>
 
         <hr className="border-gray-100" />

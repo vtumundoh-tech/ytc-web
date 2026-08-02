@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
-import { createSnapTransaction } from "@/lib/midtrans";
+// import { createSnapTransaction } from "@/lib/midtrans"; // Midtrans dinonaktifkan sementara (mode tes)
 import { getSettings } from "@/lib/settings";
 import { checkRateLimit, rateLimitKey } from "@/lib/rateLimit";
 import { getRequestMeta } from "@/lib/requestMeta";
+import { generateCashbackCode, generateDownloadToken } from "@/lib/cashCode";
+import { sendInvoiceEmail } from "@/lib/mail";
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,8 +18,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { fullName, whatsapp, email, tier, addon1080, agreeSnk } = body || {};
 
-    if (!fullName || !whatsapp || !tier) {
-      return NextResponse.json({ error: "Data belum lengkap." }, { status: 400 });
+    if (!fullName || !email || !tier) {
+      return NextResponse.json({ error: "Data belum lengkap (nama & email wajib)." }, { status: 400 });
     }
     if (agreeSnk !== true) {
       return NextResponse.json({ error: "Anda harus setuju dengan Syarat & Ketentuan." }, { status: 400 });
@@ -37,16 +39,25 @@ export async function POST(req: NextRequest) {
     const itemName = `Lisensi YouTube Clipper - ${tierLabel}`;
 
     const orderId = `YTC-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+    const cashbackCode = generateCashbackCode();
+    const downloadToken = generateDownloadToken();
+    const downloadExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
     const supabase = supabaseServer();
+    const now = new Date().toISOString();
     const { error: insertError } = await supabase.from("orders").insert({
       full_name: fullName,
-      whatsapp,
-      email: email || null,
+      whatsapp: whatsapp || null,
+      email,
       tier: tierData.value,
       tier_label: tierLabel,
       amount: totalAmount,
-      status: "pending",
+      status: "paid",
+      cashback_code: cashbackCode,
+      download_token: downloadToken,
+      download_expires_at: downloadExpiresAt,
+      paid_at: now,
+      payment_type: "manual",
       midtrans_order_id: orderId,
       agree_snk: true,
       ip_address: meta.ip,
@@ -57,16 +68,23 @@ export async function POST(req: NextRequest) {
     });
     if (insertError) throw insertError;
 
-    const snap = await createSnapTransaction({
-      orderId,
+    const emailSent = await sendInvoiceEmail({
+      full_name: fullName,
+      email,
+      tier_label: tierLabel,
       amount: totalAmount,
-      customerName: fullName,
-      customerPhone: whatsapp,
-      customerEmail: email,
-      itemName,
+      midtrans_order_id: orderId,
+      paid_at: now,
+      downloadToken,
     });
 
-    return NextResponse.json({ token: snap.token, redirectUrl: snap.redirect_url });
+    const { error: statusError } = await supabase
+      .from("orders")
+      .update({ email_status: emailSent ? "sent" : "failed" })
+      .eq("midtrans_order_id", orderId);
+    if (statusError) console.error("checkout update email_status:", statusError);
+
+    return NextResponse.json({ ok: true, paid: true, cashbackCode, emailSent, downloadToken });
   } catch (err: any) {
     console.error("checkout error:", err);
     return NextResponse.json({ error: "Gagal membuat transaksi. Coba lagi beberapa saat." }, { status: 500 });
