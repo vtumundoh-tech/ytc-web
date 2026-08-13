@@ -1,0 +1,37 @@
+# Unit systemd untuk aplikasi web YouTube Clipper (Next.js).
+# Alternatif pengganti PM2. Jangan jalankan bersamaan dengan PM2.
+#
+# Cara pakai (di VPS):
+#   sudo cp deploy/ytc-web.service deploy/ytc-telegram.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now ytc-web ytc-telegram
+#
+# Sesuaikan path di bawah bila lokasi folder aplikasi berbeda.
+# Pastikan file .env.local ada di folder aplikasi (dibaca otomatis oleh Next.js
+# dan juga oleh script bot Telegram).
+
+[Unit]
+Description=YouTube Clipper - Web App (Next.js)
+Documentation=https://github.com/anomalyco/opencode/issues
+After=network.target
+
+[Service]
+Type=simple
+User=deploy
+Group=deploy
+WorkingDirectory=/home/deploy/apps/ytc-web
+EnvironmentFile=/home/deploy/apps/ytc-web/.env.local
+Environment=NODE_ENV=production
+Environment=PORT=3000
+ExecStart=/usr/bin/npm run start
+Restart=always
+RestartSec=5
+KillSignal=SIGINT
+
+# Keamanan ringan (opsional, hilangkan jika ada masalah)
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,51 @@
+# ============================================================
+#  docker-compose.yml — YouTube Clipper
+#  2 service: web (Next.js) + telegram (bot long-polling)
+#
+#  SEBELUM MENJALANKAN:
+#   1. Buat file `.env` di folder yang sama berisi nilai build:
+#        NEXT_PUBLIC_APP_URL=https://domain.com
+#        NEXT_PUBLIC_SUPABASE_URL=https://...supabase.co
+#        NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+#   2. Pastikan `.env.local` ada di folder yang sama (dibaca saat runtime).
+#   3. Jalankan:
+#        docker compose up -d --build
+#   4. Cek:
+#        docker compose ps
+#        docker compose logs -f web
+#
+#  Nginx di VPS tetap mengarah ke http://127.0.0.1:3000.
+# ============================================================
+
+services:
+  web:
+    image: ytc-web:latest
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://example.com}
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
+    env_file: .env.local
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  telegram:
+    image: ytc-web:latest
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://example.com}
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
+    env_file: .env.local
+    environment:
+      NODE_ENV: production
+    command: node scripts/telegram-poll.mjs
+    depends_on:
+      - web
+    restart: unless-stopped

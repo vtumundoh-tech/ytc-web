@@ -3,6 +3,7 @@ import { supabaseServer } from "@/lib/supabaseServer";
 import { checkRateLimit, rateLimitKey } from "@/lib/rateLimit";
 import { getRequestMeta } from "@/lib/requestMeta";
 import { sendCashbackConfirmationEmail } from "@/lib/mail";
+import { notifyNewClaim } from "@/lib/telegram";
 import {
   validateFileSignature,
   validateFileSize,
@@ -11,6 +12,11 @@ import {
 
 const BUCKET = "cashback-proofs";
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
+
+function randomHex(len: number): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(len));
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 async function uploadProof(supabase: ReturnType<typeof supabaseServer>, file: File, prefix: string) {
   const arrayBuffer = await file.arrayBuffer();
@@ -25,20 +31,19 @@ async function uploadProof(supabase: ReturnType<typeof supabaseServer>, file: Fi
   }
 
   const ext = mime.split("/")[1] || "jpg";
-  const path = `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const { error } = await supabase.storage.from(BUCKET).upload(path, Buffer.from(arrayBuffer), {
+  const path = `${prefix}-${Date.now()}-${randomHex(6)}.${ext}`;
+  const { error, data } = await supabase.storage.from(BUCKET).upload(path, Buffer.from(arrayBuffer), {
     contentType: mime,
     upsert: false,
   });
   if (error) throw error;
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-  return data.publicUrl;
+  return data.path;
 }
 
 export async function POST(req: NextRequest) {
   try {
     const meta = getRequestMeta(req);
-    const rl = checkRateLimit(rateLimitKey("cashback", meta.ip), 5, 60_000);
+    const rl = await checkRateLimit(rateLimitKey("cashback", meta.ip), 5, 60_000);
     if (!rl.allowed) {
       return NextResponse.json({ error: "Terlalu banyak permintaan. Coba lagi nanti." }, { status: 429 });
     }
@@ -75,35 +80,49 @@ export async function POST(req: NextRequest) {
     const likeUrls = await Promise.all(screenshotLike.map((f, i) => uploadProof(supabase, f, `like-${i + 1}`)));
     const shareUrl = await uploadProof(supabase, screenshotShare, "share");
 
-    const { error: insertError } = await supabase.from("cashback_claims").insert({
-      full_name: fullName,
-      whatsapp: whatsapp || null,
-      email: email || null,
-      machine_id: null,
-      license_key: null,
-      tier,
-      addon_1080p: addon,
-      amount_paid: amountPaid,
-      payment_proof_url: paymentUrl,
-      screenshot_follow_url: followUrl,
-      screenshot_like_url: JSON.stringify(likeUrls),
-      screenshot_share_url: shareUrl,
-      notes,
-      agree_snk: true,
-      status: "pending",
-      ip_address: meta.ip,
-      user_agent: meta.userAgent,
-      browser: meta.browser,
-      os: meta.os,
-      device_type: meta.deviceType,
-    });
+    const { data: inserted, error: insertError } = await supabase
+      .from("cashback_claims")
+      .insert({
+        full_name: fullName,
+        whatsapp: whatsapp || null,
+        email: email || null,
+        machine_id: null,
+        license_key: null,
+        tier,
+        addon_1080p: addon,
+        amount_paid: amountPaid,
+        payment_proof_url: paymentUrl,
+        screenshot_follow_url: followUrl,
+        screenshot_like_url: JSON.stringify(likeUrls),
+        screenshot_share_url: shareUrl,
+        notes,
+        agree_snk: true,
+        status: "pending",
+        ip_address: meta.ip,
+        user_agent: meta.userAgent,
+        browser: meta.browser,
+        os: meta.os,
+        device_type: meta.deviceType,
+      })
+      .select("id, created_at")
+      .single();
     if (insertError) throw insertError;
+
+    void notifyNewClaim({
+      full_name: fullName,
+      whatsapp,
+      email,
+      tier,
+      amount_paid: amountPaid,
+      id: inserted?.id || "—",
+      created_at: inserted?.created_at || new Date().toISOString(),
+    });
 
     void sendCashbackConfirmationEmail({ full_name: fullName, email });
 
     return NextResponse.json({ ok: true });
   } catch (err: any) {
     console.error("cashback error:", err);
-    return NextResponse.json({ error: err.message || "Gagal mengirim klaim." }, { status: 500 });
+    return NextResponse.json({ error: "Gagal mengirim klaim. Coba lagi beberapa saat." }, { status: 500 });
   }
 }

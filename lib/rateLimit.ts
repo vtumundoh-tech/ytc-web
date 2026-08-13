@@ -1,9 +1,30 @@
+import { Redis } from "@upstash/redis";
+
+const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL;
+const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+const useUpstash = Boolean(UPSTASH_URL && UPSTASH_TOKEN);
+
+const redis = useUpstash ? new Redis({ url: UPSTASH_URL!, token: UPSTASH_TOKEN! }) : null;
+
 const counters = new Map<string, { count: number; resetAt: number }>();
 
-export function checkRateLimit(key: string, maxRequests: number, windowMs: number): {
-  allowed: boolean;
-  remaining: number;
-} {
+export async function checkRateLimit(
+  key: string,
+  maxRequests: number,
+  windowMs: number
+): Promise<{ allowed: boolean; remaining: number }> {
+  if (redis) {
+    try {
+      const windowKey = Math.floor(Date.now() / windowMs);
+      const redisKey = `rl:${key}:${windowKey}`;
+      const count = await redis.incr(redisKey);
+      if (count === 1) await redis.expire(redisKey, Math.ceil(windowMs / 1000));
+      return { allowed: count <= maxRequests, remaining: Math.max(0, maxRequests - count) };
+    } catch {
+      // fall through to in-memory fallback
+    }
+  }
+
   const now = Date.now();
   const entry = counters.get(key);
 

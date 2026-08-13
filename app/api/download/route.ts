@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { createInstallerUrl } from "@/lib/download";
+import { checkRateLimit, rateLimitKey } from "@/lib/rateLimit";
+import { getClientIp } from "@/lib/security";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
+    const rl = await checkRateLimit(rateLimitKey("download", getClientIp(req)), 30, 600_000);
+    if (!rl.allowed) {
+      return NextResponse.json({ error: "Terlalu banyak permintaan. Coba lagi nanti." }, { status: 429 });
+    }
+
     const token = (req.nextUrl.searchParams.get("token") || "").trim();
     if (token.length < 16) {
       return NextResponse.json({ error: "Link unduh tidak valid." }, { status: 400 });

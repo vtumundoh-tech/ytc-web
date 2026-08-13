@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panduan Hosting VPS — YouTube Clipper</title>
+<style>
+  :root {
+    --brand: #10b981;
+    --brand-dark: #047857;
+    --ink: #1f2937;
+    --muted: #6b7280;
+    --bg: #f9fafb;
+    --card: #ffffff;
+    --border: #e5e7eb;
+    --code-bg: #111827;
+    --code-fg: #d1fae5;
+    --warn-bg: #fffbeb;
+    --warn-border: #fde68a;
+    --info-bg: #eff6ff;
+    --info-border: #bfdbfe;
+    --good-bg: #ecfdf5;
+    --good-border: #a7f3d0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.65;
+    font-size: 15px;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 20px 80px; }
+
+  /* Header */
+  header {
+    background: linear-gradient(135deg, #059669, #10b981 55%, #34d399);
+    color: #fff;
+    padding: 48px 20px 40px;
+    text-align: center;
+  }
+  header h1 { margin: 0 0 6px; font-size: 28px; }
+  header p { margin: 0 auto; max-width: 640px; opacity: .92; font-size: 15px; }
+  .badge {
+    display: inline-block; margin-top: 14px; padding: 6px 14px;
+    background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35);
+    border-radius: 999px; font-size: 12px; font-weight: 600; letter-spacing: .4px;
+  }
+
+  /* TOC */
+  .toc {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 22px 26px; margin: 28px 0;
+  }
+  .toc h2 { margin: 0 0 10px; font-size: 15px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+  .toc ol { margin: 0; padding-left: 20px; columns: 2; column-gap: 32px; }
+  .toc li { margin: 5px 0; }
+  .toc a { color: #059669; text-decoration: none; font-weight: 500; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* Sections */
+  section {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 28px 30px; margin: 22px 0;
+  }
+  section h2 {
+    margin: 0 0 4px; font-size: 20px; color: var(--ink);
+    display: flex; align-items: center; gap: 10px;
+  }
+  section h2 .num {
+    background: var(--brand); color: #fff; border-radius: 9px;
+    min-width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; flex-shrink: 0;
+  }
+  section h3 { font-size: 16px; margin: 22px 0 8px; color: var(--brand-dark); }
+  section p { margin: 10px 0; }
+  ul, ol { margin: 8px 0; padding-left: 22px; }
+  li { margin: 5px 0; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 14px; }
+  th, td { border: 1px solid var(--border); padding: 10px 12px; text-align: left; vertical-align: top; }
+  th { background: #f3f4f6; font-weight: 600; }
+  .tbl-rec td { background: var(--good-bg); }
+  .tbl-min td { background: #fff7ed; }
+
+  /* Code blocks */
+  pre {
+    background: var(--code-bg); color: #d1fae5; border-radius: 12px;
+    padding: 16px 18px; overflow-x: auto; font-size: 13px; line-height: 1.6;
+    position: relative; margin: 12px 0;
+  }
+  pre code { font-family: "Cascadia Code", Consolas, "Courier New", monospace; }
+  .pre-label {
+    display: inline-block; position: absolute; top: 8px; right: 10px;
+    font-size: 10px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
+    color: #6ee7b7; background: #064e3b; padding: 2px 8px; border-radius: 6px;
+  }
+  code.inline {
+    background: #ecfdf5; border: 1px solid #a7f3d0; color: #047857;
+    padding: 1px 6px; border-radius: 5px; font-size: 13px;
+    font-family: "Cascadia Code", Consolas, "Courier New", monospace;
+  }
+  .comment { color: #9ca3af; } /* untuk baris komentar dalam pre */
+
+  /* Callouts */
+  .callout { border-radius: 12px; padding: 14px 16px; margin: 14px 0; font-size: 14px; }
+  .warn { background: var(--warn-bg); border: 1px solid var(--warn-border); }
+  .warn b { color: #b45309; }
+  .info { background: var(--info-bg); border: 1px solid var(--info-border); }
+  .info b { color: #1d4ed8; }
+  .good { background: var(--good-bg); border: 1px solid var(--good-border); }
+  .good b { color: #047857; }
+
+  /* Steps */
+  .step { margin: 14px 0; }
+  .step-title { font-weight: 700; margin-bottom: 4px; }
+  .step-title::before { content: "▶ "; color: var(--brand); }
+
+  /* Checklist */
+  .check li { list-style: none; position: relative; padding-left: 26px; }
+  .check li::before {
+    content: "☐"; position: absolute; left: 0; color: var(--brand); font-weight: 700;
+  }
+
+  footer { text-align: center; color: var(--muted); font-size: 13px; margin-top: 30px; }
+  @media (max-width: 640px) {
+    .toc ol { columns: 1; }
+    section { padding: 22px 18px; }
+  }
+  @media print {
+    body { background: #fff; }
+    section { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📦 Panduan Hosting VPS — YouTube Clipper</h1>
+  <p>Panduan lengkap &amp; ramah pemula untuk menyiapkan, memasang, dan menjalankan aplikasi YouTube Clipper Anda di server VPS (Ubuntu).</p>
+  <span class="badge">Versi 1.0 · Tanggal: 6 Agustus 2026</span>
+</header>
+
+<div class="wrap">
+
+  <div class="toc">
+    <h2>Daftar Isi</h2>
+    <ol>
+      <li><a href="#apa-itu-vps">Apa itu VPS?</a></li>
+      <li><a href="#spek">Spek VPS yang disarankan</a></li>
+      <li><a href="#persiapan">Persiapan: beli &amp; akses VPS</a></li>
+      <li><a href="#setup-server">Setup awal server</a></li>
+      <li><a href="#pasang-aplikasi">Pasang aplikasi</a></li>
+      <li><a href="#pm2">PM2: penjaga aplikasi</a></li>
+      <li><a href="#opsi-a">Opsi A: Systemd (pengganti PM2)</a></li>
+      <li><a href="#opsi-b">Opsi B: Docker (pengganti PM2)</a></li>
+      <li><a href="#nginx">Nginx + HTTPS</a></li>
+      <li><a href="#telegram">Bot Telegram</a></li>
+      <li><a href="#cron">Pengingat otomatis (opsional)</a></li>
+      <li><a href="#keamanan">Keamanan &amp; backup</a></li>
+      <li><a href="#checklist">Checklist go-live</a></li>
+      <li><a href="#glosarium">Glosarium mini</a></li>
+    </ol>
+  </div>
+
+  <!-- 1. APA ITU VPS -->
+  <section id="apa-itu-vps">
+    <h2><span class="num">1</span> Apa itu VPS?</h2>
+    <p>
+      <strong>VPS</strong> (Virtual Private Server) adalah "komputer sewaan" yang selalu menyala di pusat data.
+      Aplikasi web Anda butuh komputer yang menyala 24 jam — itulah VPS. Anda bayar per bulan, dan server itu sepenuhnya milik Anda.
+    </p>
+    <div class="callout info">
+      <b>Analogi sederhana:</b> website Anda seperti sebuah toko. Sebelumnya "tokonya" dititipkan di layanan Vercel. Dengan VPS, Anda menyewa toko sendiri (server) dan mengelolanya sendiri. Sedikit lebih banyak urusan, tapi lebih murah, lebih besar, dan Anda punya kendali penuh.
+    </div>
+    <p>Yang Anda butuhkan sebelum mulai:</p>
+    <ul>
+      <li>Kode aplikasi (sudah ada di folder <code class="inline">C:\ytc-web</code>).</li>
+      <li>Satu VPS (dibeli dari penyedia — langkah di bawah).</li>
+      <li>File konfigurasi rahasia (<code class="inline">.env.local</code>) — sudah Anda miliki.</li>
+      <li>Sebuah nama domain (mis. <code class="inline">ytc-web.com</code>) — disarankan, opsional.</li>
+    </ul>
+    <div class="callout good">
+      <b>Kabar baik:</b> kode ini <u>tidak bergantung pada Vercel</u>. Semua bagian penting (database Supabase, penyimpanan file R2, email Gmail, notifikasi Telegram) berjalan di luar server, jadi tinggal "menjalankan" aplikasinya saja di VPS.
+    </div>
+  </section>
+
+  <!-- 2. SPEK -->
+  <section id="spek">
+    <h2><span class="num">2</span> Spek VPS yang disarankan</h2>
+    <p>
+      Aplikasi ini ringan (Next.js + database di luar). Yang paling rawan justru proses <strong>build</strong> (menyusun aplikasi) yang butuh RAM cukup.
+    </p>
+    <table>
+      <tr>
+        <th style="width:20%">Komponen</th>
+        <th style="width:40%">Minimum (cukup)</th>
+        <th style="width:40%">Recommended (nyaman)</th>
+      </tr>
+      <tr class="tbl-min">
+        <td>CPU</td>
+        <td>1 vCPU</td>
+        <td class="tbl-rec">2 vCPU</td>
+      </tr>
+      <tr class="tbl-min">
+        <td>RAM</td>
+        <td>1 GB (+ swap 2 GB)</td>
+        <td class="tbl-rec">2 GB</td>
+      </tr>
+      <tr class="tbl-min">
+        <td>Disk (SSD)</td>
+        <td>20 GB</td>
+        <td class="tbl-rec">40 GB</td>
+      </tr>
+      <tr class="tbl-min">
+        <td>Bandwidth</td>
+        <td>1 TB / bulan (sangat cukup)</td>
+        <td class="tbl-rec">≥ 1 TB / bulan</td>
+      </tr>
+      <tr class="tbl-min">
+        <td>OS</td>
+        <td>Ubuntu 22.04 / 24.04 LTS</td>
+        <td class="tbl-rec">Ubuntu 24.04 LTS</td>
+      </tr>
+    </table>
+    <h3>Penjelasan singkat tiap angka</h3>
+    <ul>
+      <li><strong>RAM:</strong> proses <code class="inline">npm run build</code> butuh sekitar 1–2 GB. Kalau RAM 1 GB, wajib pasang <em>swap</em> (lihat bawah) supaya build tidak gagal/mati.</li>
+      <li><strong>CPU &amp; disk:</strong> runtime aplikasi ringan; 2 vCPU &amp; SSD membuat build lebih cepat dan browsing lebih responsif.</li>
+      <li><strong>Bandwidth:</strong> traffic Anda (1 jam → 10 klip, download installer) kecil. 1 TB/bulan jauh dari cukup kecuali aplikasi sangat viral.</li>
+    </ul>
+    <h3>Mengenai swap (cadangan RAM)</h3>
+    <p>
+      <em>Swap</em> = sebagian hard disk dipinjam sebagai "RAM tambahan darurat". Dipakai agar proses build tidak mati saat RAM penuh. Perintah membuat swap 2 GB:
+    </p>
+    <pre><span class="pre-label">Di VPS</span><code>sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab</code></pre>
+    <div class="callout info"><b>Tips:</b> pakai spek Recommended (2 GB RAM) kalau mau bebas khawatir. Selisih biaya biasanya cuma sekitar Rp30–50 ribu/bulan.</div>
+  </section>
+
+  <!-- 3. PERSIAPAN -->
+  <section id="persiapan">
+    <h2><span class="num">3</span> Persiapan: beli &amp; akses VPS</h2>
+    <h3>3.1 Pilih penyedia VPS</h3>
+    <p>Penyedia populer untuk Indonesia, diurutkan dari yang paling mudah:</p>
+    <table>
+      <tr><th>Penyedia</th><th>Keunggulan</th><th>Perkiraan harga</th></tr>
+      <tr><td><strong>idcloudhost</strong> / <strong>Hostinger</strong></td><td>Pusat data lokal, panduan Bahasa Indonesia, dukungan cepat</td><td>Rp70–150rb/bulan</td></tr>
+      <tr><td><strong>DigitalOcean</strong> / <strong>Vultr</strong></td><td>Paling populer, dokumentasi lengkap, droplet 1 klik</td><td>$6–12/bulan</td></tr>
+      <tr><td><strong>Hetzner</strong></td><td>Termurah &amp; handal (paling hemat)</td><td>€4–8/bulan</td></tr>
+    </table>
+    <div class="callout warn"><b>Catatan harga:</b> nominal di atas perkiraan pasar dan bisa berubah. Beli yang speknya mengikuti bagian <a href="#spek">#2</a>.</div>
+
+    <h3>3.2 Buat VPS / droplet</h3>
+    <ol>
+      <li>Daftar akun di penyedia pilihan.</li>
+      <li>Pilih <strong>OS: Ubuntu 24.04 LTS</strong> (atau 22.04 LTS).</li>
+      <li>Pilih paket sesuai spek di atas.</li>
+      <li>Saat diminta <em>SSH key</em>: jika belum paham, pilih <strong>password</strong> dulu (lebih mudah untuk pemula). Catat password-nya.</li>
+      <li>Buat server. Catat <strong>IP address</strong> VPS, misal <code class="inline">203.0.113.10</code>.</li>
+    </ol>
+
+    <h3>3.3 Apa itu SSH &amp; cara masuk</h3>
+    <p>
+      <strong>SSH</strong> = pintu masuk aman ke komputer VPS lewat terminal. Anda mengetik perintah, dan VPS menjalankannya. Di Windows, gunakan <strong>PowerShell</strong> (aplikasi bawaan) — ketik perintah berikut:
+    </p>
+    <pre><span class="pre-label">Di komputer Anda</span><code>ssh root@203.0.113.10</code></pre>
+    <p>(ganti <code class="inline">203.0.113.10</code> dengan IP VPS Anda). Jika diminta password, ketik password VPS tadi (huruf yang diketik tidak muncul di layar — itu normal).</p>
+    <div class="callout warn"><b>Tips kalau SSH gagal:</b> pastikan VPS mengizinkan login password (di panel penyedia biasanya ada opsi "Enable password auth"). Kalau tetap gagal, hubungi bantuan penyedia.</div>
+  </section>
+
+  <!-- 4. SETUP SERVER -->
+  <section id="setup-server">
+    <h2><span class="num">4</span> Setup awal server</h2>
+    <p>Semua perintah di bagian ini dijalankan <strong>di dalam VPS</strong> (setelah SSH masuk).</p>
+
+    <div class="step">
+      <div class="step-title">4.1 Perbarui sistem</div>
+      <pre><span class="pre-label">Di VPS</span><code>sudo apt update
+sudo apt upgrade -y</code></pre>
+    </div>
+
+    <div class="step">
+      <div class="step-title">4.2 Buat pengguna admin (bukan root)</div>
+      <p>Bekerja memakai akun biasa lebih aman daripada akun root.</p>
+      <pre><span class="pre-label">Di VPS</span><code>sudo adduser deploy
+sudo usermod -aG sudo deploy
+su - deploy</code></pre>
+    </div>
+
+    <div class="step">
+      <div class="step-title">4.3 Install Node.js 20 (dibutuhkan aplikasi)</div>
+      <pre><span class="pre-label">Di VPS</span><code>curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+node -v
+npm -v</code></pre>
+      <p>Harus menampilkan versi (mis. <code class="inline">v20.x.x</code> dan <code class="inline">10.x.x</code>).</p>
+    </div>
+
+    <div class="step">
+      <div class="step-title">4.4 Install Nginx, Certbot, dan PM2</div>
+      <pre><span class="pre-label">Di VPS</span><code>sudo apt-get install -y nginx
+sudo apt-get install -y certbot python3-certbot-nginx
+sudo npm install -g pm2</code></pre>
+      <p>Penjelasan: <strong>Nginx</strong> = gerbang web yang meneruskan pengunjung ke aplikasi. <strong>Certbot</strong> = pemasang SSL (gembok HTTPS) otomatis. <strong>PM2</strong> = penjaga yang memastikan aplikasi terus menyala (dibahas di <a href="#pm2">#6</a>).</p>
+    </div>
+
+    <div class="step">
+      <div class="step-title">4.5 Aktifkan firewall</div>
+      <pre><span class="pre-label">Di VPS</span><code>sudo ufw allow OpenSSH
+sudo ufw allow 'Nginx Full'
+sudo ufw enable</code></pre>
+      <p>Ini hanya mengizinkan akses SSH (port 22) dan web (80/443). Semua port lain tertutup.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-title">4.6 Install Git (untuk mengunduh kode)</div>
+      <pre><span class="pre-label">Di VPS</span><code>sudo apt-get install -y git</code></pre>
+    </div>
+  </section>
+
+  <!-- 5. PASANG APLIKASI -->
+  <section id="pasang-aplikasi">
+    <h2><span class="num">5</span> Pasang aplikasi</h2>
+
+    <div class="step">
+      <div class="step-title">5.1 Kirim kode aplikasi ke VPS</div>
+      <p>Ada 2 cara:</p>
+      <ul>
+        <li><strong>Cara A (disarankan):</strong> upload kode Anda ke GitHub (repo privat), lalu di VPS:
+          <pre><span class="pre-label">Di VPS</span><code>mkdir -p ~/apps
+cd ~/apps
+git clone https://github.com/NAMA-ANDA/NAMA-REPO.git ytc-web
+cd ytc-web</code></pre>
+        </li>
+        <li><strong>Cara B (tanpa GitHub):</strong> salin folder <code class="inline">C:\ytc-web</code> ke VPS memakai <em>WinSCP</em> (aplikasi gratis transfer file), atau perintah SCP dari komputer Anda:
+          <pre><span class="pre-label">Di komputer Anda</span><code>scp -r C:\ytc-web\* deploy@203.0.113.10:~/apps/ytc-web/</code></pre>
+        </li>
+      </ul>
+    </div>
+
+    <div class="step">
+      <div class="step-title">5.2 Buat file rahasia <code>.env.local</code></div>
+      <p>
+        Buat file <code class="inline">.env.local</code> di folder aplikasi di VPS — isinya sama dengan file <code class="inline">.env.local</code> di komputer Anda (jangan pernah dibagikan/di-upload ke repo publik!). Cara paling mudah: buka file itu di komputer Anda, salin semua isinya, lalu di VPS:
+      </p>
+      <pre><span class="pre-label">Di VPS</span><code>nano .env.local</code></pre>
+      <p>Tempel isinya (di <code class="inline">nano</code>: klik kanan untuk tempel), simpan dengan <strong>Ctrl+O</strong> lalu Enter, keluar dengan <strong>Ctrl+X</strong>.</p>
+      <div class="callout warn">
+        <b>Wajib diubah sebelum go-live:</b>
+        <ul>
+          <li><code class="inline">NEXT_PUBLIC_APP_URL=https://NAMA-DOMAIN-ANDA</code> — ganti dengan domain Anda (dipakai untuk link di email &amp; pengamanan browser).</li>
+          <li><code class="inline">ADMIN_PASSWORD</code> &amp; <code class="inline">ADMIN_GATE_PASSWORD</code> — pakai kata sandi kuat yang berbeda.</li>
+          <li><code class="inline">ADMIN_SESSION_SECRET</code> — ganti dengan string acak panjang (contoh buat acak: <code class="inline">openssl rand -hex 32</code>).</li>
+        </ul>
+      </div>
+      <p><strong>Kenapa file namanya <code>.env.local</code> dan bukan <code>.env.production</code>?</strong> Karena dua proses di sini (aplikasi Next.js <em>dan</em> script bot Telegram) sama-sama membaca file itu. Next.js otomatis membacanya, dan script polling juga membacanya. Satu file, semua kebaca — paling sederhana.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-title">5.3 Install &amp; build</div>
+      <pre><span class="pre-label">Di VPS</span><code>npm install
+npm run build</code></pre>
+      <div class="callout good"><b>Build berhasil</b> bila di layar muncul <code class="inline">✓ Compiled successfully</code> dan daftar route. Kalau tiba-tiba mati / <em>heap out of memory</em> → RAM kurang; pastikan swap aktif (lihat <a href="#spek">#2</a>).</div>
+    </div>
+
+    <div class="step">
+      <div class="step-title">5.4 Uji jalan dulu (manual)</div>
+      <pre><span class="pre-label">Di VPS</span><code>npm run start</code></pre>
+      <p>Buka <code class="inline">http://203.0.113.10:3000</code> di browser. Kalau muncul beranda YouTube Clipper → berhasil! Hentikan dengan <strong>Ctrl+C</strong>, lanjut ke langkah PM2.</p>
+    </div>
+  </section>
+
+  <!-- 6. PM2 -->
+  <section id="pm2">
+    <h2><span class="num">6</span> PM2 — penjaga aplikasi</h2>
+    <p>
+      <strong>PM2</strong> menjalankan aplikasi di latar belakang, lalu <em>menghidupkannya lagi otomatis</em> kalau crash, dan <em>menyalakannya lagi setelah server reboot</em>. Tanpa PM2, aplikasi mati begitu Anda keluar dari SSH.
+    </p>
+
+    <div class="step">
+      <div class="step-title">6.1 Buat file konfigurasi PM2</div>
+      <p>Di folder aplikasi, buat file <code class="inline">ecosystem.config.cjs</code>:</p>
+      <pre><span class="pre-label">Di VPS</span><code>nano ecosystem.config.cjs</code></pre>
+      <p>Isi dengan:</p>
+      <pre><span class="pre-label">Isi file</span><code>module.exports = {
+  apps: [
+    {
+      name: "ytc-web",
+      cwd: __dirname,
+      script: "npm",
+      args: "run start",
+      env: { NODE_ENV: "production", PORT: 3000 },
+      max_memory_restart: "512M",
+    },
+    {
+      name: "ytc-telegram",
+      cwd: __dirname,
+      script: "node",
+      args: "scripts/telegram-poll.mjs",
+      max_memory_restart: "256M",
+    },
+  ],
+};</code></pre>
+      <p>Simpan: <strong>Ctrl+O</strong> → Enter → <strong>Ctrl+X</strong>.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-title">6.2 Jalankan</div>
+      <pre><span class="pre-label">Di VPS</span><code>pm2 start ecosystem.config.cjs
+pm2 status</code></pre>
+      <p>Kedua aplikasi harus berstatus <code class="inline">online</code>. Lihat log (jika ada error) dengan:</p>
+      <pre><span class="pre-label">Di VPS</span><code>pm2 logs ytc-web
+pm2 logs ytc-telegram</code></pre>
+    </div>
+
+    <div class="step">
+      <div class="step-title">6.3 Pastikan hidup setelah reboot</div>
+      <pre><span class="pre-label">Di VPS</span><code>pm2 save
+pm2 startup</code></pre>
+      <p><code class="inline">pm2 startup</code> akan memberi satu baris perintah — salin &amp; jalankan baris itu (sekali saja).</p>
+    </div>
+
+    <div class="callout info">
+      <b>Perintah harian yang berguna:</b>
+      <code class="inline">pm2 status</code> (lihat semua), <code class="inline">pm2 logs</code> (lihat log), <code class="inline">pm2 restart ytc-web</code> (mulai ulang), <code class="inline">pm2 stop ytc-web</code> (hentikan).
+    </div>
+    <div class="callout warn">
+      <b>Tidak mau pakai PM2?</b> Ada 2 alternatif yang sama-sama sudah saya siapkan di folder kode: <a href="#opsi-a">Opsi A: Systemd</a> (bawaan Ubuntu, paling sederhana) dan <a href="#opsi-b">Opsi B: Docker</a>. Pilih <strong>satu saja</strong> — jangan menjalankan PM2 dan systemd/Docker untuk proses yang sama secara bersamaan.
+    </div>
+  </section>
+
+  <!-- OPSI A: SYSTEMD -->
+  <section id="opsi-a">
+    <h2><span class="num">A</span> Opsi A — Systemd (pengganti PM2)</h2>
+    <p>
+      <strong>Systemd</strong> adalah pengelola proses bawaan Ubuntu — jadi tidak perlu menginstall apa pun. Berfungsi sama seperti PM2: menjalankan aplikasi di latar belakang, menghidupkannya lagi kalau crash, dan menyalakannya lagi setelah reboot. Cocok kalau Anda tidak mau menambah aplikasi lain (PM2).
+    </p>
+    <p>File unit-nya sudah disiapkan di folder <code class="inline">deploy/</code> dalam kode Anda: <code class="inline">ytc-web.service</code> (server web) dan <code class="inline">ytc-telegram.service</code> (bot Telegram).</p>
+    <div class="callout warn"><b>Peringatan:</b> kalau Anda sudah menjalankan PM2 (<code class="inline">pm2 delete ytc-web</code> &amp; <code class="inline">pm2 delete ytc-telegram</code> dulu), baru gunakan systemd — jangan keduanya sekaligus.</div>
+
+    <div class="step">
+      <div class="step-title">A.1 Salin file unit ke tempat systemd</div>
+      <pre><span class="pre-label">Di VPS</span><code>sudo cp deploy/ytc-web.service deploy/ytc-telegram.service /etc/systemd/system/</code></pre>
+      <p>(Pastikan dulu jalur di dalam file sesuai lokasi kode Anda. Jika folder kode bukan <code class="inline">/home/deploy/apps/ytc-web</code>, edit dengan <code class="inline">sudo nano /etc/systemd/system/ytc-web.service</code>.)</p>
+    </div>
+
+    <div class="step">
+      <div class="step-title">A.2 Aktifkan &amp; nyalakan</div>
+      <pre><span class="pre-label">Di VPS</span><code>sudo systemctl daemon-reload
+sudo systemctl enable --now ytc-web ytc-telegram</code></pre>
+      <p>Kode <code class="inline">enable</code> membuatnya menyala otomatis saat reboot; <code class="inline">--now</code> langsung menjalankannya sekarang.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-title">A.3 Perintah sehari-hari</div>
+      <pre><span class="pre-label">Di VPS</span><code>systemctl status ytc-web            # lihat status
+sudo journalctl -u ytc-web -f       # lihat log (keluar: Ctrl+C)
+sudo systemctl restart ytc-web      # mulai ulang
+sudo systemctl stop ytc-web         # hentikan
+sudo systemctl restart ytc-telegram # mulai ulang bot</code></pre>
+    </div>
+    <div class="callout info"><b>Catatan:</b> file <code class="inline">.env.local</code> dibaca otomatis dari folder aplikasi (oleh Next.js &amp; script bot), jadi tidak ada konfigurasi tambahan untuk variabel lingkungan.</div>
+  </section>
+
+  <!-- OPSI B: DOCKER -->
+  <section id="opsi-b">
+    <h2><span class="num">B</span> Opsi B — Docker (pengganti PM2)</h2>
+    <p>
+      <strong>Docker</strong> membungkus aplikasi beserta seluruh kebutuhannya ke dalam "kotak" (container) yang identik di mana pun dijalankan. Sangat rapi dan portabel — kalau suatu hari pindah server, tinggal jalankan perintah yang sama. File <code class="inline">Dockerfile</code> &amp; <code class="inline">docker-compose.yml</code> sudah saya siapkan di kode Anda.
+    </p>
+    <div class="callout warn"><b>Peringatan:</b> pakai satu cara saja. Jika sudah memakai PM2 atau systemd, berhentikan dulu sebelum menjalankan Docker.</div>
+
+    <div class="step">
+      <div class="step-title">B.1 Install Docker (sekali saja)</div>
+      <pre><span class="pre-label">Di VPS</span><code>curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker $USER
+newgrp docker</code></pre>
+      <p>Logout &amp; login SSH sekali jika <code class="inline">docker</code> tidak dikenali.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-title">B.2 Buat file <code>.env</code> untuk nilai saat build</div>
+      <p>
+        Next.js menanamkan nilai <code class="inline">NEXT_PUBLIC_*</code> ke dalam aplikasi <strong>saat build</strong>. Buat file <code class="inline">.env</code> di folder aplikasi (di samping <code class="inline">docker-compose.yml</code>):
+      </p>
+      <pre><span class="pre-label">Di VPS</span><code>nano .env</code></pre>
+      <p>Isi (salin 3 baris ini dari <code class="inline">.env.local</code> Anda, ganti domain):</p>
+      <pre><span class="pre-label">Isi file .env</span><code>NEXT_PUBLIC_APP_URL=https://ytc-web.com
+NEXT_PUBLIC_SUPABASE_URL=https://rbbvsrzaanmgdfbesfng.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...panjang...</code></pre>
+      <p>Simpan: <strong>Ctrl+O</strong> → Enter → <strong>Ctrl+X</strong>. (File <code class="inline">.env.local</code> juga tetap dibutuhkan — dipakai saat runtime via <code class="inline">env_file</code>.)</p>
+    </div>
+
+    <div class="step">
+      <div class="step-title">B.3 Bangun &amp; jalankan</div>
+      <pre><span class="pre-label">Di VPS</span><code>docker compose up -d --build</code></pre>
+      <p>Ini membangun image lalu menjalankan 2 service: <code class="inline">web</code> (port 3000) dan <code class="inline">telegram</code> (bot).</p>
+      <pre><span class="pre-label">Di VPS</span><code>docker compose ps                # status container
+docker compose logs -f web       # log aplikasi (keluar: Ctrl+C)
+docker compose logs -f telegram  # log bot</code></pre>
+    </div>
+
+    <div class="step">
+      <div class="step-title">B.4 Perintah sehari-hari</div>
+      <pre><span class="pre-label">Di VPS</span><code>docker compose restart web          # mulai ulang web
+docker compose stop                  # hentikan semua
+docker compose start                 # nyalakan lagi
+docker compose down                  # hentikan & hapus container (data aman)</code></pre>
+    </div>
+
+    <div class="step">
+      <div class="step-title">B.5 Update aplikasi (setelah ada perubahan kode)</div>
+      <pre><span class="pre-label">Di VPS</span><code>git pull
+docker compose up -d --build</code></pre>
+    </div>
+
+    <div class="callout info"><b>Catatan penting:</b> kalau <code class="inline">NEXT_PUBLIC_APP_URL</code> di <code class="inline">.env</code> berubah, aplikasi <strong>harus di-build ulang</strong> (<code class="inline">docker compose up -d --build</code>) karena nilainya sudah tertanam di dalam aplikasi. Nginx tetap mengarah ke <code class="inline">http://127.0.0.1:3000</code> seperti biasa.</div>
+  </section>
+
+  <!-- 7. NGINX + HTTPS -->
+  <section id="nginx">
+    <h2><span class="num">7</span> Nginx + HTTPS (kunci gembok)</h2>
+    <div class="callout warn">
+      <b>Kenapa wajib?</b> Tanpa HTTPS (alamat berawalan <code class="inline">https://</code>):
+      <ul>
+        <li>Browser bisa memblokir beberapa fitur (clipboard, popup pembayaran).</li>
+        <li>Webhook pembayaran <strong>Midtrans</strong> dan webhook Telegram <strong>tidak akan diterima</strong> (mereka hanya mengirim ke URL https://).</li>
+        <li>Data pengunjung tidak terenkripsi.</li>
+      </ul>
+    </div>
+
+    <div class="step">
+      <div class="step-title">7.1 Arahkan domain ke VPS</div>
+      <p>Di pengelola DNS domain Anda (tempat membeli domain), buat 2 record <code class="inline">A</code>:</p>
+      <table>
+        <tr><th>Nama</th><th>Tipe</th><th>Nilai</th></tr>
+        <tr><td><code class="inline">@</code> (root)</td><td>A</td><td>IP VPS Anda</td></tr>
+        <tr><td><code class="inline">www</code></td><td>A</td><td>IP VPS Anda</td></tr>
+      </table>
+    </div>
+
+    <div class="step">
+      <div class="step-title">7.2 Buat konfigurasi Nginx</div>
+      <pre><span class="pre-label">Di VPS</span><code>sudo nano /etc/nginx/sites-available/ytc-web</code></pre>
+      <p>Isi (ganti <code class="inline">ytc-web.com</code> dengan domain Anda):</p>
+      <pre><span class="pre-label">Isi file</span><code>server {
+    listen 80;
+    server_name ytc-web.com www.ytc-web.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}</code></pre>
+      <p>Aktifkan:</p>
+      <pre><span class="pre-label">Di VPS</span><code>sudo ln -s /etc/nginx/sites-available/ytc-web /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx</code></pre>
+      <p><code class="inline">nginx -t</code> harus menampilkan <code class="inline">syntax is ok</code>.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-title">7.3 Pasang SSL otomatis (Certbot)</div>
+      <pre><span class="pre-label">Di VPS</span><code>sudo certbot --nginx -d ytc-web.com -d www.ytc-web.com</code></pre>
+      <p>Ikuti pertanyaan (untuk email isi alamat Anda, setuju persyaratan). Setelah selesai, Nginx otomatis diarahkan ke HTTPS. Perbarui juga <code class="inline">NEXT_PUBLIC_APP_URL</code> di <code class="inline">.env.local</code> menjadi <code class="inline">https://ytc-web.com</code>, lalu <code class="inline">pm2 restart ytc-web</code>.</p>
+      <div class="callout good"><b>Sertifikat otomatis diperpanjang</b> oleh Certbot — tidak perlu urus lagi. Cek dengan <code class="inline">sudo systemctl status certbot.timer</code>.</div>
+    </div>
+  </section>
+
+  <!-- 8. TELEGRAM -->
+  <section id="telegram">
+    <h2><span class="num">8</span> Bot Telegram</h2>
+    <p>
+      Notifikasi pesanan/cashback dan perintah <code class="inline">/listo</code>, <code class="inline">/listcb</code>, <code class="inline">/help</code> sudah berfungsi lewat script polling. Di VPS, cukup pastikan dua hal:
+    </p>
+    <ul>
+      <li><code class="inline">TELEGRAM_BOT_TOKEN</code> &amp; <code class="inline">TELEGRAM_CHAT_ID</code> sudah ada di <code class="inline">.env.local</code> (langkah 5.2) — script PM2 <code class="inline">ytc-telegram</code> otomatis membacanya.</li>
+      <li>Proses <code class="inline">ytc-telegram</code> berstatus <code class="inline">online</code> di <code class="inline">pm2 status</code>.</li>
+    </ul>
+    <p>Kalau nanti sudah pakai HTTPS, Anda <em>bisa</em> beralih ke <strong>webhook</strong> (Telegram mengirim pesan langsung ke server, tanpa script polling). Tapi ini <strong>tidak wajib</strong> — polling via PM2 seperti sekarang sudah baik dan lebih sederhana.</p>
+    <div class="callout warn"><b>Penting:</b> jangan aktifkan polling <em>dan</em> webhook bersamaan — salah satu akan error. Pakai salah satu saja.</div>
+  </section>
+
+  <!-- 9. CRON -->
+  <section id="cron">
+    <h2><span class="num">9</span> Pengingat otomatis cashback (opsional)</h2>
+    <p>
+      Route pengingat sudah disiapkan di file <code class="inline">app/api/cron/telegram-digest/route.ts</code> namun sengaja <strong>di-matikan</strong> (isi di-comment). Kalau Anda ingin pengingat harian "ada klaim yang sudah ≥5 hari harus segera dicairkan":
+    </p>
+    <ol>
+      <li>Buka file <code class="inline">app/api/cron/telegram-digest/route.ts</code>, <strong>hapus semua komentar</strong> pada bagian logika (lihat petunjuk di dalam file).</li>
+      <li>Tambahkan <code class="inline">CRON_SECRET=string-acak-panjang</code> di <code class="inline">.env.local</code>.</li>
+      <li>Build ulang &amp; restart: <code class="inline">npm run build</code> lalu <code class="inline">pm2 restart ytc-web</code>.</li>
+      <li>Jadwalkan lewat cron server (dijalankan setiap hari pukul 09.00 WIB = 02.00 UTC):
+        <pre><span class="pre-label">Di VPS</span><code>crontab -e</code></pre>
+        <p>Tambahkan baris (ganti domain):</p>
+        <pre><span class="pre-label">Isi crontab</span><code>0 2 * * * curl -s -X GET https://ytc-web.com/api/cron/telegram-digest</code></pre>
+      </li>
+    </ol>
+    <div class="callout info"><b>Catatan:</b> jika tidak butuh pengingat otomatis, biarkan file tersebut apa adanya (route nonaktif). Perintah manual <code class="inline">/listcb</code> tetap bisa Anda pakai kapan saja.</div>
+  </section>
+
+  <!-- 10. KEAMANAN -->
+  <section id="keamanan">
+    <h2><span class="num">10</span> Keamanan &amp; backup</h2>
+    <h3>Keamanan</h3>
+    <ul>
+      <li>Password admin (web) kuat &amp; berbeda — ubah di <code class="inline">.env.local</code>.</li>
+      <li><code class="inline">SUPABASE_SERVICE_ROLE_KEY</code> jangan pernah bocor (tidak boleh tampil di kode depan browser).</li>
+      <li>File <code class="inline">.env.local</code> tidak boleh ikut di-upload ke repo publik — tambahkan ke <code class="inline">.gitignore</code>.</li>
+      <li>Firewall <code class="inline">ufw</code> aktif (hanya 22, 80, 443).</li>
+      <li>Log &amp; pantau aplikasi lewat <code class="inline">pm2 logs</code>.</li>
+    </ul>
+    <h3>Backup</h3>
+    <ul>
+      <li><strong>Database (paling penting):</strong> data pesanan &amp; klaim tersimpan di <strong>Supabase</strong> (di luar VPS). Aktifkan backup otomatis di dashboard Supabase (Project Settings → Backups), atau unduh manual via <em>SQL Editor</em>.</li>
+      <li><strong>File installer:</strong> sudah di Cloudflare R2 (di luar VPS) — aman.</li>
+      <li><strong>Kode aplikasi:</strong> simpan di GitHub (repo privat) — salinan ekstra di luar VPS.</li>
+      <li><strong>Env:</strong> simpan salinan <code class="inline">.env.local</code> di tempat aman (mis. password manager).</li>
+    </ul>
+    <h3>Pemeliharaan rutin (bulanan)</h3>
+    <pre><span class="pre-label">Di VPS</span><code>sudo apt update
+sudo apt upgrade -y
+sudo reboot</code></pre>
+    <p>Setelah reboot, PM2 otomatis menghidupkan aplikasi (karena <code class="inline">pm2 startup</code>).</p>
+  </section>
+
+  <!-- 11. CHECKLIST -->
+  <section id="checklist">
+    <h2><span class="num">11</span> Checklist go-live</h2>
+    <p>Centang sebelum website dinyatakan live:</p>
+    <ul class="check">
+      <li>VPS menyala, spek sesuai, swap aktif (jika RAM 1 GB).</li>
+      <li>Node.js 20, Nginx, Certbot, PM2, Git terpasang.</li>
+      <li>Kode terpasang, <code class="inline">npm run build</code> berhasil.</li>
+      <li><code class="inline">.env.local</code> lengkap; <code class="inline">NEXT_PUBLIC_APP_URL</code> memakai domain; password admin &amp; secret diganti.</li>
+      <li>PM2: <code class="inline">ytc-web</code> dan <code class="inline">ytc-telegram</code> online; <code class="inline">pm2 save</code> &amp; <code class="inline">pm2 startup</code> dijalankan.</li>
+      <li>Domain mengarah ke IP VPS; Nginx &amp; Certbot terpasang → situs bisa dibuka via <code class="inline">https://domain</code>.</li>
+      <li>Uji beli (mode manual): pesanan masuk → notif Telegram <code class="inline">/listo</code> → status berubah di admin.</li>
+      <li>Uji klaim cashback: notif Telegram <code class="inline">/listcb</code> muncul.</li>
+      <li>Firewall aktif; tidak ada port tak perlu.</li>
+      <li>Backup database Supabase sudah diaktifkan.</li>
+    </ul>
+    <h3>Saat Midtrans nanti disetujui (langkah lanjutan)</h3>
+    <ul>
+      <li>Aktifkan integrasi Midtrans (isi <code class="inline">MIDTRANS_SERVER_KEY</code>, <code class="inline">NEXT_PUBLIC_MIDTRANS_CLIENT_KEY</code>, <code class="inline">MIDTRANS_IS_PRODUCTION=true</code>).</li>
+      <li>Atur Notification URL di dashboard Midtrans → <code class="inline">https://domain/api/midtrans-webhook</code> (URL Anda sudah https, syarat terpenuhi).</li>
+      <li>Tambahkan biaya admin per metode (sesuai ketentuan Midtrans) &amp; checkbox persetujuan Payment Gateway.</li>
+    </ul>
+  </section>
+
+  <!-- 12. GLOSARIUM -->
+  <section id="glosarium">
+    <h2><span class="num">12</span> Glosarium mini</h2>
+    <table>
+      <tr><th style="width:30%">Istilah</th><th>Artinya (sederhana)</th></tr>
+      <tr><td><strong>VPS</strong></td><td>Komputer sewaan yang menyala 24 jam, tempat aplikasi berjalan.</td></tr>
+      <tr><td><strong>SSH</strong></td><td>Pintu masuk aman untuk memberi perintah ke VPS lewat terminal.</td></tr>
+      <tr><td><strong>Node.js</strong></td><td>Mesin yang menjalankan aplikasi JavaScript (dibutuhkan aplikasi ini).</td></tr>
+      <tr><td><strong>Nginx</strong></td><td>Gerbang web: menerima pengunjung &amp; meneruskan ke aplikasi (port 3000).</td></tr>
+      <tr><td><strong>HTTPS / SSL</strong></td><td>Gembok keamanan; URL diawali <code class="inline">https://</code>. Wajib untuk webhook pembayaran.</td></tr>
+      <tr><td><strong>Certbot</strong></td><td>Alat pemasang SSL otomatis &amp; gratis (Let's Encrypt).</td></tr>
+      <tr><td><strong>PM2</strong></td><td>"Penjaga" aplikasi: menjalankan, menghidupkan lagi saat crash/reboot.</td></tr>
+      <tr><td><strong>Systemd</strong></td><td>Pengelola proses bawaan Ubuntu — alternatif PM2 tanpa menginstall apa pun.</td></tr>
+      <tr><td><strong>Docker</strong></td><td>Teknologi "kotak" (container) yang membungkus aplikasi + seluruh kebutuhannya agar sama di mana pun dijalankan.</td></tr>
+      <tr><td><strong>docker compose</strong></td><td>Alat Docker untuk menjalankan beberapa container sekaligus (di sini: web &amp; bot) dengan satu perintah.</td></tr>
+      <tr><td><strong>Swap</strong></td><td>Hard disk yang dipinjam sebagai RAM darurat.</td></tr>
+      <tr><td><strong>Firewall (UFW)</strong></td><td>Penjaga pintu: hanya mengizinkan port yang dibutuhkan (22, 80, 443).</td></tr>
+      <tr><td><strong>Cron</strong></td><td>Penjadwal perintah otomatis (mis. pengingat harian).</td></tr>
+      <tr><td><strong>Env (.env.local)</strong></td><td>File berisi kunci &amp; pengaturan rahasia aplikasi.</td></tr>
+      <tr><td><strong>Webhook</strong></td><td>Alamat URL yang dipanggil otomatis oleh sistem lain (Telegram/Midtrans).</td></tr>
+    </table>
+  </section>
+
+  <footer>
+    Panduan Hosting VPS — YouTube Clipper · MineClip Studio · Dibuat 6 Agustus 2026<br>
+    Saran: cek bagian <a href="#checklist">Checklist go-live</a> sebelum website dibuka untuk umum.
+  </footer>
+
+</div>
+</body>
+</html>

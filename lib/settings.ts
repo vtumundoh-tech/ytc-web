@@ -13,35 +13,39 @@ export type AppSettings = {
   tiers: TierSetting[];
   addonPrices: Record<string, number>;
   cashbackTiers: Record<string, number>;
+  qrisEnabled: boolean;
+  qrisImageUrl: string;
+  qrisInstructions: string;
   updatedAt?: string;
 };
 
 const DEFAULT_TIERS: TierSetting[] = [
-  { value: "daily_720", label: "1 Hari", amount: 5000, originalAmount: 10000, discountPercent: 50 },
-  { value: "weekly_720", label: "7 Hari", amount: 24850, originalAmount: 35000, discountPercent: 29 },
-  { value: "semi_monthly_720", label: "17 Hari", amount: 39050, originalAmount: 55000, discountPercent: 29 },
-  { value: "monthly_720", label: "30 Hari", amount: 48990, originalAmount: 69000, discountPercent: 29 },
+  { value: "permanent_720", label: "Basic", amount: 409200, originalAmount: 1320000, discountPercent: 69 },
+  { value: "permanent_1080", label: "Special Offer", amount: 450000, originalAmount: 1500000, discountPercent: 70 },
 ];
 
-const DEFAULT_ADDON_PRICES: Record<string, number> = {
-  daily_720: 3000,
-  weekly_720: 12000,
-  semi_monthly_720: 12000,
-  monthly_720: 13000,
-};
+const DEFAULT_ADDON_PRICES: Record<string, number> = {};
 
 const DEFAULT_CASHBACK_TIERS: Record<string, number> = {
-  daily_720: 0,
-  weekly_720: 6000,
-  semi_monthly_720: 3000,
-  monthly_720: 9000,
+  permanent_720: 45000,
+  permanent_1080: 50000,
 };
+
+const DEFAULT_QRIS_INSTRUCTIONS =
+  "1. Buka aplikasi bank / e-wallet (GoPay, OVO, DANA, ShopeePay, dst).\n" +
+  "2. Pilih menu Scan / Bayar QRIS.\n" +
+  "3. Scan kode QR di atas.\n" +
+  "4. Pastikan nominal sesuai, lalu masukkan PIN untuk menyelesaikan pembayaran.\n" +
+  "5. Setelah transfer berhasil, klik tombol \"Saya sudah bayar\".";
 
 export const DEFAULT_SETTINGS: AppSettings = {
   promoEnabled: false,
   tiers: DEFAULT_TIERS,
   addonPrices: DEFAULT_ADDON_PRICES,
   cashbackTiers: DEFAULT_CASHBACK_TIERS,
+  qrisEnabled: false,
+  qrisImageUrl: "",
+  qrisInstructions: DEFAULT_QRIS_INSTRUCTIONS,
 };
 
 export async function getSettings(): Promise<AppSettings> {
@@ -55,6 +59,9 @@ export async function getSettings(): Promise<AppSettings> {
       tiers: (data.tiers as TierSetting[]) || DEFAULT_TIERS,
       addonPrices: (data.addon_prices as Record<string, number>) || DEFAULT_ADDON_PRICES,
       cashbackTiers: (data.cashback_tiers as Record<string, number>) || DEFAULT_CASHBACK_TIERS,
+      qrisEnabled: data.qris_enabled === true,
+      qrisImageUrl: data.qris_image_url || "",
+      qrisInstructions: data.qris_instructions || DEFAULT_QRIS_INSTRUCTIONS,
       updatedAt: data.updated_at || undefined,
     };
   } catch {

@@ -1,0 +1,33 @@
+# Unit systemd untuk bot Telegram (long-polling) YouTube Clipper.
+# Alternatif pengganti PM2. Jangan jalankan bersamaan dengan PM2.
+#
+# Cara pakai (di VPS):
+#   sudo cp deploy/ytc-web.service deploy/ytc-telegram.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now ytc-web ytc-telegram
+#
+# Script membaca TELEGRAM_BOT_TOKEN & WEBHOOK_BASE_URL dari .env.local
+# di folder aplikasi. Sesuaikan path bila lokasi berbeda.
+
+[Unit]
+Description=YouTube Clipper - Telegram Bot (long-polling)
+After=network.target
+Wants=ytc-web.service
+
+[Service]
+Type=simple
+User=deploy
+Group=deploy
+WorkingDirectory=/home/deploy/apps/ytc-web
+EnvironmentFile=/home/deploy/apps/ytc-web/.env.local
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node scripts/telegram-poll.mjs
+Restart=always
+RestartSec=5
+
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,5 +1,6 @@
 import { UAParser } from "ua-parser-js";
 import type { NextRequest } from "next/server";
+import { getClientIp } from "@/lib/security";
 
 export type RequestMeta = {
   ip: string;
@@ -10,7 +11,7 @@ export type RequestMeta = {
 };
 
 export function getRequestMeta(req: NextRequest): RequestMeta {
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const ip = getClientIp(req);
   const userAgent = req.headers.get("user-agent") || "";
 
   const parser = new UAParser(userAgent);

@@ -1,26 +1,24 @@
-import { ShieldCheck, FileText } from "lucide-react";
+import { FileText } from "lucide-react";
 import Link from "next/link";
+import { TIERS, formatRupiah } from "@/lib/tiers";
 
 const TIKTOK_URL = "https://www.tiktok.com/@mineclipstudio";
 const YOUTUBE_URL = "https://www.youtube.com/@Mineclips_collection";
 const WHATSAPP_URL = "https://wa.me/6282395912267";
 
 const TOC_PART1: [string, string][] = [
-  ["1", "License Terms"],
-  ["2", "Payment Methods"],
-  ["3", "No Refund Policy"],
-  ["4", "Prohibited Actions & System Manipulation"],
-  ["5", "Violation Detection & Access Blocking"],
-  ["6", "70% Penalty & Unlock Key"],
-  ["7", "Unlock Key Validity"],
-  ["8", "Additional Consequences"],
-  ["9", "Cashback Terms"],
-  ["10", "Personal Data"],
-  ["11", "Limitation of Liability"],
-  ["12", "Intellectual Property Rights"],
-  ["13", "License Termination"],
-  ["14", "Governing Law"],
-  ["15", "Privacy Policy"],
+  ["1", "One-Time Purchase Product"],
+  ["2", "Packages & Pricing"],
+  ["3", "Activation & License Key"],
+  ["4", "Payment Methods"],
+  ["5", "No Refund Policy"],
+  ["6", "Prohibited Uses"],
+  ["7", "Rights & Obligations"],
+  ["8", "Warranty & Limitation of Liability"],
+  ["9", "Intellectual Property Rights"],
+  ["10", "Termination"],
+  ["11", "Governing Law"],
+  ["12", "Cashback Terms"],
 ];
 
 const TOC_PART2: [string, string][] = [
@@ -41,275 +39,245 @@ export default function TermsPage() {
         <div className="w-12 h-12 rounded-xl bg-gray-800 flex items-center justify-center mx-auto mb-4">
           <FileText className="w-5 h-5 text-white" />
         </div>
-        <h1 className="text-xl font-bold text-gray-900">Terms & Conditions and Privacy Policy</h1>
-        <p className="text-sm text-gray-500 mt-1">YouTube Clipper — Complete Terms of Service, License Agreement, and Privacy Policy</p>
+        <h1 className="text-xl font-bold text-gray-900">Terms &amp; Conditions and Privacy Policy</h1>
+        <p className="text-sm text-gray-500 mt-1">YouTube Clipper — Terms of Service, License Agreement, and Privacy Policy</p>
         <span className="inline-block mt-3 px-3 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-full border border-emerald-200/50 tracking-widest">
-          EFFECTIVE JULY 27, 2026
+          VERSION 2.0 · EFFECTIVE AUGUST 6, 2026
         </span>
       </div>
 
       <div className="card-lg space-y-8 text-sm text-gray-600 leading-relaxed">
         {/* ─── PART 1 ─── */}
         <PartTitle num="PART 1" title="Terms & Conditions" />
-        <Toc items={TOC_PART1} />
+        <Toc items={TOC_PART1} group="s1" />
 
-        <Section num="1" title="License Terms">
-          <p>1.1 The license is non-exclusive, non-transferable, and limited to the selected rental duration.</p>
-          <p>1.2 Each license is tied to a specific device Machine ID. It cannot be transferred to another device without written permission from the developer.</p>
-          <p>1.3 The license key and application are delivered after payment is confirmed. They are digital — sent via email or WhatsApp.</p>
-          <p>1.4 Prices include VAT (if applicable). Prices may change at any time. Purchases follow the price at the time of transaction.</p>
+        <Section num="1" title="One-Time Purchase Product" group="s1">
+          <p>1.1 YouTube Clipper is sold as a <strong className="text-gray-700">one-time, permanent purchase</strong>. Pay once, and the license lasts forever — it is not a subscription or a rental.</p>
+          <p>1.2 The license is <strong className="text-gray-700">non-exclusive and non-transferable</strong>. It is bound to a single device (Machine ID) and cannot be moved to another device without written permission from the developer.</p>
+          <p>1.3 The license key and application are delivered once payment is confirmed. Both are digital products delivered by email or WhatsApp.</p>
+          <p>1.4 Prices already include VAT (if applicable) and may change at any time. Purchases are subject to the price in effect at the time of the transaction.</p>
         </Section>
 
-        <Section num="2" title="Payment Methods">
-          <p>2.1 Payments are processed via QRIS or bank transfer.</p>
-          <p>2.2 After successful payment, the system automatically generates the license key.</p>
-          <p>2.3 The key and application are sent via email or WhatsApp.</p>
+        <Section num="2" title="Packages & Pricing" group="s1">
+          <p>2.1 The following 2 (two) one-time purchase packages are currently available:</p>
+          <div className="overflow-x-auto my-3">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left font-semibold text-gray-700 py-2">Package</th>
+                  <th className="text-right font-semibold text-gray-700 py-2">Original Price</th>
+                  <th className="text-right font-semibold text-gray-700 py-2">Sale Price</th>
+                  <th className="text-right font-semibold text-gray-700 py-2">Cashback</th>
+                </tr>
+              </thead>
+              <tbody>
+                {TIERS.map((t) => (
+                  <tr key={t.value} className="border-b border-gray-100">
+                    <td className="py-2 font-medium text-gray-900">
+                      {t.label}
+                      {t.value === "permanent_1080" && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 font-bold">1080p</span>}
+                    </td>
+                    <td className="py-2 text-right text-gray-400 line-through">{formatRupiah(t.originalAmount)}</td>
+                    <td className="py-2 text-right font-semibold text-emerald-600">{formatRupiah(t.amount)}</td>
+                    <td className="py-2 text-right font-semibold text-amber-700">{formatRupiah(TIER_CASHBACK[t.value] || 0)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p>2.2 Promotional prices are limited-time and may change at any time without prior notice. The price in effect is the price shown at the time of the transaction.</p>
+          <p>2.3 The package list and cashback amounts may be updated by the developer through the admin page; the terms of this document follow the latest applicable list.</p>
         </Section>
 
-        <Section num="3" title="No Refund Policy">
-          <p>3.1 All license purchases are final and non-refundable.</p>
-          <p>3.2 Licenses are digital goods delivered immediately after payment. They cannot be returned.</p>
-          <p>3.3 No refund for unused remaining validity period.</p>
-          <p>3.4 No refund if access is blocked due to EULA violation.</p>
-          <p>3.5 By making a purchase, the customer agrees to and explicitly waives their right to a refund.</p>
-          <p className="text-gray-400 text-xs mt-2">(EULA Article 15. Cashback clause 9)</p>
+        <Section num="3" title="Activation & License Key" group="s1">
+          <p>3.1 Once payment is confirmed, the license key and application are sent by email or WhatsApp according to the details provided at the time of purchase.</p>
+          <p>3.2 Each license key is bound to a specific Machine ID and cannot be used on another device without written permission from the developer.</p>
+          <p>3.3 The customer is responsible for keeping the license key confidential. Sharing the key with third parties is a violation that may result in the license being revoked without a refund.</p>
         </Section>
 
-        <Section num="4" title="Prohibited Actions & System Manipulation">
-          <p>Customers are strictly prohibited from:</p>
-          <p>4.1 Manipulating, rolling back, or altering the system clock to extend the license.</p>
-          <p>4.2 Deleting, modifying, or damaging ClipperGuard checkpoint files.</p>
-          <p>4.3 Stopping, disabling, or interfering with the ClipperGuard service.</p>
-          <p>4.4 Reverse engineering the license system.</p>
-          <p>4.5 Using third-party tools to bypass the license.</p>
-          <p>4.6 Sharing, reselling, or distributing keys to third parties.</p>
-          <p className="text-gray-400 text-xs mt-2">(EULA Article 10)</p>
+        <Section num="4" title="Payment Methods" group="s1">
+          <p>4.1 Payment is processed via QRIS or bank transfer, according to the method chosen by the customer.</p>
+          <p>4.2 After a successful payment, the system automatically generates the license key and the unique cashback code (if the package is eligible).</p>
+          <p>4.3 The key, the application, and the unique cashback code are delivered by email or WhatsApp.</p>
         </Section>
 
-        <Section num="5" title="Violation Detection & Access Blocking">
-          <p>5.1 ClipperGuard monitors system integrity periodically.</p>
-          <p>5.2 If a violation is detected (including but not limited to: time manipulation, checkpoint tampering, service interference):</p>
+        <Section num="5" title="No Refund Policy" group="s1">
+          <p>5.1 All license purchases are final and non-refundable.</p>
+          <p>5.2 The license is a digital product delivered immediately after payment, and therefore cannot be returned.</p>
+          <p>5.3 No refund is provided when access is revoked because of a violation of the terms.</p>
+          <p>5.4 By making a purchase, the customer agrees to and expressly waives any right to a refund.</p>
+        </Section>
+
+        <Section num="6" title="Prohibited Uses" group="s1">
+          <p>The customer is strictly prohibited from:</p>
+          <p>6.1 Reverse engineering the licensing system or the software.</p>
+          <p>6.2 Using third-party tools to bypass or manipulate the license.</p>
+          <p>6.3 Sharing, selling, or distributing the license key to third parties.</p>
+          <p>6.4 Using the software for unlawful activities, including downloading copyright-infringing content.</p>
+        </Section>
+
+        <Section num="7" title="Rights & Obligations" group="s1">
+          <p>7.1 The developer is entitled to update, fix, or discontinue certain software features at any time for the improvement of the service.</p>
+          <p>7.2 The customer is entitled to software updates for as long as the license is active.</p>
+          <p>7.3 The customer must provide accurate and complete information when purchasing and when claiming cashback.</p>
+        </Section>
+
+        <Section num="8" title="Warranty & Limitation of Liability" group="s1">
+          <p>8.1 The software is provided "as is" without any warranty.</p>
+          <p>8.2 The developer is not liable for:</p>
           <ul className="list-disc list-inside pl-2 space-y-1">
-            <li>The violation is recorded in the checkpoint file</li>
-            <li>The application enters Block Mode — all features are disabled</li>
-            <li>A Violation Code is generated and displayed to the user</li>
-            <li>The customer must contact the Admin to obtain an Unlock Key</li>
+            <li>Direct, indirect, incidental, or consequential damages</li>
+            <li>Loss of data or revenue</li>
+            <li>Business interruption arising from the use of this software</li>
+            <li>Third-party claims</li>
           </ul>
-          <p className="text-gray-400 text-xs mt-2">(EULA Article 11)</p>
+          <p>8.3 The developer does not warrant that the software is free of errors (bugs) or that it will operate without interruption.</p>
         </Section>
 
-        <Section num="6" title="70% Penalty & Unlock Key">
-          <p>6.1 To restore access after a violation, the customer must:</p>
-          <ul className="list-disc list-inside pl-2 space-y-1">
-            <li>Copy the Violation Code from the blocked page</li>
-            <li>Contact Admin via WhatsApp and send the code</li>
-            <li>Pay a 70% penalty of the package price</li>
-            <li>Admin will generate an Unlock Key based on the violation code</li>
-            <li>Enter the Unlock Key on the blocked page to restore access</li>
-          </ul>
-          <p>6.2 The Unlock Key is tied to the specific machine, violation, and remaining license duration. It cannot be transferred or reused after the license expires.</p>
-          <p>6.3 If the customer does not wish to pay the penalty, they may wait until the block period ends automatically (based on remaining license duration).</p>
-          <p className="text-gray-400 text-xs mt-2">(EULA Article 12)</p>
+        <Section num="9" title="Intellectual Property Rights" group="s1">
+          <p>9.1 All copyright, ownership, and intellectual property rights in this software remain with the developer (MineClip Studio).</p>
+          <p>9.2 This license does not grant ownership of the source code, algorithms, or technologies used.</p>
         </Section>
 
-        <Section num="7" title="Unlock Key Validity">
-          <p>7.1 The Unlock Key is only valid for the remaining duration of the original license.</p>
-          <p>7.2 When the original license expires, the block is automatically lifted.</p>
-          <p>7.3 After expiration, the customer may purchase a new package normally.</p>
-          <p>7.4 THE DEVELOPER RESERVES THE RIGHT to refuse new purchases from customers with a history of repeated violations.</p>
-          <p>7.5 If a customer attempts to activate a new key while still in Block Mode, the system will reject it with the message: "This key cannot be used while your access is blocked. Please use an Unlock Key first."</p>
-          <p className="text-gray-400 text-xs mt-2">(EULA Articles 13 & 16)</p>
+        <Section num="10" title="Termination" group="s1">
+          <p>The license ends automatically when:</p>
+          <p>10.1 The customer violates the terms set out in this document.</p>
+          <p>10.2 The developer decides to discontinue the service.</p>
+          <p>Upon termination, the customer must delete all copies of the software.</p>
         </Section>
 
-        <Section num="8" title="Additional Consequences">
-          <p>The developer reserves the right to:</p>
-          <p>8.1 Refuse to issue an Unlock Key for repeated or severe violations.</p>
-          <p>8.2 Refuse to sell new packages to customers who have violated terms.</p>
-          <p>8.3 Permanently ban a Machine ID.</p>
-          <p>8.4 Pursue legal action if the violation causes financial loss.</p>
-          <p className="text-gray-400 text-xs mt-2">(EULA Article 14)</p>
+        <Section num="11" title="Governing Law" group="s1">
+          <p>11.1 This agreement is governed by the laws of the Republic of Indonesia.</p>
+          <p>11.2 Disputes are first resolved through deliberation in order to reach mutual agreement.</p>
+          <p>11.3 If no agreement is reached, the dispute is settled in the competent District Court (Pengadilan Negeri).</p>
         </Section>
 
-        <Section num="9" title="Cashback Terms">
-          <p className="font-semibold text-gray-700">9.1 General Terms</p>
+        <Section num="12" title="Cashback Terms" group="s1">
+          <p className="font-semibold text-gray-700">12.1 General Terms</p>
           <ul className="list-disc list-inside pl-2 space-y-1 mb-3">
-            <li>Cashback applies only to purchases with Cashback Eligible status.</li>
-            <li>Cashback is non-cash, transferred to the registered WhatsApp number or email.</li>
+            <li>Cashback only applies to purchases with the status Cashback Eligible (the amount per package is listed in the table in clause 2.1).</li>
+            <li>Cashback is non-cash and is transferred to the registered WhatsApp number or email.</li>
             <li>Cashback can only be claimed once per key.</li>
             <li>Cashback cannot be combined with other promotions.</li>
           </ul>
 
-          <p className="font-semibold text-gray-700">9.2 Claim Requirements</p>
+          <p className="font-semibold text-gray-700">12.2 Claim Requirements</p>
           <ol className="list-decimal list-inside pl-2 space-y-1 mb-3">
             <li>
-              Support the developer by following{" "}
+              Support us by following{" "}
               <a href={TIKTOK_URL} target="_blank" rel="noopener noreferrer" className="text-violet-600 font-semibold underline underline-offset-2 hover:text-violet-700">
                 TikTok @mineclipstudio
               </a>{" "}
-              or subscribing to the{" "}
+              or subscribing to{" "}
               <a href={YOUTUBE_URL} target="_blank" rel="noopener noreferrer" className="text-violet-600 font-semibold underline underline-offset-2 hover:text-violet-700">
-                YouTube Channel @Mineclips_collection
+                YouTube @Mineclips_collection
               </a>
             </li>
-            <li>Like &amp; comment on at least 3 posts — either on TikTok or YouTube. MUST be different posts for each claim. Liking/commenting on the same post repeatedly is not valid.</li>
-            <li>Share the video to at least 3 friends, or upload it to your Story (sharing 3× to our account is allowed; for Story, a screenshot once it is live is enough).</li>
-            <li>Follow, like, comment, and subscribe MUST be maintained for at least 7 days. If the customer is found to have stopped earlier, the cashback will not be paid out.</li>
-            <li>Attach screenshots as proof for each step.</li>
-            <li>Fill in the data correctly and completely — it must match the data submitted at the time of purchase for tracking purposes.</li>
+            <li>Like &amp; comment on at least 3 posts — on TikTok or YouTube. Each claim requires different posts; reusing the same posts is considered invalid.</li>
+            <li>Share the video with at least 3 friends or upload it to your Story (you may share 3 times to our account; for Story, a screenshot once it is published is enough).</li>
+            <li>Follows, likes, comments, and subscriptions must be maintained for at least 7 days. If detected stopping earlier, the cashback cannot be paid out.</li>
+            <li>Attach a screenshot as proof of each step.</li>
+            <li>Fill in the data correctly and completely — it must match the purchase details for tracking purposes.</li>
           </ol>
 
-          <p className="font-semibold text-gray-700">9.3 Cashback Amounts</p>
-          <p>Refer to the cashback table on the homepage or claim page for current cashback rates per package.</p>
-
-          <p className="font-semibold text-gray-700 mt-3">9.4 Claim Process</p>
+          <p className="font-semibold text-gray-700">12.3 Claim Process</p>
           <ol className="list-decimal list-inside pl-2 space-y-1 mb-3">
-            <li>Customer fulfills the requirements in clause 9.2.</li>
-            <li>Customer fills in the cashback claim form.</li>
-            <li>Admin verifies the proof within a maximum of 1x24 hours.</li>
-            <li>If valid → status set to Approved.</li>
-            <li>Payout is processed at least 7 days after the key is activated. Proof of transfer is sent to the registered WhatsApp number or email.</li>
-            <li>If proof is invalid → Rejected.</li>
+            <li>The customer meets the requirements in clause 12.2.</li>
+            <li>The customer fills out the cashback claim form on the claim page.</li>
+            <li>The admin verifies the proof within a maximum of 1x24 hours.</li>
+            <li>If valid → status Approved.</li>
+            <li>Payout is processed at a minimum of 5 and a maximum of 7 days after the key is activated. Proof of transfer is sent to the registered WhatsApp number or email.</li>
+            <li>If the proof is invalid → rejected (Rejected).</li>
           </ol>
 
-          <p className="font-semibold text-gray-700">9.5 Penalties & Blacklist</p>
-          <p>Customers found to be committing fraud (including: fake accounts, bots, duplicate claims, using the same post for repeated claims, or stopping follow/like/subscribe within the 7-day period):</p>
+          <p className="font-semibold text-gray-700">12.4 Sanctions &amp; Blacklist</p>
+          <p>Customers proven to have committed fraud (including: fake accounts, bots, duplicate claims, reusing the same posts for repeated claims, or stopping follows/likes/subscriptions within the 7-day period):</p>
           <ul className="list-disc list-inside pl-2 space-y-1 mb-3">
-            <li>Cashback claim permanently rejected</li>
+            <li>Cashback claims are permanently rejected</li>
             <li>Blacklisted &amp; unable to purchase new keys</li>
-            <li>Active keys may be revoked without refund</li>
+            <li>Active keys may be revoked without a refund</li>
           </ul>
 
-          <p className="font-semibold text-gray-700">9.6 Other Terms</p>
+          <p className="font-semibold text-gray-700">12.5 Other Terms</p>
           <ul className="list-disc list-inside pl-2 space-y-1">
             <li>Cashback cannot be transferred to another number.</li>
-            <li>Incorrect WhatsApp number during registration is not the responsibility of the Admin.</li>
-            <li>Admin decisions are final.</li>
-            <li>Terms &amp; conditions may change at any time.</li>
+            <li>A wrong WhatsApp number entered at registration is not the responsibility of the Admin.</li>
+            <li>The Admin's decision is final.</li>
           </ul>
-          <p className="text-gray-400 text-xs mt-2">(EULA Article 6)</p>
-        </Section>
-
-        <Section num="10" title="Personal Data">
-          <p>10.1 Customer data (name, WhatsApp number, email, Machine ID, and payment proof) is used only for activation, payment verification, cashback processing, and support purposes.</p>
-          <p>10.2 Data is not sold or shared with third parties, except where required by Indonesian law (Law No. 27/2022 on Personal Data Protection) or upon a valid request from authorized authorities.</p>
-          <p>10.3 Details are set out in the full Privacy Policy in Part 2 of this document, which forms an integral and mutually binding part of this agreement.</p>
-          <p className="text-gray-400 text-xs mt-2">(EULA Article 17)</p>
-        </Section>
-
-        <Section num="11" title="Limitation of Liability">
-          <p>11.1 The software is provided "as is" without any warranty.</p>
-          <p>11.2 The developer is not liable for:</p>
-          <ul className="list-disc list-inside pl-2 space-y-1">
-            <li>Direct, indirect, incidental, or consequential damages</li>
-            <li>Loss of data or revenue</li>
-            <li>Business interruption resulting from use of this software</li>
-            <li>Third-party claims</li>
-          </ul>
-          <p>11.3 The developer does not guarantee the software is free from errors (bugs) or will function without interruptions.</p>
-          <p className="text-gray-400 text-xs mt-2">(EULA Article 5)</p>
-        </Section>
-
-        <Section num="12" title="Intellectual Property Rights">
-          <p>12.1 All copyright, ownership, and intellectual property rights to this software remain with the developer (MineClip Studio).</p>
-          <p>12.2 This license does not grant ownership of the source code, algorithms, or technology used.</p>
-          <p className="text-gray-400 text-xs mt-2">(EULA Article 4)</p>
-        </Section>
-
-        <Section num="13" title="License Termination">
-          <p>The license terminates automatically if:</p>
-          <p>13.1 The rental period expires.</p>
-          <p>13.2 The customer violates the terms of the EULA.</p>
-          <p>13.3 The developer decides to discontinue the service.</p>
-          <p>Upon termination, the customer must delete all copies of the software.</p>
-          <p className="text-gray-400 text-xs mt-2">(EULA Article 7)</p>
-        </Section>
-
-        <Section num="14" title="Governing Law">
-          <p>14.1 This agreement is governed by the laws of the Republic of Indonesia.</p>
-          <p>14.2 Disputes shall first be resolved through deliberation.</p>
-          <p>14.3 If no agreement is reached, disputes shall be settled in the competent District Court.</p>
-          <p className="text-gray-400 text-xs mt-2">(EULA Article 8)</p>
-        </Section>
-
-        <Section num="15" title="Privacy Policy" id="privacy-policy">
-          <p>15.1 Customer personal data (name, WhatsApp number, email, Machine ID, and payment proof) is collected and processed solely for license activation, payment verification, cashback claims, and customer support.</p>
-          <p>15.2 Personal data is not sold, rented, or shared with any third party, except where required by Indonesian law (Law No. 27/2022 on Personal Data Protection) or upon a valid request from authorized authorities.</p>
-          <p>15.3 Data is retained for as long as the customer holds an active license or as required by applicable law.</p>
-          <p>15.4 Customers may request access to, correction of, or deletion of their personal data by contacting the Admin.</p>
-          <p>15.5 By accepting these Terms &amp; Conditions, the customer also agrees to the full Privacy Policy in Part 2 of this document, which forms an integral and mutually binding part of this agreement.</p>
-          <p className="text-gray-400 text-xs mt-2">(EULA Article 17)</p>
         </Section>
 
         {/* ─── PART 2 ─── */}
-        <PartTitle num="PART 2" title="Privacy Policy" />
-        <Toc items={TOC_PART2} />
+        <div id="privacy-policy">
+          <PartTitle num="PART 2" title="Privacy Policy" />
+          <Toc items={TOC_PART2} group="s2" />
+        </div>
 
         <p>
-          This Privacy Policy explains how <strong className="text-gray-700">MineClip Studio</strong> ("we", "our", "us") collects, uses, stores, and protects your personal data when you use YouTube Clipper, purchase a license, or claim a cashback. By using our software and services, you agree to the practices described in this policy. This Privacy Policy forms an integral and mutually binding part of our <strong className="text-gray-700">Terms &amp; Conditions</strong> (Article 15).
+          This Privacy Policy explains how <strong className="text-gray-700">MineClip Studio</strong> ("we", "us", "our") collects, uses, stores, and protects your personal data when you use YouTube Clipper, purchase a license, or claim cashback. By using our software and services, you agree to the practices described in this policy. This Privacy Policy is an integral part of our <strong className="text-gray-700">Terms &amp; Conditions</strong>.
         </p>
 
-        <Section num="1" title="Data We Collect">
+        <Section num="1" title="Data We Collect" group="s2">
           <p>We collect the following personal data from customers:</p>
           <ul className="list-disc list-inside pl-2 space-y-1">
-            <li><strong className="text-gray-700">Name</strong> — submitted during the purchase form.</li>
-            <li><strong className="text-gray-700">WhatsApp number</strong> — used for key delivery, confirmation, and cashback transfer.</li>
-            <li><strong className="text-gray-700">Email address</strong> (optional) — alternative contact if WhatsApp cannot be reached.</li>
-            <li><strong className="text-gray-700">Machine ID</strong> (12-digit code) — used to bind the license key to a specific device.</li>
-            <li><strong className="text-gray-700">Payment proof</strong> (screenshot/photo of transfer) — used to verify payment.</li>
-            <li><strong className="text-gray-700">Cashback proof</strong> (screenshots of follow, like, comment, share) — used to verify cashback claims.</li>
+            <li><strong className="text-gray-700">Name</strong> — filled in on the purchase form.</li>
+            <li><strong className="text-gray-700">WhatsApp number</strong> — for key delivery, confirmation, and cashback transfers.</li>
+            <li><strong className="text-gray-700">Email address</strong> — for sending invoices &amp; purchase confirmations.</li>
+            <li><strong className="text-gray-700">Machine ID</strong> — used to bind the license key to a specific device.</li>
+            <li><strong className="text-gray-700">Payment proof</strong> (transfer screenshot/photo) — for payment verification.</li>
+            <li><strong className="text-gray-700">Cashback proof</strong> (screenshots of follows, likes, comments, shares) — for cashback claim verification.</li>
           </ul>
         </Section>
 
-        <Section num="2" title="How We Use Your Data">
-          <p>Your personal data is used solely for the following purposes:</p>
+        <Section num="2" title="How We Use Your Data" group="s2">
+          <p>Your personal data is used only for the following purposes:</p>
           <ul className="list-disc list-inside pl-2 space-y-1">
             <li>License activation and validation.</li>
             <li>Payment verification and order processing.</li>
             <li>Processing and verifying cashback claims.</li>
             <li>Customer support and communication.</li>
-            <li>Security — detecting and preventing license abuse or fraud.</li>
+            <li>Security — detecting and preventing license misuse or fraud.</li>
           </ul>
-          <p>We do not use your data for purposes other than those stated above without your consent.</p>
+          <p>We do not use your data for any other purpose without your consent.</p>
         </Section>
 
-        <Section num="3" title="Legal Basis & Consent">
-          <p>We process your personal data based on your explicit consent, which you give by ticking the "I agree to the Terms &amp; Conditions" checkbox at the time of purchase, and by submitting your data through our forms. This processing is carried out in accordance with Indonesian Law No. 27 of 2022 on Personal Data Protection (UU PDP).</p>
-          <p>By proceeding with a purchase or a cashback claim, you confirm that you have read, understood, and agreed to this Privacy Policy and the Terms &amp; Conditions.</p>
+        <Section num="3" title="Legal Basis & Consent" group="s2">
+          <p>We process your personal data based on your explicit consent, which you provide by checking the "I agree to the Terms &amp; Conditions" box at purchase, as well as by submitting data through our forms. This processing is carried out in accordance with Law of the Republic of Indonesia Number 27 of 2022 on Personal Data Protection (UU PDP).</p>
+          <p>By proceeding with a purchase or a cashback claim, you confirm that you have read, understood, and agree to this Privacy Policy and these Terms &amp; Conditions.</p>
         </Section>
 
-        <Section num="4" title="Storage & Security">
-          <p>Your personal data is stored in the developer&apos;s administrative database. Access is restricted to the developer only and is used exclusively for the purposes described in this policy.</p>
+        <Section num="4" title="Storage & Security" group="s2">
+          <p>Your personal data is stored in the developer's administrative database. Access is limited to the developer only and used exclusively for the purposes described in this policy.</p>
           <div className="p-4 rounded-xl bg-amber-50 border border-amber-100 text-xs text-amber-800 leading-relaxed">
-            <strong>Please note:</strong> Your data is not encrypted at the application level. You should avoid submitting sensitive information beyond what is required by our forms.
+            <strong>Notice:</strong> Your data is not encrypted at the application level. Please avoid sending sensitive information beyond what our forms request.
           </div>
         </Section>
 
-        <Section num="5" title="Data Sharing">
-          <p>We do <strong className="text-gray-700">not</strong> sell, rent, trade, or share your personal data with any third party for marketing or any other commercial purposes.</p>
+        <Section num="5" title="Data Sharing" group="s2">
+          <p>We <strong className="text-gray-700">do not</strong> sell, rent, trade, or share your personal data with third parties for marketing or other commercial purposes.</p>
           <p>The only exceptions are:</p>
           <ul className="list-disc list-inside pl-2 space-y-1">
-            <li>Where disclosure is required by applicable Indonesian law or upon a valid request from authorized authorities.</li>
-            <li>Where necessary to protect our legal rights (e.g., pursuing action against license abuse or fraud).</li>
+            <li>When disclosure is required by applicable Indonesian law or upon a legitimate request from competent authorities.</li>
+            <li>When necessary to protect our legal rights (for example, taking action against license misuse or fraud).</li>
           </ul>
         </Section>
 
-        <Section num="6" title="Data Retention">
-          <p>We retain your personal data for as long as you hold an active license or as long as required by applicable law. If you request deletion, we will remove your data within a reasonable period, subject to any legal obligations to retain it (for example, for fraud investigations or pending disputes).</p>
+        <Section num="6" title="Data Retention" group="s2">
+          <p>We retain your personal data for as long as you hold an active license or for as long as required by applicable law. If you request deletion, we will delete your data within a reasonable period, while remaining subject to legal obligations to retain it (for example, for ongoing fraud investigations or disputes).</p>
         </Section>
 
-        <Section num="7" title="Your Rights">
-          <p>In accordance with applicable data protection law, you have the right to:</p>
+        <Section num="7" title="Your Rights" group="s2">
+          <p>In accordance with applicable data protection regulations, you have the right to:</p>
           <ul className="list-disc list-inside pl-2 space-y-1">
             <li><strong className="text-gray-700">Access</strong> — request a copy of the personal data we hold about you.</li>
-            <li><strong className="text-gray-700">Correction</strong> — request that inaccurate data be corrected.</li>
-            <li><strong className="text-gray-700">Deletion</strong> — request that your personal data be deleted.</li>
+            <li><strong className="text-gray-700">Rectify</strong> — request that inaccurate data be corrected.</li>
+            <li><strong className="text-gray-700">Erase</strong> — request the deletion of your personal data.</li>
             <li><strong className="text-gray-700">Withdraw consent</strong> — object to the processing of your data.</li>
           </ul>
-          <p>To exercise any of these rights, contact the Admin using the details below. We will respond within a reasonable time.</p>
+          <p>To exercise these rights, contact the Admin using the details below. We will respond within a reasonable period.</p>
         </Section>
 
-        <Section num="8" title="Contact Us">
-          <p>If you have any questions about this Privacy Policy, or wish to exercise your rights, contact us at:</p>
+        <Section num="8" title="Contact Us" group="s2">
+          <p>If you have any questions about this Privacy Policy, or wish to exercise your rights, contact us through:</p>
           <ul className="list-disc list-inside pl-2 space-y-1">
             <li>
               <strong className="text-gray-700">WhatsApp:</strong>{" "}
@@ -323,25 +291,30 @@ export default function TermsPage() {
         </Section>
 
         <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-sm text-emerald-800 leading-relaxed">
-          <strong>By using YouTube Clipper, you acknowledge that you have read, understood, and agree to the full Terms &amp; Conditions and this Privacy Policy.</strong>
+          <strong>By using YouTube Clipper, you acknowledge that you have read, understood, and agree to all of these Terms &amp; Conditions and this Privacy Policy.</strong>
         </div>
       </div>
 
       <div className="text-center mt-8 pt-6 border-t border-gray-100">
         <p className="text-xs text-gray-400">YouTube Clipper — Terms &amp; Conditions and Privacy Policy</p>
         <p className="text-xs text-gray-500 mt-1">
-          <strong className="text-gray-600">MineClip Studio</strong> | Version 1.1 | Effective July 27, 2026
+          <strong className="text-gray-600">MineClip Studio</strong> | Version 2.0 | Effective August 6, 2026
         </p>
       </div>
 
       <div className="text-center mt-8">
         <Link href="/beli" className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 underline underline-offset-2">
-          &larr; Kembali ke pembelian
+          &larr; Back to purchase
         </Link>
       </div>
     </div>
   );
 }
+
+const TIER_CASHBACK: Record<string, number> = {
+  permanent_720: 45000,
+  permanent_1080: 50000,
+};
 
 function PartTitle({ num, title }: { num: string; title: string }) {
   return (
@@ -352,15 +325,15 @@ function PartTitle({ num, title }: { num: string; title: string }) {
   );
 }
 
-function Toc({ items }: { items: [string, string][] }) {
+function Toc({ items, group }: { items: [string, string][]; group: string }) {
   return (
     <div className="p-4 rounded-xl bg-gray-50 border border-gray-100 text-xs">
-      <p className="font-bold text-gray-700 mb-2 uppercase tracking-wider text-[11px]">Contents</p>
+      <p className="font-bold text-gray-700 mb-2 uppercase tracking-wider text-[11px]">Table of Contents</p>
       <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-1 list-none">
         {items.map(([num, label]) => (
           <li key={num}>
             <a
-              href={num === "15" && label === "Privacy Policy" ? "#privacy-policy" : `#sec-${num}`}
+              href={`#${group}-${num}`}
               className="text-gray-500 hover:text-violet-600 hover:underline underline-offset-2 transition-colors"
             >
               {num}. {label}
@@ -372,9 +345,9 @@ function Toc({ items }: { items: [string, string][] }) {
   );
 }
 
-function Section({ num, title, id, children }: { num: string; title: string; id?: string; children: React.ReactNode }) {
+function Section({ num, title, group, children }: { num: string; title: string; group: string; children: React.ReactNode }) {
   return (
-    <div id={id || `sec-${num}`}>
+    <div id={`${group}-${num}`}>
       <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
         <span className="inline-flex items-center justify-center min-w-[26px] h-[26px] bg-emerald-600 text-white rounded-lg text-xs px-1.5 shrink-0">{num}</span>
         {title}

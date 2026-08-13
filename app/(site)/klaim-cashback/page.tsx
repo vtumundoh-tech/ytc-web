@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { formatRupiah } from "@/lib/tiers";
 import { useAppSettings } from "@/hooks/useAppSettings";
-import { Gift, User, Phone, Mail, Hash, Tag, Image, FileText, CheckCircle, AlertTriangle, TrendingUp, ExternalLink, Search, X } from "lucide-react";
+import { Gift, User, Phone, Mail, Hash, Tag, Image, FileText, CheckCircle, AlertTriangle, ExternalLink, Search, X } from "lucide-react";
 
 const TIKTOK_URL = "https://www.tiktok.com/@mineclipstudio";
 const YOUTUBE_URL = "https://www.youtube.com/@Mineclips_collection";
@@ -20,7 +20,6 @@ export default function KlaimCashbackPage() {
   const [whatsapp, setWhatsapp] = useState("");
   const [email, setEmail] = useState("");
   const [tier, setTier] = useState("");
-  const [addon1080, setAddon1080] = useState(false);
   const [amountPaid, setAmountPaid] = useState("");
   const [notes, setNotes] = useState("");
   const [captcha, setCaptcha] = useState("");
@@ -67,7 +66,6 @@ export default function KlaimCashbackPage() {
       setWhatsapp(d.whatsapp || "");
       setEmail(d.email || "");
       setTier(d.tier || "");
-      setAddon1080(Boolean(d.addon1080));
       setAmountPaid(d.amount ? String(d.amount) : "");
       setUnlocked(true);
       setCheckState("ok");
@@ -90,7 +88,6 @@ export default function KlaimCashbackPage() {
       fd.append("email", email);
       fd.append("cashbackCode", cashbackCode.toUpperCase().trim());
       fd.append("tier", tier);
-      fd.append("addon1080", addon1080 ? "yes" : "no");
       fd.append("amountPaid", amountPaid);
       fd.append("notes", notes);
       fd.append("agreeSnk", "yes");
@@ -185,7 +182,7 @@ export default function KlaimCashbackPage() {
                 {checking ? "Mengecek..." : "Check Data"}
               </button>
             </div>
-            <p className="field-hint">Isi kode unik yang muncul saat pembayaran berhasil (hanya muncul sekali — simpan baik-baik).</p>
+            <p className="field-hint">Isi kode unik yang muncul saat pembayaran berhasil (hanya muncul sekalik).</p>
             {checkState === "ok" && (
               <div className="mt-3 p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-sm text-emerald-700 flex items-start gap-2 animate-fade-in">
                 <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -254,41 +251,6 @@ export default function KlaimCashbackPage() {
             </select>
           </Field>
 
-          <div>
-            <label className="field-label">
-              <TrendingUp className="w-3.5 h-3.5 inline mr-1.5 text-violet-500" />
-              Upgrade 1080p
-            </label>
-            <button
-              type="button"
-              disabled
-              className={`w-full flex items-center justify-between p-3.5 rounded-xl border transition-all duration-200 ${
-                addon1080
-                  ? "bg-blue-50 border-blue-200"
-                  : "bg-white border-gray-200"
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                  addon1080 ? "bg-blue-600 border-blue-600" : "border-gray-300 bg-white"
-                }`}>
-                  {addon1080 && (
-                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
-                </div>
-                <span className={`text-sm font-medium ${addon1080 ? "text-blue-700" : "text-gray-600"}`}>
-                  Saya membeli upgrade 1080p
-                </span>
-              </div>
-              {tier && (settings.addonPrices[tier] || 0) > 0 && (
-                <span className={`text-xs font-bold ${addon1080 ? "text-blue-700" : "text-gray-400"}`}>
-                  +{formatRupiah(settings.addonPrices[tier] || 0)}
-                </span>
-              )}
-            </button>
-          </div>
         </div>
 
         <hr className="border-gray-100" />
@@ -317,7 +279,7 @@ export default function KlaimCashbackPage() {
             files={fShare}
             onChange={setFShare}
             required
-            hint="Bukti share ke minimal 3 teman, atau screenshot Story saat sudah tayang."
+            hint="Bukti share ke minimal 3 teman (screenshot isi dm yang menunjukkan postingan yang di-share), atau screenshot Story saat sudah tayang."
           />
         </div>
 

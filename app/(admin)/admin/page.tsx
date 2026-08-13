@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { LogOut, ShoppingBag, Gift, Users, DollarSign, ExternalLink, Save, Download, FileText, Settings, Power, Search, Calendar, Filter, X } from "lucide-react";
+import { LogOut, ShoppingBag, Gift, Users, DollarSign, ExternalLink, Save, Download, FileText, Settings, Power, Search, Calendar, Filter, X, QrCode } from "lucide-react";
 import { useMemo } from "react";
 
 type Order = {
@@ -305,6 +305,8 @@ function OrdersTab() {
   type OrderDraft = { status: string; admin_notes: string };
   const [drafts, setDrafts] = useState<Record<string, Partial<OrderDraft>>>({});
   const [saving, setSaving] = useState<string | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterState>({ query: "", fromDate: "", toDate: "", tier: "" });
 
   async function load() {
@@ -321,20 +323,40 @@ function OrdersTab() {
     return { status: o.status, admin_notes: o.admin_notes || "", ...drafts[o.id] };
   }
 
+  function isDirty(o: Order): boolean {
+    const d = draftFor(o);
+    return d.status !== o.status || d.admin_notes !== (o.admin_notes || "");
+  }
+
   function setDraft(id: string, patch: Partial<OrderDraft>) {
     setDrafts((d) => ({ ...d, [id]: { ...d[id], ...patch } }));
   }
 
   async function save(o: Order) {
     setSaving(o.id);
+    setError(null);
     const d = draftFor(o);
-    await fetch("/api/admin/orders", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: o.id, status: d.status, admin_notes: d.admin_notes }),
-    });
-    setSaving(null);
-    load();
+    try {
+      const res = await fetch("/api/admin/orders", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: o.id, status: d.status, admin_notes: d.admin_notes }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal menyimpan.");
+      setDrafts((prev) => {
+        const next = { ...prev };
+        delete next[o.id];
+        return next;
+      });
+      await load();
+      setSavedId(o.id);
+      setTimeout(() => setSavedId(null), 2500);
+    } catch (err: any) {
+      setError(err.message || "Gagal menyimpan.");
+    } finally {
+      setSaving(null);
+    }
   }
 
   const paid = orders.filter((o) => o.status === "paid").length;
@@ -385,6 +407,12 @@ function OrdersTab() {
         accent="emerald"
       />
 
+      {error && (
+        <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
       {filtered.length !== orders.length && (
         <div className="text-xs text-gray-500">
           Menampilkan <strong className="text-gray-700">{filtered.length}</strong> dari{" "}
@@ -403,6 +431,8 @@ function OrdersTab() {
         filtered.map((o) => {
           const d = draftFor(o);
           const isSaving = saving === o.id;
+          const dirty = isDirty(o);
+          const isSaved = savedId === o.id;
           return (
             <div key={o.id} className="card-sm space-y-4 hover:shadow-md transition-shadow duration-200">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -466,6 +496,16 @@ function OrdersTab() {
                 <div className="flex items-center justify-between pt-2 border-t border-gray-50">
                 <div className="flex items-center gap-2">
                   <StatusBadge status={o.status} />
+                  {dirty && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> Perubahan belum disimpan
+                    </span>
+                  )}
+                  {isSaved && (
+                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                      ✓ Tersimpan
+                    </span>
+                  )}
                   {o.agree_snk && (
                     <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
                       ✅ S&K
@@ -480,8 +520,9 @@ function OrdersTab() {
                 </div>
                 <button
                   onClick={() => save(o)}
-                  disabled={isSaving}
-                  className="flex items-center gap-1.5 text-xs font-semibold bg-gray-900 hover:bg-gray-800 disabled:opacity-40 text-white px-4 py-2 rounded-lg transition-all duration-200"
+                  disabled={isSaving || !dirty}
+                  title={dirty ? "Simpan perubahan status/catatan" : "Tidak ada perubahan"}
+                  className="flex items-center gap-1.5 text-xs font-semibold bg-gray-900 hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-all duration-200"
                 >
                   <Save className="w-3 h-3" />
                   {isSaving ? "Menyimpan..." : "Simpan"}
@@ -501,6 +542,8 @@ function ClaimsTab() {
   type ClaimDraft = { status: string; admin_notes: string };
   const [drafts, setDrafts] = useState<Record<string, Partial<ClaimDraft>>>({});
   const [saving, setSaving] = useState<string | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterState>({ query: "", fromDate: "", toDate: "", tier: "" });
 
   async function load() {
@@ -517,20 +560,40 @@ function ClaimsTab() {
     return { status: c.status, admin_notes: c.admin_notes || "", ...drafts[c.id] };
   }
 
+  function isDirty(c: Claim): boolean {
+    const d = draftFor(c);
+    return d.status !== c.status || d.admin_notes !== (c.admin_notes || "");
+  }
+
   function setDraft(id: string, patch: Partial<ClaimDraft>) {
     setDrafts((d) => ({ ...d, [id]: { ...d[id], ...patch } }));
   }
 
   async function save(c: Claim) {
     setSaving(c.id);
+    setError(null);
     const d = draftFor(c);
-    await fetch("/api/admin/claims", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: c.id, status: d.status, admin_notes: d.admin_notes }),
-    });
-    setSaving(null);
-    load();
+    try {
+      const res = await fetch("/api/admin/claims", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: c.id, status: d.status, admin_notes: d.admin_notes }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal menyimpan.");
+      setDrafts((prev) => {
+        const next = { ...prev };
+        delete next[c.id];
+        return next;
+      });
+      await load();
+      setSavedId(c.id);
+      setTimeout(() => setSavedId(null), 2500);
+    } catch (err: any) {
+      setError(err.message || "Gagal menyimpan.");
+    } finally {
+      setSaving(null);
+    }
   }
 
   const pending = claims.filter((c) => c.status === "pending").length;
@@ -581,6 +644,12 @@ function ClaimsTab() {
         accent="violet"
       />
 
+      {error && (
+        <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
       {filtered.length !== claims.length && (
         <div className="text-xs text-gray-500">
           Menampilkan <strong className="text-gray-700">{filtered.length}</strong> dari{" "}
@@ -599,6 +668,8 @@ function ClaimsTab() {
         filtered.map((c) => {
           const d = draftFor(c);
           const isSaving = saving === c.id;
+          const dirty = isDirty(c);
+          const isSaved = savedId === c.id;
           return (
             <div key={c.id} className="card-sm space-y-4 hover:shadow-md transition-shadow duration-200">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -665,6 +736,16 @@ function ClaimsTab() {
                 <div className="flex items-center justify-between pt-2 border-t border-gray-50">
                 <div className="flex items-center gap-2">
                   <StatusBadge status={c.status} />
+                  {dirty && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> Perubahan belum disimpan
+                    </span>
+                  )}
+                  {isSaved && (
+                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                      ✓ Tersimpan
+                    </span>
+                  )}
                   {c.agree_snk && (
                     <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
                       ✅ S&K
@@ -679,8 +760,9 @@ function ClaimsTab() {
                 </div>
                 <button
                   onClick={() => save(c)}
-                  disabled={isSaving}
-                  className="flex items-center gap-1.5 text-xs font-semibold bg-gray-900 hover:bg-gray-800 disabled:opacity-40 text-white px-4 py-2 rounded-lg transition-all duration-200"
+                  disabled={isSaving || !dirty}
+                  title={dirty ? "Simpan perubahan status/catatan" : "Tidak ada perubahan"}
+                  className="flex items-center gap-1.5 text-xs font-semibold bg-gray-900 hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-all duration-200"
                 >
                   <Save className="w-3 h-3" />
                   {isSaving ? "Menyimpan..." : "Simpan"}
@@ -701,6 +783,9 @@ function SettingsTab() {
     tiers: TierForm[];
     addon_prices: Record<string, string>;
     cashback_tiers: Record<string, string>;
+    qris_enabled: boolean;
+    qris_image_url: string;
+    qris_instructions: string;
   };
 
   const [form, setForm] = useState<SettingsForm | null>(null);
@@ -708,8 +793,8 @@ function SettingsTab() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [savedAt, setSavedAt] = useState("");
-  const [connHost, setConnHost] = useState("");
   const [error, setError] = useState("");
+  const [initialJson, setInitialJson] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -720,7 +805,7 @@ function SettingsTab() {
         if (!res.ok) throw new Error(d.error || `HTTP ${res.status}`);
         const data = d.data;
         if (data && Array.isArray(data.tiers)) {
-          setForm({
+          const nextForm: SettingsForm = {
             promo_enabled: data.promo_enabled === true,
             tiers: data.tiers.map((t: any) => ({
               value: t.value,
@@ -734,15 +819,13 @@ function SettingsTab() {
             cashback_tiers: Object.fromEntries(
               Object.entries(data.cashback_tiers || {}).map(([k, v]) => [k, String(v)])
             ),
-          });
+            qris_enabled: data.qris_enabled === true,
+            qris_image_url: data.qris_image_url || "",
+            qris_instructions: data.qris_instructions || "",
+          };
+          setForm(nextForm);
+          setInitialJson(JSON.stringify(nextForm));
           if (data.updated_at) setSavedAt(data.updated_at);
-        }
-        if (d.meta?.supabaseUrl) {
-          try {
-            setConnHost(new URL(d.meta.supabaseUrl).hostname);
-          } catch {
-            setConnHost(d.meta.supabaseUrl);
-          }
         }
       } catch (e: any) {
         setError(e.message || "Gagal memuat pengaturan.");
@@ -754,10 +837,6 @@ function SettingsTab() {
 
   function setTier(value: string, patch: Partial<TierForm>) {
     setForm((f) => (f ? { ...f, tiers: f.tiers.map((t) => (t.value === value ? { ...t, ...patch } : t)) } : f));
-  }
-
-  function setAddon(value: string, val: string) {
-    setForm((f) => (f ? { ...f, addon_prices: { ...f.addon_prices, [value]: val } } : f));
   }
 
   function computedPromo(originalAmount: number, discountPercent: number): number {
@@ -783,9 +862,6 @@ function SettingsTab() {
           discountPercent,
         };
       });
-      const addon_prices = Object.fromEntries(
-        Object.entries(form.addon_prices).map(([k, v]) => [k, Number(v) || 0])
-      );
       const cashback_tiers = Object.fromEntries(
         Object.entries(form.cashback_tiers).map(([k, v]) => [k, Number(v) || 0])
       );
@@ -793,13 +869,22 @@ function SettingsTab() {
         method: "PUT",
         cache: "no-store",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ promo_enabled: form.promo_enabled, tiers, addon_prices, cashback_tiers }),
+        body: JSON.stringify({
+          promo_enabled: form.promo_enabled,
+          tiers,
+          addon_prices: {},
+          cashback_tiers,
+          qris_enabled: form.qris_enabled,
+          qris_image_url: form.qris_image_url,
+          qris_instructions: form.qris_instructions,
+        }),
       });
       const text = await res.text();
       const data = text ? JSON.parse(text) : {};
       if (!res.ok) throw new Error(data.error || `Gagal menyimpan. (HTTP ${res.status})`);
       setSaved(true);
       setSavedAt(new Date().toISOString());
+      setInitialJson(JSON.stringify(form));
       setTimeout(() => setSaved(false), 2500);
     } catch (err: any) {
       setError(err.message || "Gagal menyimpan pengaturan.");
@@ -819,9 +904,17 @@ function SettingsTab() {
   }
 
   const promoActive = form.promo_enabled;
+  const dirty = initialJson ? JSON.stringify(form) !== initialJson : false;
 
   return (
     <div className="space-y-4">
+      {dirty && (
+        <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-800 flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+          Ada perubahan yang belum disimpan — klik <strong>Simpan Pengaturan</strong> di bawah agar berlaku.
+        </div>
+      )}
+
       <div className={cn("card-sm space-y-4", promoActive ? "border-emerald-200" : "border-gray-200")}>
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
@@ -851,6 +944,9 @@ function SettingsTab() {
             />
           </button>
         </div>
+        <p className="text-[11px] text-gray-400 -mt-2">
+          Toggle ini baru berlaku setelah menekan tombol <strong>Simpan Pengaturan</strong> di bawah.
+        </p>
 
         {saved && (
           <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-sm text-emerald-700">
@@ -862,6 +958,64 @@ function SettingsTab() {
             {error}
           </div>
         )}
+      </div>
+
+      <div className={cn("card-sm space-y-4", form.qris_enabled ? "border-blue-200" : "border-gray-200")}>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
+              <QrCode className={cn("w-4 h-4", form.qris_enabled ? "text-blue-600" : "text-gray-400")} />
+              Pembayaran QRIS (Statis)
+            </h3>
+            <p className="text-xs text-gray-500 mt-1">
+              {form.qris_enabled
+                ? "QRIS AKTIF — checkout membuat pesanan 'menunggu bayar'. Setelah pelanggan bayar, ubah status order jadi 'Lunas' → email invoice & link unduhan otomatis terkirim."
+                : "QRIS NONAKTIF — checkout langsung menandai pesanan lunas tanpa pembayaran (mode lama)."}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setForm((f) => (f ? { ...f, qris_enabled: !f.qris_enabled } : f))}
+            className={cn(
+              "relative w-14 h-8 rounded-full transition-colors duration-300",
+              form.qris_enabled ? "bg-blue-500" : "bg-gray-300"
+            )}
+          >
+            <span
+              className={cn(
+                "absolute top-1 w-6 h-6 rounded-full bg-white shadow-md transition-all duration-300",
+                form.qris_enabled ? "left-7" : "left-1"
+              )}
+            />
+          </button>
+        </div>
+        <p className="text-[11px] text-gray-400 -mt-2">
+          Toggle ini baru berlaku setelah menekan tombol <strong>Simpan Pengaturan</strong> di bawah.
+        </p>
+
+        <div>
+          <label className="text-xs font-medium text-gray-500 block mb-1">URL Gambar QRIS</label>
+          <input
+            className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+            value={form.qris_image_url}
+            onChange={(e) => setForm((f) => (f ? { ...f, qris_image_url: e.target.value } : f))}
+            placeholder="https://.../qris.png"
+          />
+          <p className="text-[11px] text-gray-400 mt-1">
+            Upload gambar QRIS statis ke hosting/layanan gambar, lalu tempel link-nya di sini.
+          </p>
+        </div>
+
+        <div>
+          <label className="text-xs font-medium text-gray-500 block mb-1">Instruksi Pembayaran</label>
+          <textarea
+            className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 min-h-[120px]"
+            value={form.qris_instructions}
+            onChange={(e) => setForm((f) => (f ? { ...f, qris_instructions: e.target.value } : f))}
+            placeholder={"1. Buka GoPay / e-wallet\n2. Scan QRIS\n3. Bayar"}
+          />
+          <p className="text-[11px] text-gray-400 mt-1">Satu langkah per baris.</p>
+        </div>
       </div>
 
       <div className="card-sm space-y-4">
@@ -916,25 +1070,6 @@ function SettingsTab() {
       </div>
 
       <div className="card-sm space-y-4">
-        <h3 className="font-semibold text-gray-900 text-sm">Harga Addon 1080p</h3>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {form.tiers.map((t) => (
-            <div key={t.value}>
-              <label className="text-xs font-medium text-gray-500 block mb-1">{t.label}</label>
-              <div className="flex items-center gap-1">
-                <input
-                  type="number"
-                  className="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
-                  value={form.addon_prices[t.value] ?? ""}
-                  onChange={(e) => setAddon(t.value, e.target.value)}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="card-sm space-y-4">
         <h3 className="font-semibold text-gray-900 text-sm">Cashback per Paket</h3>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {form.tiers.map((t) => (
@@ -959,17 +1094,13 @@ function SettingsTab() {
               {savedAt
                 ? `Terakhir disimpan: ${new Date(savedAt).toLocaleString("id-ID")}`
                 : "Belum pernah disimpan."}
-            </p>
-            {connHost && (
-              <p className="text-gray-400">
-                Terkoneksi ke: <span className="font-medium text-gray-600">{connHost}</span>
-              </p>
-            )}
+          </p>
           </div>
           <button
             onClick={save}
-            disabled={saving}
-            className="flex items-center gap-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white px-5 py-2.5 rounded-xl transition-all duration-200"
+            disabled={saving || !dirty}
+            title={dirty ? "Simpan semua perubahan di tab ini" : "Tidak ada perubahan"}
+            className="flex items-center gap-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 disabled:opacity-30 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl transition-all duration-200"
           >
             <Save className="w-3.5 h-3.5" /> {saving ? "Menyimpan..." : "Simpan Pengaturan"}
           </button>

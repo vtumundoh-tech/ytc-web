@@ -23,7 +23,7 @@ function normalize(value: string): string {
 export async function GET(req: NextRequest) {
   try {
     const meta = getRequestMeta(req);
-    const rl = checkRateLimit(rateLimitKey("cashback-check", meta.ip), 10, 60_000);
+    const rl = await checkRateLimit(rateLimitKey("cashback-check", meta.ip), 10, 60_000);
     if (!rl.allowed) {
       return NextResponse.json({ error: "Terlalu banyak permintaan. Coba lagi nanti." }, { status: 429 });
     }

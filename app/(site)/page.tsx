@@ -1,14 +1,13 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   Download, Mic, Scissors, Brain, Volume2, CreditCard, Gift, Phone, Mail,
-  ChevronRight, Sparkles, Clock, ShieldCheck, TrendingUp, Monitor,
-  Star, Flame, Target, Coins, User, ExternalLink,
+  ChevronRight, Sparkles, Clock, ShieldCheck, Monitor,
+  Flame, Coins, User, ExternalLink, Cpu, Clapperboard, Send, Subtitles, Bot,
 } from "lucide-react";
-import { formatPrice, formatRupiah } from "@/lib/tiers";
+import { formatRupiah, formatPrice } from "@/lib/tiers";
 import { useAppSettings } from "@/hooks/useAppSettings";
 
 const fadeUp = {
@@ -26,37 +25,36 @@ const fadeUp = {
 };
 
 const FEATURES = [
+  { icon: Clapperboard, label: "7 Mode Klip", desc: "Lucu, Seru, Ringkas, Horror, Komedi, Podcast, Tech & Vlog — bisa pilih banyak sekaligus." },
+  { icon: Cpu, label: "AI Gratis", desc: "Scoring klip gratis & tanpa khawatir kena limit token." },
   { icon: Download, label: "Download Video", desc: "YouTube, TikTok, Instagram — langsung dari aplikasi." },
   { icon: Mic, label: "Transkripsi AI", desc: "Otomatis transkrip audio pakai Whisper AI. Akurat & cepat." },
-  { icon: Scissors, label: "Potong Klip Viral", desc: "Buat klip pendek siap upload ke TikTok, Reels, Shorts." },
-  { icon: Brain, label: "AI Scoring", desc: "Skor konten pakai Gemini/OpenRouter/Claude." },
-  { icon: Volume2, label: "Narator Otomatis", desc: "Suara narasi realistik." },
+  { icon: Scissors, label: "Potong Klip Viral", desc: "Buat klip pendek 9:16 siap upload ke TikTok, Reels, Shorts." },
+  { icon: Brain, label: "AI Scoring", desc: "Skor konten juga dapat menggunakan Gemini/OpenRouter/Claude." },
+  { icon: Volume2, label: "Narasi AI Multi-Klip", desc: "Tulis teks, AI bacakan dengan suara Indonesia — teks beda tiap klip." },
+  { icon: Subtitles, label: "Subtitle SRT", desc: "Upload transkrip SRT atau embed subtitle langsung ke video." },
+  { icon: Send, label: "Notifikasi Telegram", desc: "Progress klip otomatis dikirim ke Telegram Anda." },
+];
+
+const FEATURES_LATEST = [
+  { icon: Bot, label: "AI Chat Pribadi Unlimited", desc: "Chat dengan video & dokumen (PDF, Word, Excel, PPT, gambar) dengan konteks yang diingat per-sesi. Berjalan offline di PC Anda sendiri — tanpa batas token, tanpa langganan." },
+  { icon: Send, label: "Integrasi Telegram", desc: "Progress klip & notifikasi otomatis dikirim ke Telegram — pantau dari HP di mana saja." },
 ];
 
 const STEPS = [
-  { icon: User, label: "Isi Data & Pilih Paket", desc: "Isi nama, WhatsApp & email, lalu pilih paket sewa di halaman beli." },
+  { icon: User, label: "Isi Data & Pilih Paket", desc: "Isi nama, WhatsApp & email, lalu pilih paket permanen di halaman beli." },
   { icon: Coins, label: "Pilih Metode Bayar", desc: "Bayar via QRIS atau transfer bank sesuai metode yang Anda pilih." },
-  { icon: Gift, label: "Key & Aplikasi Dikirim", desc: "Key lisensi & aplikasi dikirim via email atau WhatsApp sesuai data yang diisi." },
+  { icon: Gift, label: "Key & Aplikasi Dikirim", desc: "Key lisensi permanen & aplikasi dikirim via email atau WhatsApp sesuai data yang diisi." },
 ];
 
 const TIKTOK_URL = "https://www.tiktok.com/@mineclipstudio";
 const YOUTUBE_URL = "https://www.youtube.com/@Mineclips_collection";
 
 export default function HomePage() {
-  const [addonTiers, setAddonTiers] = useState<Set<string>>(new Set());
   const { settings } = useAppSettings();
   const promoEnabled = settings.promoEnabled;
   const tiers = settings.tiers;
   const cashbackEligible = tiers.filter((t) => (settings.cashbackTiers[t.value] || 0) > 0);
-
-  function toggleAddon(value: string) {
-    setAddonTiers((prev) => {
-      const next = new Set(prev);
-      if (next.has(value)) next.delete(value);
-      else next.add(value);
-      return next;
-    });
-  }
 
   return (
     <div className="overflow-hidden">
@@ -65,18 +63,27 @@ export default function HomePage() {
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-emerald-50/60 to-transparent" />
         <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full border border-emerald-200/50 mb-6">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          YouTube Clipper v2.0 — Software Lisensi
+          YouTube Clipper v2.0 — Lisensi Permanen
         </div>
         <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight leading-tight">
-          Download, Transkrip, Potong,{" "}
+          Download, Transkrip, Potong, <br className="hidden sm:block" />
           <span className="bg-gradient-to-r from-emerald-600 to-emerald-400 bg-clip-text text-transparent">
             Viral, dan Cuan.
           </span>
         </h1>
         <p className="mt-5 text-base sm:text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
           Software desktop Windows all-in-one untuk content creator: download video dari YouTube/TikTok/Instagram,
-          transkripsi otomatis dengan Whisper AI, potong klip pendek viral, scoring AI, dan narator Azure TTS.
+          pilih dari 7 mode klip, transkripsi otomatis dengan Whisper AI, scoring AI lokal gratis tanpa batas,
+          dan narasi AI bersuara Indonesia.
         </p>
+        <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full border border-emerald-200/50">
+            <ShieldCheck className="w-3.5 h-3.5" /> Sekali Bayar, Pakai Selamanya
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 text-xs font-bold rounded-full border border-amber-200/50">
+            <Coins className="w-3.5 h-3.5" /> Cashback s.d. Rp50.000
+          </span>
+        </div>
         <div className="flex flex-wrap items-center justify-center gap-3 mt-8">
           <Link
             href="#harga"
@@ -91,7 +98,36 @@ export default function HomePage() {
             Beli Langsung
           </Link>
         </div>
-        <p className="text-xs text-gray-400 mt-4">Windows 10/11 • Pembayaran via QRIS / Transfer Bank</p>
+        <p className="text-xs text-gray-400 mt-4">Windows 10/11 (64-bit) • Tanpa langganan • Pembayaran via QRIS / Transfer Bank</p>
+      </motion.section>
+
+      {/* ─── FITUR TERBARU ─── */}
+      <motion.section {...fadeUp} className="max-w-5xl mx-auto px-4 py-8">
+        <div className="flex items-center justify-center gap-2 mb-8">
+          <span className="px-3 py-1 bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white text-[10px] font-bold rounded-full uppercase tracking-wide">
+            Baru
+          </span>
+          <h2 className="text-lg sm:text-2xl font-bold text-gray-900">Fitur Terbaru v2.0</h2>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-4">
+          {FEATURES_LATEST.map((f, i) => {
+            const Icon = f.icon;
+            return (
+              <motion.div
+                key={f.label}
+                {...stagger}
+                transition={{ ...stagger.transition, delay: i * 0.1 }}
+                className="card-sm hover:shadow-md transition-shadow duration-200 group flex flex-col items-center text-center"
+              >
+                <div className="w-10 h-10 rounded-lg bg-violet-50 flex items-center justify-center mb-4 mx-auto group-hover:bg-violet-100 transition-colors">
+                  <Icon className="w-5 h-5 text-violet-600" />
+                </div>
+                <h3 className="font-semibold text-gray-900 text-sm">{f.label}</h3>
+                <p className="text-xs text-gray-500 mt-1 leading-relaxed">{f.desc}</p>
+              </motion.div>
+            );
+          })}
+        </div>
       </motion.section>
 
       {/* ─── FITUR ─── */}
@@ -120,28 +156,23 @@ export default function HomePage() {
       </motion.section>
 
       {/* ─── HARGA ─── */}
-      <motion.section id="harga" {...fadeUp} className="relative max-w-5xl mx-auto px-4 py-12 sm:py-16">
+      <motion.section id="harga" {...fadeUp} className="relative max-w-4xl mx-auto px-4 py-12 sm:py-16">
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-gray-50/80 to-transparent" />
-        <h2 className="text-lg sm:text-2xl font-bold text-gray-900 text-center">Pilih Paket Sewa</h2>
-        {promoEnabled ? (
-          <p className="text-sm text-gray-500 text-center mt-2 mb-3">Harga spesial — diskon terbatas. Harga sewaktu-waktu bisa berubah.</p>
-        ) : (
-          <p className="text-sm text-gray-500 text-center mt-2 mb-3">Harga normal tanpa potongan. Harga sewaktu-waktu bisa berubah.</p>
-        )}
-        <p className="text-xs text-gray-400 text-center mb-10"><Coins className="w-4 h-4 inline text-amber-500 -mt-0.5" /> Setiap pembelian paket 720p tertentu berhak klaim cashback!</p>
+        <h2 className="text-lg sm:text-2xl font-bold text-gray-900 text-center">Pilih Paket</h2>
+        <p className="text-sm text-gray-500 text-center mt-2 mb-3">
+          Lisensi permanen — sekali bayar, dapat anda gunakan selamanya. Harga sewaktu-waktu bisa berubah.
+        </p>
+        <p className="text-xs text-gray-400 text-center mb-10">
+          <Coins className="w-4 h-4 inline text-amber-500 -mt-0.5" /> Setiap paket berhak klaim cashback!
+        </p>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid sm:grid-cols-2 gap-4">
           {tiers.map((tier, i) => {
             const disc = promoEnabled ? tier.discountPercent : 0;
             const cashback = settings.cashbackTiers[tier.value] || 0;
-            const addonPrice = settings.addonPrices[tier.value] || 0;
-            const hasAddon = tier.label === "30 Hari" || tier.label === "7 Hari" || tier.label === "17 Hari";
-            const isAddonActive = addonTiers.has(tier.value);
             const basePrice = promoEnabled ? tier.amount : tier.originalAmount;
-            const totalPrice = isAddonActive ? basePrice + addonPrice : basePrice;
-            const isBestValue = tier.value === "monthly_720";
-            const isWeekly720 = tier.value === "weekly_720" && !isBestValue;
-            const isSemiMonthly720 = tier.value === "semi_monthly_720" && !isBestValue && !isWeekly720;
+            const originalPrice = tier.originalAmount;
+            const isSpecial = tier.value === "permanent_1080";
 
             return (
               <motion.div
@@ -149,22 +180,12 @@ export default function HomePage() {
                 {...stagger}
                 transition={{ ...stagger.transition, delay: i * 0.1 }}
                 className={`card-sm flex flex-col relative transition-all duration-200 hover:shadow-lg ${
-                  isBestValue ? "ring-2 ring-emerald-400 shadow-md" : ""
+                  isSpecial ? "ring-2 ring-emerald-400 shadow-md" : ""
                 }`}
               >
-                {isBestValue && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white text-[10px] font-bold rounded-full shadow-sm whitespace-nowrap z-10">
-                    <Star className="w-3 h-3 fill-amber-300 text-amber-300 inline -mt-0.5" /> BEST SELLER
-                  </div>
-                )}
-                {isWeekly720 && (
+                {isSpecial && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] font-bold rounded-full shadow-sm whitespace-nowrap z-10">
-                    <Flame className="w-3 h-3 text-orange-500 inline -mt-0.5" /> POPULER
-                  </div>
-                )}
-                {isSemiMonthly720 && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-violet-500 to-purple-500 text-white text-[10px] font-bold rounded-full shadow-sm whitespace-nowrap z-10">
-                    <Target className="w-3 h-3 text-violet-500 inline -mt-0.5" /> TERLARIS
+                    <Flame className="w-3 h-3 text-orange-500 inline -mt-0.5" /> PALING LARIS
                   </div>
                 )}
 
@@ -175,58 +196,23 @@ export default function HomePage() {
                   <div className="mt-3 mb-3">
                     {disc > 0 && (
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs text-gray-400 line-through">
-                          {formatRupiah(isAddonActive ? tier.originalAmount + addonPrice * 2 : tier.originalAmount)}
-                        </span>
+                        <span className="text-xs text-gray-400 line-through">{formatPrice(originalPrice)}</span>
                         <span className="px-1.5 py-0.5 bg-red-50 text-red-600 text-[10px] font-bold rounded">
                           -{disc}%
                         </span>
                       </div>
                     )}
                     <div className="text-2xl font-extrabold text-gray-900 tracking-tight">
-                      {formatPrice(totalPrice)}
+                      {formatPrice(basePrice)}
                     </div>
                     {disc > 0 && (
                       <div className="flex items-center gap-1 mt-0.5">
                         <span className="text-[11px] text-emerald-600 font-medium">
-                          Hemat {formatRupiah((isAddonActive ? tier.originalAmount + addonPrice * 2 : tier.originalAmount) - totalPrice)}
+                          Hemat {formatRupiah(originalPrice - basePrice)}
                         </span>
                       </div>
                     )}
                   </div>
-
-                  {/* Toggle 1080p (kecuali Daily) */}
-                  {addonPrice > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => toggleAddon(tier.value)}
-                      className={`w-full flex items-center justify-between p-2.5 rounded-lg border transition-all duration-200 mb-3 ${
-                        isAddonActive
-                          ? "bg-blue-50 border-blue-200"
-                          : "bg-gray-50 border-gray-100 hover:border-gray-200"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
-                          isAddonActive
-                            ? "bg-blue-600 border-blue-600"
-                            : "border-gray-300 bg-white"
-                        }`}>
-                          {isAddonActive && (
-                            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
-                        </div>
-                        <span className={`text-xs font-medium ${isAddonActive ? "text-blue-700" : "text-gray-500"}`}>
-                          +1080p Upgrade
-                        </span>
-                      </div>
-                      <span className={`text-xs font-bold ${isAddonActive ? "text-blue-700" : "text-gray-400"}`}>
-                        +{formatRupiah(addonPrice)}
-                      </span>
-                    </button>
-                  )}
 
                   {/* Cashback */}
                   {cashback > 0 && (
@@ -241,34 +227,27 @@ export default function HomePage() {
                   {/* Bullet */}
                   <ul className="space-y-1.5 mb-4">
                     <li className="flex items-center gap-2 text-xs text-gray-500">
-                      <ShieldCheck className="w-3 h-3 text-emerald-500 shrink-0" /> Lisensi non-eksklusif
+                      <ShieldCheck className="w-3 h-3 text-emerald-500 shrink-0" /> Lisensi permanen — sekali bayar
                     </li>
                     <li className="flex items-center gap-2 text-xs text-gray-500">
-                      <Clock className="w-3 h-3 text-emerald-500 shrink-0" /> Masa aktif {tier.label.toLowerCase()}
+                      <Monitor className="w-3 h-3 text-emerald-500 shrink-0" />
+                      {tier.value === "permanent_1080" ? "Resolusi Full HD 1080p" : "Resolusi HD 720p"}
                     </li>
                     <li className="flex items-center gap-2 text-xs text-gray-500">
-                      <Sparkles className="w-3 h-3 text-emerald-500 shrink-0" /> Semua fitur premium
+                      <Sparkles className="w-3 h-3 text-emerald-500 shrink-0" /> Semua fitur premium & update
                     </li>
-                    {isAddonActive && (
-                      <motion.li
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="flex items-center gap-2 text-xs text-blue-600 font-medium"
-                      >
-                        <TrendingUp className="w-3 h-3 shrink-0" /> Resolusi Full HD 1080p
-                      </motion.li>
-                    )}
+                    <li className="flex items-center gap-2 text-xs text-gray-500">
+                      <Clock className="w-3 h-3 text-emerald-500 shrink-0" /> Berlaku selamanya
+                    </li>
                   </ul>
                 </div>
 
                 <Link
-                  href={`/beli?tier=${tier.value}${isAddonActive ? "&addon1080=1" : ""}`}
+                  href={`/beli?tier=${tier.value}`}
                   className={`w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
-                    isAddonActive
-                      ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-700 hover:to-blue-600 shadow-md shadow-blue-200/50"
-                      : disc >= 30
-                        ? "bg-gradient-to-r from-emerald-600 to-emerald-500 text-white hover:from-emerald-700 hover:to-emerald-600 shadow-md shadow-emerald-200/50"
-                        : "bg-gray-900 text-white hover:bg-gray-800"
+                    isSpecial
+                      ? "bg-gradient-to-r from-emerald-600 to-emerald-500 text-white hover:from-emerald-700 hover:to-emerald-600 shadow-md shadow-emerald-200/50"
+                      : "bg-gray-900 text-white hover:bg-gray-800"
                   }`}
                 >
                   Pilih Paket <ChevronRight className="w-3 h-3" />
@@ -349,7 +328,7 @@ export default function HomePage() {
       <motion.section id="cashback" {...fadeUp} className="max-w-5xl mx-auto px-4 py-12 sm:py-16">
         <h2 className="text-lg sm:text-2xl font-bold text-gray-900 text-center">Program Cashback</h2>
         <p className="text-sm text-gray-500 text-center mt-2 mb-3">
-          Dapatkan uang kembali dengan follow, like & share konten TikTok kami.
+          Dapatkan uang kembali dengan cara support kami melalui follow, like & share konten TikTok/Youtube kami.
         </p>
         <p className="text-xs text-gray-400 text-center mb-10">
           Syarat & Ketentuan berlaku
@@ -397,7 +376,7 @@ export default function HomePage() {
             <li>Follow, like, comment, dan subscribe wajib dipertahankan minimal 7 hari — jika kedapatan berhenti lebih awal, cashback tidak dapat dicairkan</li>
             <li>Lampirkan screenshot bukti dari setiap langkah</li>
           </ol>
-          <p className="mt-3">Pencairan dilakukan minimal 7 hari setelah key diaktifkan. Bukti transfer cashback dikirim ke nomor WhatsApp atau email terdaftar. Maksimal 1 klaim per key.</p>
+          <p className="mt-3">Pencairan dilakukan minimal 5 hari setelah key diaktifkan dan maksimal 7 hari. Bukti transfer cashback dikirim ke nomor WhatsApp atau email terdaftar. Maksimal 1 klaim per key.</p>
         </div>
       </motion.section>
 
@@ -405,7 +384,7 @@ export default function HomePage() {
       <motion.section {...fadeUp} className="max-w-5xl mx-auto px-4 py-12 sm:py-16">
         <div className="card-lg max-w-lg mx-auto text-center">
           <h2 className="text-lg font-bold text-gray-900">Hubungi Kami</h2>
-          <p className="text-sm text-gray-500 mt-2 mb-6">Ada pertanyaan? Butuh bantuan? Tim kami siap membantu.</p>
+          <p className="text-sm text-gray-500 mt-2 mb-6">Ada pertanyaan? Butuh bantuan? Hubungi:</p>
           <div className="space-y-3 text-left max-w-xs mx-auto">
             <a
               href="https://wa.me/6282395912267"

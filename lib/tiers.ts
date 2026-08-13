@@ -5,27 +5,15 @@ export type Tier = {
   originalAmount: number;
 };
 
-// 4 base tiers — hanya 720p
+// 2 paket permanen (beli-utuh) — tanpa sewa & tanpa addon
 export const TIERS: Tier[] = [
-  { value: "daily_720", label: "1 Hari", amount: 5000, originalAmount: 10000 },
-  { value: "weekly_720", label: "7 Hari", amount: 24850, originalAmount: 35000 },
-  { value: "semi_monthly_720", label: "17 Hari", amount: 39050, originalAmount: 55000 },
-  { value: "monthly_720", label: "30 Hari", amount: 48990, originalAmount: 69000 },
+  { value: "permanent_720", label: "Basic", amount: 409200, originalAmount: 1320000 },
+  { value: "permanent_1080", label: "Special Offer", amount: 450000, originalAmount: 1500000 },
 ];
 
-// Addon: baseValue → harga upgrade 1080p
-export const ADDON_1080_PRICES: Record<string, number> = {
-  daily_720: 3000,
-  weekly_720: 12000,
-  semi_monthly_720: 12000,
-  monthly_720: 13000,
-};
-
 export const CASHBACK_TIERS: Tier[] = [
-  { value: "daily_720", label: "1 Hari", amount: 0, originalAmount: 0 },
-  { value: "weekly_720", label: "7 Hari", amount: 6000, originalAmount: 0 },
-  { value: "semi_monthly_720", label: "17 Hari", amount: 3000, originalAmount: 0 },
-  { value: "monthly_720", label: "30 Hari", amount: 9000, originalAmount: 0 },
+  { value: "permanent_720", label: "Basic", amount: 45000, originalAmount: 0 },
+  { value: "permanent_1080", label: "Special Offer", amount: 50000, originalAmount: 0 },
 ];
 
 export function findTier(value: string): Tier | undefined {
@@ -37,14 +25,10 @@ export function findCashback(value: string): number {
   return found ? found.amount : 0;
 }
 
-export function getAddonPrice(baseValue: string): number {
-  return ADDON_1080_PRICES[baseValue] || 0;
-}
-
-export function getTotalPrice(baseValue: string, addon1080: boolean): number {
+export function getTotalPrice(baseValue: string, _addon1080 = false): number {
   const tier = findTier(baseValue);
   if (!tier) return 0;
-  return tier.amount + (addon1080 ? getAddonPrice(baseValue) : 0);
+  return tier.amount;
 }
 
 export function formatRupiah(n: number): string {
@@ -52,8 +36,7 @@ export function formatRupiah(n: number): string {
 }
 
 export function formatPrice(n: number): string {
-  const k = Math.round((n / 1000) * 10) / 10;
-  return String(k).replace(".", ",") + "k";
+  return Math.round(n / 1000) + "k";
 }
 
 export function discountPercent(tier: Tier): number {

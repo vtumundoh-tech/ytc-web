@@ -10,17 +10,18 @@ import {
   GATE_MAX_FAILURES,
 } from "@/lib/gate";
 import { checkRateLimit, rateLimitKey } from "@/lib/rateLimit";
+import { getClientIp, safeEqual } from "@/lib/security";
 
 export async function POST(req: NextRequest) {
   try {
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const ip = getClientIp(req);
 
     const existingBlock = req.cookies.get(GATE_BLOCK_COOKIE_NAME)?.value;
     if (existingBlock) {
       return NextResponse.json({ error: "Akses dibatasi. Coba lagi besok." }, { status: 403 });
     }
 
-    const rl = checkRateLimit(rateLimitKey("gate", ip), GATE_MAX_FAILURES, GATE_BLOCK_MAX_AGE_SECONDS * 1000);
+    const rl = await checkRateLimit(rateLimitKey("gate", ip), GATE_MAX_FAILURES, GATE_BLOCK_MAX_AGE_SECONDS * 1000);
     if (!rl.allowed) {
       const res = NextResponse.json({ error: "Terlalu banyak percobaan. Akses dibatasi 1 hari." }, { status: 429 });
       res.cookies.set(GATE_BLOCK_COOKIE_NAME, "1", {
@@ -36,10 +37,11 @@ export async function POST(req: NextRequest) {
     const { password } = await req.json();
 
     if (!process.env.ADMIN_GATE_PASSWORD) {
-      return NextResponse.json({ error: "ADMIN_GATE_PASSWORD belum diset di server." }, { status: 500 });
+      return NextResponse.json({ error: "Terlalu banyak percobaan. Coba lagi nanti." }, { status: 500 });
     }
 
-    if (password !== process.env.ADMIN_GATE_PASSWORD) {
+    const ok = await safeEqual(String(password ?? ""), process.env.ADMIN_GATE_PASSWORD);
+    if (!ok) {
       return NextResponse.json({ error: "Kode tidak valid." }, { status: 401 });
     }
 

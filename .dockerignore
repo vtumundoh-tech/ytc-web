@@ -1,0 +1,24 @@
+# Folder besar / tidak perlu ikut ke image
+node_modules
+.next
+
+# File rahasia — jangan pernah masuk ke image
+.env
+.env.local
+.env.production
+
+# Log & dokumen lokal
+*.log
+dev.log
+prod.log
+README.md
+PENJELASAN-BISNIS.md
+PANDUAN-HOSTING-VPS.html
+
+# Deployment alternatif (systemd) tidak perlu masuk image
+deploy
+
+# Lainnya
+.git
+.gitignore
+tsconfig.tsbuildinfo

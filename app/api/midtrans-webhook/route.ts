@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { verifyNotificationSignature } from "@/lib/midtrans";
+import { checkRateLimit, rateLimitKey } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,6 +10,11 @@ export async function POST(req: NextRequest) {
 
     if (!order_id || !status_code || !gross_amount || !signature_key) {
       return NextResponse.json({ error: "Payload tidak lengkap." }, { status: 400 });
+    }
+
+    const rl = await checkRateLimit(rateLimitKey(`webhook:${order_id}`, String(order_id)), 120, 3_600_000);
+    if (!rl.allowed) {
+      return NextResponse.json({ error: "Terlalu banyak permintaan." }, { status: 429 });
     }
 
     const valid = await verifyNotificationSignature({ order_id, status_code, gross_amount, signature_key });
