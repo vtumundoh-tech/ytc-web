@@ -591,6 +591,7 @@ sudo systemctl reload nginx</code></pre>
     </ul>
     <p>Kalau nanti sudah pakai HTTPS, Anda <em>bisa</em> beralih ke <strong>webhook</strong> (Telegram mengirim pesan langsung ke server, tanpa script polling). Tapi ini <strong>tidak wajib</strong> — polling via PM2 seperti sekarang sudah baik dan lebih sederhana.</p>
     <div class="callout warn"><b>Penting:</b> jangan aktifkan polling <em>dan</em> webhook bersamaan — salah satu akan error. Pakai salah satu saja.</div>
+    <div class="callout info"><b>Pindah dari Vercel ke VPS?</b> Jika di Vercel bot memakai webhook, lakukan ini <strong>sekali sebelum</strong> mematikan Vercel: <code class="inline">curl "https://api.telegram.org/bot&lt;TOKEN&gt;/deleteWebhook"</code>. Setelah itu polling di VPS (proses <code class="inline">ytc-telegram</code>) otomatis jalan. Pakai <code class="inline">.env.local</code> dengan nilai yang <strong>sama</strong> — hanya <code class="inline">NEXT_PUBLIC_APP_URL</code> diganti domain VPS <strong>sebelum build</strong>.</div>
   </section>
 
   <!-- 9. CRON -->

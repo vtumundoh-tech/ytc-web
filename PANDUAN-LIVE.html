@@ -441,6 +441,15 @@ npm run build</code></pre>
       <p>Simpan: <strong>Ctrl+O</strong> → Enter → <strong>Ctrl+X</strong>.</p>
     </div>
 
+    <div class="callout info"><b>Pindah dari Vercel ke VPS?</b> Di Vercel bot biasanya memakai <em>webhook</em> (Telegram menelpon URL situs). Di VPS ganti ke polling dengan urutan <strong>wajib</strong>:
+      <ol>
+        <li><strong>Sebelum</strong> mematikan Vercel, hapus webhook sekali: <code class="inline">curl "https://api.telegram.org/bot&lt;TOKEN&gt;/deleteWebhook"</code></li>
+        <li>Di VPS, proses <code class="inline">ytc-telegram</code> (polling <code class="inline">scripts/telegram-poll.mjs</code>) otomatis mengambil alih — <code class="inline">pm2 start ecosystem.config.cjs</code> sudah mencakupnya.</li>
+        <li>Pakai <code class="inline">.env.local</code> dengan nilai <strong>sama</strong>, hanya <code class="inline">NEXT_PUBLIC_APP_URL</code> diganti domain VPS <strong>sebelum build</strong>.</li>
+        <li><strong>Jangan</strong> aktifkan webhook <em>dan</em> polling bersamaan — salah satu pasti error.</li>
+      </ol>
+    </div>
+
     <div class="step">
       <div class="step-title">5.5 Jalankan kedua proses</div>
       <pre><span class="pre-label">Di VPS</span><code>pm2 start ecosystem.config.cjs
