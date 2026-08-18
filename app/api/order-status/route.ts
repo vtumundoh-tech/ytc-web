@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     const supabase = supabaseServer();
     const { data, error } = await supabase
       .from("orders")
-      .select("status, amount, tier_label, payment_type, paid_at")
+      .select("status, amount, tier_label, payment_type, paid_at, rejection_reason")
       .eq("download_token", token)
       .maybeSingle();
 
@@ -33,10 +33,12 @@ export async function GET(req: NextRequest) {
       found: true,
       status: data.status,
       paid: data.status === "paid",
+      rejected: data.status === "cancelled" || data.status === "failed",
       amount: data.amount,
       tierLabel: data.tier_label,
       paymentType: data.payment_type,
       paidAt: data.paid_at,
+      rejectionReason: data.rejection_reason || "",
     });
   } catch (err: any) {
     console.error("order-status error:", err);

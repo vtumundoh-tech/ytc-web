@@ -16,6 +16,7 @@ export type AppSettings = {
   qrisEnabled: boolean;
   qrisImageUrl: string;
   qrisInstructions: string;
+  qrisPaymentNotice: string;
   updatedAt?: string;
 };
 
@@ -38,6 +39,9 @@ const DEFAULT_QRIS_INSTRUCTIONS =
   "4. Pastikan nominal sesuai, lalu masukkan PIN untuk menyelesaikan pembayaran.\n" +
   "5. Setelah transfer berhasil, klik tombol \"Saya sudah bayar\".";
 
+const DEFAULT_QRIS_PAYMENT_NOTICE =
+  "Harap isi jumlah pembayaran yang sesuai. Pastikan jumlah bayar sesuai — jika tidak sesuai, dana akan dikembalikan ke rekening pengirim sesuai jumlah yang ditransfer. Apabila ada potongan transfer bank, potongan tersebut ditanggung pelanggan.";
+
 export const DEFAULT_SETTINGS: AppSettings = {
   promoEnabled: false,
   tiers: DEFAULT_TIERS,
@@ -46,6 +50,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   qrisEnabled: false,
   qrisImageUrl: "",
   qrisInstructions: DEFAULT_QRIS_INSTRUCTIONS,
+  qrisPaymentNotice: DEFAULT_QRIS_PAYMENT_NOTICE,
 };
 
 export async function getSettings(): Promise<AppSettings> {
@@ -62,6 +67,7 @@ export async function getSettings(): Promise<AppSettings> {
       qrisEnabled: data.qris_enabled === true,
       qrisImageUrl: data.qris_image_url || "",
       qrisInstructions: data.qris_instructions || DEFAULT_QRIS_INSTRUCTIONS,
+      qrisPaymentNotice: data.qris_payment_notice || DEFAULT_QRIS_PAYMENT_NOTICE,
       updatedAt: data.updated_at || undefined,
     };
   } catch {

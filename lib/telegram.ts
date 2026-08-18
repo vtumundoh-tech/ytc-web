@@ -109,7 +109,7 @@ export async function notifyPaymentClaimed(data: PaymentClaimedData): Promise<bo
     `💰 Nominal : ${rupiah(data.amount)}`,
     `🆔 Order   : <code>${data.midtrans_order_id}</code>`,
     "",
-    "⚠️ <i>Cek pembayaran QRIS, lalu ubah status order menjadi \"Lunas\" di panel admin — email & unduhan otomatis terkirim.</i>",
+    "⚠️ <i>Cek pembayaran QRIS & bukti bayar di panel admin, lalu ubah status order menjadi \"Lunas\" — email invoice & unduhan otomatis terkirim.</i>",
   ];
   return sendTelegramMessage(lines.join("\n"));
 }

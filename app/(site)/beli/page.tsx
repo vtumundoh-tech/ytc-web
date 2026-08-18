@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { formatPrice, formatRupiah } from "@/lib/tiers";
 import { useAppSettings } from "@/hooks/useAppSettings";
-import { CreditCard, User, Phone, Mail, CheckCircle, ArrowRight, ExternalLink, Gift, TrendingUp, Download, Loader2, QrCode, Home, BellRing } from "lucide-react";
+import { validateFileSignature, validateFileSize, isAllowedMimeType } from "@/lib/fileValidation";
+import { CreditCard, User, Phone, Mail, CheckCircle, ArrowRight, ExternalLink, Gift, TrendingUp, Download, Loader2, QrCode, Home, BellRing, Upload, FileImage, X } from "lucide-react";
 
 function BeliForm() {
   const router = useRouter();
@@ -32,9 +33,14 @@ function BeliForm() {
   const [countdown, setCountdown] = useState(5);
   const autoFired = useRef(false);
   const [qrisModal, setQrisModal] = useState(false);
-  const [qrisState, setQrisState] = useState<"waiting" | "claimed">("waiting");
+  const [qrisStep, setQrisStep] = useState<"pay" | "confirm" | "proof" | "thanks" | "rejected">("pay");
   const [qrisAmount, setQrisAmount] = useState(0);
   const [qrisOrderId, setQrisOrderId] = useState("");
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [proofLoading, setProofLoading] = useState(false);
+  const [proofError, setProofError] = useState("");
 
   function openPaidModal() {
     setDlState("prep");
@@ -93,9 +99,14 @@ function BeliForm() {
       try {
         const res = await fetch(`/api/order-status?token=${encodeURIComponent(downloadToken)}`, { cache: "no-store" });
         const data = await res.json();
-        if (!cancelled && data && data.found && data.paid) {
-          setQrisModal(false);
-          openPaidModal();
+        if (!cancelled && data && data.found) {
+          if (data.paid) {
+            setQrisModal(false);
+            openPaidModal();
+          } else if (data.rejected) {
+            setRejectionReason(data.rejectionReason || "");
+            setQrisStep("rejected");
+          }
         }
       } catch {
         /* abaikan, coba lagi di interval berikutnya */
@@ -109,17 +120,54 @@ function BeliForm() {
     };
   }, [qrisModal, downloadToken]);
 
-  async function handleClaimed() {
-    if (qrisState === "claimed") return;
-    setQrisState("claimed");
+  function handleBatal() {
+    setQrisModal(false);
+    setProofFile(null);
+    setProofError("");
+    setPaymentConfirmed(false);
+    setLoading(false);
+  }
+
+  function handleProofFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setProofError("");
+    setProofFile(e.target.files?.[0] || null);
+  }
+
+  async function handleProofSubmit() {
+    setProofError("");
+    if (!proofFile) {
+      setProofError("Pilih dulu screenshot bukti bayar Anda.");
+      return;
+    }
+    if (!isAllowedMimeType(proofFile.type)) {
+      setProofError("Format file harus JPEG/PNG/WebP.");
+      return;
+    }
+    if (!validateFileSize(proofFile.size)) {
+      setProofError("Ukuran file maksimal 5MB.");
+      return;
+    }
+    const buffer = await proofFile.arrayBuffer();
+    if (!validateFileSignature(buffer, proofFile.type)) {
+      setProofError("File tidak valid. Pastikan itu gambar screenshot yang asli.");
+      return;
+    }
+    setProofLoading(true);
     try {
-      await fetch("/api/order-confirm", {
+      const fd = new FormData();
+      fd.append("token", downloadToken);
+      fd.append("paymentProof", proofFile);
+      const res = await fetch("/api/order-proof", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: downloadToken }),
+        body: fd,
       });
-    } catch {
-      /* notif admin tetap dikirim di polling berikutnya */
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal mengirim bukti bayar.");
+      setQrisStep("thanks");
+    } catch (err: any) {
+      setProofError(err.message || "Gagal mengirim bukti bayar. Coba lagi.");
+    } finally {
+      setProofLoading(false);
     }
   }
 
@@ -145,7 +193,10 @@ function BeliForm() {
         setDownloadToken(data.downloadToken || "");
         setQrisAmount(data.amount || 0);
         setQrisOrderId(data.orderId || "");
-        setQrisState("waiting");
+        setProofFile(null);
+        setProofError("");
+        setPaymentConfirmed(false);
+        setQrisStep("pay");
         setQrisModal(true);
       } else {
         setError("Mode pembayaran belum aktif. Silakan hubungi admin.");
@@ -390,65 +441,236 @@ function BeliForm() {
       {qrisModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 no-print">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl text-center animate-scale-in">
-            <QrCode className="w-10 h-10 text-blue-600 mx-auto mb-3" />
-            <h2 className="text-lg font-bold text-gray-900 mb-1">Bayar via QRIS</h2>
-            <p className="text-sm text-gray-500 mb-4">
-              Scan kode QR di bawah menggunakan GoPay atau aplikasi e-wallet / m-banking Anda.
-            </p>
+            {qrisStep === "pay" && (
+              <>
+                <QrCode className="w-10 h-10 text-blue-600 mx-auto mb-3" />
+                <h2 className="text-lg font-bold text-gray-900 mb-1">Bayar via QRIS</h2>
+                <p className="text-sm text-gray-500 mb-4">
+                  Scan kode QR di bawah menggunakan GoPay atau aplikasi e-wallet / m-banking Anda.
+                </p>
 
-            <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 mb-4">
-              {settings.qrisImageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={settings.qrisImageUrl} alt="QRIS" className="mx-auto w-52 h-52 object-contain" />
-              ) : (
-                <p className="text-sm text-gray-400 py-10">QRIS belum dikonfigurasi admin.</p>
-              )}
-            </div>
+                <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 mb-4">
+                  {settings.qrisImageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={settings.qrisImageUrl} alt="QRIS" className="mx-auto w-52 h-52 object-contain" />
+                  ) : (
+                    <p className="text-sm text-gray-400 py-10">QRIS belum dikonfigurasi admin.</p>
+                  )}
+                </div>
 
-            <div className="flex justify-between items-center text-sm mb-4">
-              <span className="text-gray-500">Total yang dibayar</span>
-              <span className="font-bold text-gray-900">{formatRupiah(qrisAmount)}</span>
-            </div>
+                <div className="flex justify-between items-center text-sm mb-4">
+                  <span className="text-gray-500">Total yang dibayar</span>
+                  <span className="font-bold text-gray-900">{formatRupiah(qrisAmount)}</span>
+                </div>
 
-            <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 text-left mb-4">
-              <h3 className="text-xs font-semibold text-blue-800 mb-2">Cara Pembayaran</h3>
-              <ol className="text-xs text-blue-900 space-y-1 list-decimal list-inside">
-                {(settings.qrisInstructions || "").split("\n").filter(Boolean).map((line, i) => (
-                  <li key={i}>{line}</li>
-                ))}
-              </ol>
-            </div>
+                {settings.qrisPaymentNotice && (
+                  <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-left text-xs text-amber-800 mb-4">
+                    <BellRing className="w-4 h-4 inline mr-1.5 text-amber-600" />
+                    {settings.qrisPaymentNotice}
+                  </div>
+                )}
 
-            {qrisState === "claimed" && (
-              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-xs text-emerald-700 mb-4 flex items-start gap-2">
-                <BellRing className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>
-                  Terima kasih! Admin akan memverifikasi pembayaran Anda. Email invoice & link unduhan otomatis
-                  terkirim setelah status menjadi <strong>Lunas</strong>.
-                </span>
-              </div>
+                <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 text-left mb-4">
+                  <h3 className="text-xs font-semibold text-blue-800 mb-2">Cara Pembayaran</h3>
+                  <ol className="text-xs text-blue-900 space-y-1 list-decimal list-inside">
+                    {(settings.qrisInstructions || "").split("\n").filter(Boolean).map((line, i) => (
+                      <li key={i}>{line}</li>
+                    ))}
+                  </ol>
+                </div>
+
+                <button
+                  onClick={() => { setPaymentConfirmed(false); setQrisStep("confirm"); }}
+                  className="w-full flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 shadow-md"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  Saya sudah bayar
+                </button>
+
+                <div className="mt-3 flex items-center justify-center gap-2 text-xs">
+                  <button onClick={handleBatal} className="inline-flex items-center gap-1.5 font-semibold text-gray-500 hover:text-gray-700 underline underline-offset-2">
+                    <X className="w-3.5 h-3.5" /> Batal
+                  </button>
+                  <span className="text-gray-300">·</span>
+                  <button onClick={() => router.push("/")} className="inline-flex items-center gap-1.5 font-semibold text-gray-500 hover:text-gray-700 underline underline-offset-2">
+                    <Home className="w-3.5 h-3.5" /> Kembali ke Beranda
+                  </button>
+                </div>
+              </>
             )}
 
-            <button
-              onClick={handleClaimed}
-              disabled={qrisState === "claimed"}
-              className="w-full flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
-            >
-              {qrisState === "claimed" ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <CheckCircle className="w-4 h-4" />
-              )}
-              {qrisState === "claimed" ? "Menunggu verifikasi admin…" : "Saya sudah bayar"}
-            </button>
+            {qrisStep === "confirm" && (
+              <>
+                <CheckCircle className="w-10 h-10 text-emerald-600 mx-auto mb-3" />
+                <h2 className="text-lg font-bold text-gray-900 mb-1">Konfirmasi Jumlah Pembayaran</h2>
+                <p className="text-sm text-gray-500 mb-4">
+                  Sebelum melanjutkan, pastikan Anda telah membaca dan mengikuti aturan pembayaran berikut.
+                </p>
 
-            <div className="mt-3 flex items-center justify-center gap-2 text-xs">
-              <button onClick={() => router.push("/")} className="inline-flex items-center gap-1.5 font-semibold text-gray-500 hover:text-gray-700 underline underline-offset-2">
-                <Home className="w-3.5 h-3.5" /> Kembali ke Beranda
-              </button>
-              <span className="text-gray-300">·</span>
-              <span className="text-gray-400">Status dicek otomatis tiap 5 detik</span>
-            </div>
+                <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-left text-xs text-amber-800 mb-4">
+                  <BellRing className="w-4 h-4 inline mr-1.5 text-amber-600" />
+                  {settings.qrisPaymentNotice || "Harap isi jumlah pembayaran yang sesuai."}
+                </div>
+
+                <label className="flex items-start gap-3 p-4 rounded-xl bg-gray-50 border border-gray-200 cursor-pointer text-left mb-4">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 accent-emerald-600 w-4 h-4 rounded"
+                    checked={paymentConfirmed}
+                    onChange={(e) => setPaymentConfirmed(e.target.checked)}
+                  />
+                  <div className="text-sm text-gray-700">
+                    Saya memastikan jumlah pembayaran <strong>sudah sesuai</strong> dengan nominal yang diminta.
+                    Bila belum sesuai, saya siap mengikuti aturan yang berlaku (dana dikembalikan ke rekening pengirim
+                    sesuai jumlah yang ditransfer, potongan transfer bank ditanggung pelanggan).
+                  </div>
+                </label>
+
+                <button
+                  onClick={() => setQrisStep("proof")}
+                  disabled={!paymentConfirmed}
+                  className="w-full flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                >
+                  <ArrowRight className="w-4 h-4" />
+                  Lanjut ke Upload Bukti
+                </button>
+
+                <div className="mt-3 flex items-center justify-center gap-2 text-xs">
+                  <button onClick={() => setQrisStep("pay")} className="inline-flex items-center gap-1.5 font-semibold text-gray-500 hover:text-gray-700 underline underline-offset-2">
+                    <ArrowRight className="w-3.5 h-3.5 rotate-180" /> Kembali
+                  </button>
+                  <span className="text-gray-300">·</span>
+                  <button onClick={handleBatal} className="inline-flex items-center gap-1.5 font-semibold text-gray-500 hover:text-gray-700 underline underline-offset-2">
+                    <X className="w-3.5 h-3.5" /> Batal
+                  </button>
+                </div>
+              </>
+            )}
+
+            {qrisStep === "proof" && (
+              <>
+                <FileImage className="w-10 h-10 text-blue-600 mx-auto mb-3" />
+                <h2 className="text-lg font-bold text-gray-900 mb-1">Lampirkan Bukti Bayar</h2>
+                <p className="text-sm text-gray-500 mb-4">
+                  Upload screenshot bukti pembayaran QRIS Anda (JPEG/PNG/WebP, maks 5MB) agar admin bisa memverifikasi dengan cepat.
+                </p>
+
+                <label className="flex flex-col items-center justify-center gap-2 w-full p-6 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/70 cursor-pointer hover:border-emerald-300 hover:bg-emerald-50/30 transition-colors duration-200 mb-3">
+                  <Upload className="w-6 h-6 text-gray-400" />
+                  {proofFile ? (
+                    <span className="text-sm font-medium text-emerald-700 break-all">{proofFile.name}</span>
+                  ) : (
+                    <>
+                      <span className="text-sm font-semibold text-gray-600">Pilih screenshot bukti bayar</span>
+                      <span className="text-xs text-gray-400">Klik untuk memilih file</span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={handleProofFileChange}
+                  />
+                </label>
+
+                {proofError && (
+                  <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-xs text-red-700 mb-3">
+                    {proofError}
+                  </div>
+                )}
+
+                <button
+                  onClick={handleProofSubmit}
+                  disabled={proofLoading || !proofFile}
+                  className="w-full flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                >
+                  {proofLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Mengirim…
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4" /> Submit Bukti Bayar
+                    </>
+                  )}
+                </button>
+
+                <div className="mt-3 flex items-center justify-center gap-2 text-xs">
+                  <button onClick={() => setQrisStep("pay")} className="inline-flex items-center gap-1.5 font-semibold text-gray-500 hover:text-gray-700 underline underline-offset-2">
+                    <ArrowRight className="w-3.5 h-3.5 rotate-180" /> Kembali
+                  </button>
+                  <span className="text-gray-300">·</span>
+                  <button onClick={handleBatal} className="inline-flex items-center gap-1.5 font-semibold text-gray-500 hover:text-gray-700 underline underline-offset-2">
+                    <X className="w-3.5 h-3.5" /> Batal
+                  </button>
+                </div>
+              </>
+            )}
+
+            {qrisStep === "thanks" && (
+              <>
+                <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+                  <BellRing className="w-7 h-7 text-emerald-600" />
+                </div>
+                <h2 className="text-lg font-bold text-gray-900 mb-2">Terima kasih!</h2>
+                <p className="text-sm text-gray-500 mb-4">
+                  Bukti bayar Anda sudah kami terima. Silakan menunggu sampai admin memverifikasi data Anda.
+                </p>
+
+                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-left text-xs text-emerald-800 space-y-2 mb-4">
+                  <p>
+                    Download aplikasi dan kode cashback{isCashbackEligible ? " (jika Anda eligible)" : ""} akan dikirim
+                    otomatis ke email <strong>{email}</strong> saat status pembayaran Anda menjadi{" "}
+                    <strong>Lunas</strong>.
+                  </p>
+                  <p className="text-emerald-700">
+                    Jika ada kendala, kami akan menghubungi Anda melalui email/WhatsApp yang terdaftar.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-blue-50 border border-blue-100 text-xs text-blue-700 mb-4 flex items-start gap-2">
+                  <Loader2 className="w-4 h-4 shrink-0 mt-0.5 animate-spin" />
+                  <span>Status Anda diperiksa otomatis tiap 5 detik — halaman ini akan berubah otomatis begitu admin menyetujui.</span>
+                </div>
+
+                <button
+                  onClick={() => router.push("/")}
+                  className="w-full inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 shadow-md"
+                >
+                  <Home className="w-4 h-4" /> Kembali ke Beranda
+                </button>
+              </>
+            )}
+
+            {qrisStep === "rejected" && (
+              <>
+                <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                  <X className="w-7 h-7 text-red-600" />
+                </div>
+                <h2 className="text-lg font-bold text-gray-900 mb-2">Pesanan Tidak Sesuai Ketentuan</h2>
+                <p className="text-sm text-gray-500 mb-4">
+                  Kami mohon maaf, pesanan Anda tidak dapat kami proses.
+                </p>
+
+                <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-left text-xs text-red-800 mb-4">
+                  <strong>Alasan:</strong> {rejectionReason || "Pesanan Anda tidak sesuai dengan ketentuan yang berlaku."}
+                </div>
+
+                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-left text-xs text-amber-800 mb-4">
+                  <BellRing className="w-4 h-4 inline mr-1.5 text-amber-600" />
+                  Dana yang telah Anda bayarkan akan dikembalikan ke rekening pengirim paling lambat{" "}
+                  <strong>1x24 jam</strong>, sesuai jumlah yang ditransfer (potongan transfer bank menjadi tanggungan
+                  pelanggan). Mohon menunggu — detail dikirim juga ke email <strong>{email}</strong>.
+                </div>
+
+                <button
+                  onClick={() => router.push("/")}
+                  className="w-full inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 shadow-md"
+                >
+                  <Home className="w-4 h-4" /> Kembali ke Beranda
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

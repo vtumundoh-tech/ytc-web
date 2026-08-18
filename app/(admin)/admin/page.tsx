@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { LogOut, ShoppingBag, Gift, Users, DollarSign, ExternalLink, Save, Download, FileText, Settings, Power, Search, Calendar, Filter, X, QrCode } from "lucide-react";
+import { LogOut, ShoppingBag, Gift, Users, DollarSign, ExternalLink, Save, Download, FileText, Settings, Power, Search, Calendar, Filter, X, QrCode, Upload } from "lucide-react";
 import { useMemo } from "react";
 
 type Order = {
@@ -22,12 +22,15 @@ type Order = {
   cashback_code: string | null;
   email_status: string | null;
   admin_notes: string | null;
+  rejection_reason: string | null;
+  rejection_email_sent_at: string | null;
   agree_snk: boolean;
   ip_address: string | null;
   user_agent: string | null;
   browser: string | null;
   os: string | null;
   device_type: string | null;
+  payment_proof_url: string | null;
 };
 
 type Claim = {
@@ -302,7 +305,7 @@ function FilterBar({
 function OrdersTab() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  type OrderDraft = { status: string; admin_notes: string };
+  type OrderDraft = { status: string; admin_notes: string; rejection_reason: string };
   const [drafts, setDrafts] = useState<Record<string, Partial<OrderDraft>>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
@@ -320,12 +323,12 @@ function OrdersTab() {
   useEffect(() => { load(); }, []);
 
   function draftFor(o: Order): OrderDraft {
-    return { status: o.status, admin_notes: o.admin_notes || "", ...drafts[o.id] };
+    return { status: o.status, admin_notes: o.admin_notes || "", rejection_reason: o.rejection_reason || "", ...drafts[o.id] };
   }
 
   function isDirty(o: Order): boolean {
     const d = draftFor(o);
-    return d.status !== o.status || d.admin_notes !== (o.admin_notes || "");
+    return d.status !== o.status || d.admin_notes !== (o.admin_notes || "") || d.rejection_reason !== (o.rejection_reason || "");
   }
 
   function setDraft(id: string, patch: Partial<OrderDraft>) {
@@ -340,7 +343,7 @@ function OrdersTab() {
       const res = await fetch("/api/admin/orders", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: o.id, status: d.status, admin_notes: d.admin_notes }),
+        body: JSON.stringify({ id: o.id, status: d.status, admin_notes: d.admin_notes, rejection_reason: d.rejection_reason }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal menyimpan.");
@@ -493,6 +496,29 @@ function OrdersTab() {
                 </div>
               </div>
 
+              <div className={cn("p-3 rounded-xl border", d.status === "cancelled" || d.status === "failed" ? "bg-red-50/60 border-red-100" : "bg-gray-50 border-gray-100")}>
+                <label className="text-xs font-medium text-gray-500 block mb-1">
+                  Alasan Penolakan (dikirim ke email pelanggan)
+                </label>
+                <textarea
+                  className={cn(
+                    "w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm focus:outline-none placeholder:text-gray-300 min-h-[60px] bg-white",
+                    d.status === "cancelled" || d.status === "failed"
+                      ? "focus:ring-2 focus:ring-red-500/20 focus:border-red-300"
+                      : "focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400"
+                  )}
+                  value={d.rejection_reason}
+                  onChange={(e) => setDraft(o.id, { rejection_reason: e.target.value })}
+                  placeholder="Contoh: Jumlah pembayaran tidak sesuai. Pesanan tidak dapat diproses dan dana akan dikembalikan paling lambat 1x24 jam."
+                />
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Simpan dengan status <strong>Cancelled</strong> atau <strong>Failed</strong> + alasan → email penolakan otomatis terkirim ke pelanggan (sekali saja).
+                  {o.rejection_email_sent_at && (
+                    <span className="text-emerald-600 ml-1">✓ Email penolakan terkirim {new Date(o.rejection_email_sent_at).toLocaleString("id-ID")}</span>
+                  )}
+                </p>
+              </div>
+
                 <div className="flex items-center justify-between pt-2 border-t border-gray-50">
                 <div className="flex items-center gap-2">
                   <StatusBadge status={o.status} />
@@ -511,6 +537,7 @@ function OrdersTab() {
                       ✅ S&K
                     </span>
                   )}
+                  {o.payment_proof_url && <ProofLink url={o.payment_proof_url} label="Bukti Bayar" />}
                   <Link
                     href={`/admin/invoice/order/${o.id}`}
                     className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition-all duration-200"
@@ -786,6 +813,7 @@ function SettingsTab() {
     qris_enabled: boolean;
     qris_image_url: string;
     qris_instructions: string;
+    qris_payment_notice: string;
   };
 
   const [form, setForm] = useState<SettingsForm | null>(null);
@@ -795,6 +823,27 @@ function SettingsTab() {
   const [savedAt, setSavedAt] = useState("");
   const [error, setError] = useState("");
   const [initialJson, setInitialJson] = useState("");
+  const [qrisUploading, setQrisUploading] = useState(false);
+
+  async function handleQrisUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setQrisUploading(true);
+    setError("");
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/admin/qris-image", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal mengunggah.");
+      setForm((f) => (f ? { ...f, qris_image_url: data.publicUrl } : f));
+    } catch (err: any) {
+      setError(err.message || "Gagal mengunggah gambar QRIS.");
+    } finally {
+      setQrisUploading(false);
+    }
+  }
 
   useEffect(() => {
     (async () => {
@@ -822,6 +871,7 @@ function SettingsTab() {
             qris_enabled: data.qris_enabled === true,
             qris_image_url: data.qris_image_url || "",
             qris_instructions: data.qris_instructions || "",
+            qris_payment_notice: data.qris_payment_notice || "",
           };
           setForm(nextForm);
           setInitialJson(JSON.stringify(nextForm));
@@ -877,6 +927,7 @@ function SettingsTab() {
           qris_enabled: form.qris_enabled,
           qris_image_url: form.qris_image_url,
           qris_instructions: form.qris_instructions,
+          qris_payment_notice: form.qris_payment_notice,
         }),
       });
       const text = await res.text();
@@ -995,16 +1046,39 @@ function SettingsTab() {
 
         <div>
           <label className="text-xs font-medium text-gray-500 block mb-1">URL Gambar QRIS</label>
-          <input
-            className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
-            value={form.qris_image_url}
-            onChange={(e) => setForm((f) => (f ? { ...f, qris_image_url: e.target.value } : f))}
-            placeholder="https://.../qris.png"
-          />
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+              value={form.qris_image_url}
+              onChange={(e) => setForm((f) => (f ? { ...f, qris_image_url: e.target.value } : f))}
+              placeholder="https://.../qris.png"
+            />
+            <label className="shrink-0 inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold cursor-pointer transition-colors duration-200">
+              <Upload className="w-3.5 h-3.5" />
+              {qrisUploading ? "Mengunggah…" : "Upload QRIS"}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                disabled={qrisUploading}
+                onChange={handleQrisUpload}
+              />
+            </label>
+          </div>
           <p className="text-[11px] text-gray-400 mt-1">
-            Upload gambar QRIS statis ke hosting/layanan gambar, lalu tempel link-nya di sini.
+            Upload gambar QRIS statis langsung dari sini, atau tempel URL dari hosting lain. Keduanya mengisi field yang satu ini — tidak konflik.
           </p>
         </div>
+
+        {form.qris_image_url && (
+          <div>
+            <label className="text-xs font-medium text-gray-500 block mb-1">Pratinjau QRIS</label>
+            <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 inline-block">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={form.qris_image_url} alt="Pratinjau QRIS" className="w-40 h-40 object-contain" />
+            </div>
+          </div>
+        )}
 
         <div>
           <label className="text-xs font-medium text-gray-500 block mb-1">Instruksi Pembayaran</label>
@@ -1015,6 +1089,17 @@ function SettingsTab() {
             placeholder={"1. Buka GoPay / e-wallet\n2. Scan QRIS\n3. Bayar"}
           />
           <p className="text-[11px] text-gray-400 mt-1">Satu langkah per baris.</p>
+        </div>
+
+        <div>
+          <label className="text-xs font-medium text-gray-500 block mb-1">Pemberitahuan Nominal QRIS</label>
+          <textarea
+            className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 min-h-[100px]"
+            value={form.qris_payment_notice}
+            onChange={(e) => setForm((f) => (f ? { ...f, qris_payment_notice: e.target.value } : f))}
+            placeholder="Harap isi jumlah pembayaran yang sesuai…"
+          />
+          <p className="text-[11px] text-gray-400 mt-1">Ditampilkan di modal QRIS & pada popup konfirmasi sebelum upload bukti bayar.</p>
         </div>
       </div>
 
