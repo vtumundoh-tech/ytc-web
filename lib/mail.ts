@@ -212,6 +212,8 @@ export async function sendOrderRejectedEmail(data: {
   tier_label: string;
   amount: number;
   reason: string;
+  insufficient?: boolean;
+  statusPageLink?: string | null;
 }): Promise<boolean> {
   if (!mailEnabled()) {
     console.warn("[mail] SMTP belum dikonfigurasi, email penolakan dilewati.");
@@ -221,6 +223,16 @@ export async function sendOrderRejectedEmail(data: {
   if (!to) return false;
 
   const reason = data.reason || "Pesanan Anda tidak sesuai dengan ketentuan yang berlaku.";
+  const statusLink = data.statusPageLink
+    ? `<a class="btn" href="${data.statusPageLink}">Lihat Status & Pilih Aksi</a>`
+    : "";
+  const insufficientNote = data.insufficient
+    ? `<p style="margin-top:12px;">Anda dapat memilih salah satu dari dua opsi berikut di halaman status pesanan:</p>
+       <ol style="margin:6px 0 0 18px;padding:0;">
+         <li><strong>Ajukan Refund</strong> — dana dikembalikan paling lambat 1x24 jam ke rekening pengirim sesuai jumlah yang ditransfer (potongan biaya transfer bank menjadi tanggungan pelanggan).</li>
+         <li><strong>Bayar Kekurangan</strong> — lengkapi nominal yang kurang, lalu pesanan akan langsung diproses.</li>
+       </ol>`
+    : "";
 
   const html = `<!DOCTYPE html>
 <html lang="id">
@@ -238,6 +250,7 @@ export async function sendOrderRejectedEmail(data: {
   .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
   .total { font-weight: 700; }
   .reason { margin-top: 20px; padding: 16px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; font-size: 14px; color: #991b1b; }
+  .btn { display: inline-block; margin-top: 20px; padding: 13px 24px; background: #0ea5e9; color: #fff !important; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 14px; }
   .note { margin-top: 24px; padding: 16px; background: #f8fafc; border-radius: 10px; font-size: 12px; color: #475569; }
   .foot { margin-top: 24px; font-size: 11px; color: #94a3b8; }
 </style>
@@ -253,6 +266,8 @@ export async function sendOrderRejectedEmail(data: {
       <p class="muted">Kami mohon maaf, pesanan Anda tidak dapat kami proses dengan alasan berikut.</p>
 
       <div class="reason">${reason}</div>
+
+      ${data.insufficient ? `<p class="muted" style="margin-top:14px;">Jumlah pembayaran yang kami terima tidak sesuai dengan nominal yang diminta.</p>${insufficientNote}${statusLink}` : ""}
 
       <div class="note">
         <strong>Refund:</strong> Dana yang telah Anda bayarkan akan dikembalikan paling lambat <strong>1x24 jam</strong>
@@ -270,10 +285,15 @@ export async function sendOrderRejectedEmail(data: {
 </body>
 </html>`;
 
+  const choiceLine = data.insufficient
+    ? `\nAnda dapat memilih "Ajukan Refund" atau "Bayar Kekurangan" di halaman status pesanan${data.statusPageLink ? `: ${data.statusPageLink}` : ""}.`
+    : "";
+
   const text = `Halo ${data.full_name},
 
 Kami mohon maaf, pesanan Anda tidak dapat kami proses dengan alasan:
 ${reason}
+${choiceLine}
 
 Refund: dana yang telah Anda bayarkan akan dikembalikan paling lambat 1x24 jam ke rekening pengirim sesuai jumlah yang ditransfer (potongan biaya transfer bank menjadi tanggungan pelanggan). Mohon menunggu.
 
@@ -295,6 +315,95 @@ MineClip Studio - YouTube Clipper`;
     return true;
   } catch (err: any) {
     console.error("[email] order rejected error:", err?.code || "", err?.response || err?.message || err);
+    return false;
+  }
+}
+
+export async function sendRefundSentEmail(data: {
+  full_name: string;
+  email: string | null;
+  tier_label: string;
+  amount: number;
+  adminNotes: string;
+  attachment: { filename: string; content: Buffer; contentType: string };
+}): Promise<boolean> {
+  if (!mailEnabled()) {
+    console.warn("[mail] SMTP belum dikonfigurasi, email refund dilewati.");
+    return false;
+  }
+  const to = data.email?.trim();
+  if (!to) return false;
+
+  const html = `<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body { font-family: Arial, Helvetica, sans-serif; background: #f1f5f9; margin: 0; padding: 24px; color: #0f172a; }
+  .sheet { max-width: 600px; margin: 0 auto; background: #fff; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; }
+  .head { background: linear-gradient(135deg, #10b981, #059669); color: #fff; padding: 24px 32px; }
+  .head h1 { margin: 0; font-size: 20px; }
+  .head p { margin: 4px 0 0; font-size: 12px; opacity: .9; }
+  .body { padding: 32px; }
+  .muted { color: #64748b; font-size: 12px; }
+  .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+  .total { font-weight: 700; }
+  .note { margin-top: 24px; padding: 16px; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; font-size: 12px; color: #065f46; }
+  .foot { margin-top: 24px; font-size: 11px; color: #94a3b8; }
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="head">
+      <h1>Refund Telah Dikirim</h1>
+      <p>MineClip Studio</p>
+    </div>
+    <div class="body">
+      <p>Halo <strong>${data.full_name}</strong>,</p>
+      <p class="muted">Terima kasih sudah bersabar. Dana refund untuk pembayaran Anda telah kami kirim.</p>
+
+      <div class="row" style="margin-top:14px;"><span>Item</span><span>Lisensi YouTube Clipper - ${data.tier_label}</span></div>
+      <div class="row total"><span>Nominal Refund</span><span>${rupiah(data.amount)}</span></div>
+
+      ${data.adminNotes ? `<div class="note" style="margin-top:14px;"><strong>Catatan admin:</strong> ${data.adminNotes}</div>` : ""}
+
+      <div class="note">
+        <strong>Bukti transfer dilampirkan</strong> pada email ini. Silakan cek lampiran.
+        <p style="margin-top:6px;">Jika dalam 1x24 jam dana belum masuk, hubungi admin melalui WhatsApp atau balas email ini.</p>
+      </div>
+
+      <p class="foot">MineClip Studio &middot; YouTube Clipper<br>Email: mineclipstudios@gmail.com</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const text = `Halo ${data.full_name},
+
+Terima kasih sudah bersabar. Dana refund untuk pembayaran Anda telah kami kirim:
+Item              : Lisensi YouTube Clipper - ${data.tier_label}
+Nominal Refund    : ${rupiah(data.amount)}
+${data.adminNotes ? `Catatan admin     : ${data.adminNotes}` : ""}
+
+Bukti transfer dilampirkan pada email ini.
+Jika dalam 1x24 jam dana belum masuk, hubungi admin melalui WhatsApp atau balas email ini.
+
+MineClip Studio - YouTube Clipper`;
+
+  try {
+    const transporter = getTransporter();
+    await transporter.sendMail({
+      from: process.env.MAIL_FROM,
+      to,
+      subject: "Refund Telah Dikirim",
+      text,
+      html,
+      attachments: [data.attachment],
+    });
+    return true;
+  } catch (err: any) {
+    console.error("[email] refund sent error:", err?.code || "", err?.response || err?.message || err);
     return false;
   }
 }

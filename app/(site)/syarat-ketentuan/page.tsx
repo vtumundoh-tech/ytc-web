@@ -42,7 +42,7 @@ export default function TermsPage() {
         <h1 className="text-xl font-bold text-gray-900">Terms &amp; Conditions and Privacy Policy</h1>
         <p className="text-sm text-gray-500 mt-1">YouTube Clipper — Terms of Service, License Agreement, and Privacy Policy</p>
         <span className="inline-block mt-3 px-3 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-full border border-emerald-200/50 tracking-widest">
-          VERSION 2.0 · EFFECTIVE AUGUST 6, 2026
+          VERSION 2.1 · EFFECTIVE AUGUST 18, 2026
         </span>
       </div>
 
@@ -99,6 +99,7 @@ export default function TermsPage() {
           <p>4.1 Payment is processed via QRIS or bank transfer, according to the method chosen by the customer.</p>
           <p>4.2 After a successful payment, the system automatically generates the license key and the unique cashback code (if the package is eligible).</p>
           <p>4.3 The key, the application, and the unique cashback code are delivered by email or WhatsApp.</p>
+          <p>4.4 If the payment received is <strong className="text-gray-700">less than the requested amount</strong>, the customer must choose one of the following options within the applicable period: <strong className="text-gray-700">(a)</strong> submit a refund request and have the transferred amount returned to the sender's account within a maximum of 1x24 hours (bank transfer fees are the customer's responsibility), or <strong className="text-gray-700">(b)</strong> pay the remaining balance through a supplementary payment (QRIS). A supplementary payment that is settled is automatically applied to the original order and is only processed once the full amount has been paid.</p>
         </Section>
 
         <Section num="5" title="No Refund Policy" group="s1">
@@ -106,6 +107,7 @@ export default function TermsPage() {
           <p>5.2 The license is a digital product delivered immediately after payment, and therefore cannot be returned.</p>
           <p>5.3 No refund is provided when access is revoked because of a violation of the terms.</p>
           <p>5.4 By making a purchase, the customer agrees to and expressly waives any right to a refund.</p>
+          <p>5.5 Refunds are only possible in cases where the payment received is less than the requested amount and the customer expressly requests a refund (see clause 4.4). The refund is transferred to the sender's account within a maximum of 1x24 hours, in the exact amount transferred (bank transfer fees are deducted and remain the customer's responsibility). Refunds already approved or processed by the Admin are final and cannot be withdrawn. Once an order has been approved by the Admin (status <strong className="text-gray-700">Paid</strong>), it is non-refundable.</p>
         </Section>
 
         <Section num="6" title="Prohibited Uses" group="s1">
@@ -298,7 +300,7 @@ export default function TermsPage() {
       <div className="text-center mt-8 pt-6 border-t border-gray-100">
         <p className="text-xs text-gray-400">YouTube Clipper — Terms &amp; Conditions and Privacy Policy</p>
         <p className="text-xs text-gray-500 mt-1">
-          <strong className="text-gray-600">MineClip Studio</strong> | Version 2.0 | Effective August 6, 2026
+          <strong className="text-gray-600">MineClip Studio</strong> | Version 2.1 | Effective August 18, 2026
         </p>
       </div>
 

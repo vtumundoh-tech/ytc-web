@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { LogOut, ShoppingBag, Gift, Users, DollarSign, ExternalLink, Save, Download, FileText, Settings, Power, Search, Calendar, Filter, X, QrCode, Upload } from "lucide-react";
+import { LogOut, ShoppingBag, Gift, Users, DollarSign, ExternalLink, Save, Download, FileText, Settings, Power, Search, Calendar, Filter, X, QrCode, Upload, RotateCcw, AlertTriangle, Paperclip } from "lucide-react";
 import { useMemo } from "react";
 
 type Order = {
@@ -31,6 +31,10 @@ type Order = {
   os: string | null;
   device_type: string | null;
   payment_proof_url: string | null;
+  rejection_type: string | null;
+  amount_paid_by_customer: number | null;
+  amount_remaining: number | null;
+  supplement_for: string | null;
 };
 
 type Claim = {
@@ -75,12 +79,17 @@ function rupiah(n: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
 }
 
+function parseNum(s: string): number {
+  const n = parseInt(s.replace(/\D/g, ""), 10);
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+
 function cn(...classes: (string | false | undefined | null)[]) {
   return classes.filter(Boolean).join(" ");
 }
 
 export default function AdminPage() {
-  const [tab, setTab] = useState<"orders" | "claims" | "settings">("orders");
+  const [tab, setTab] = useState<"orders" | "claims" | "refunds" | "settings">("orders");
   const router = useRouter();
 
   async function logout() {
@@ -110,13 +119,16 @@ export default function AdminPage() {
         <TabBtn active={tab === "claims"} onClick={() => setTab("claims")}>
           <Gift className="w-3.5 h-3.5" /> Klaim Cashback
         </TabBtn>
+        <TabBtn active={tab === "refunds"} onClick={() => setTab("refunds")}>
+          <RotateCcw className="w-3.5 h-3.5" /> Refund
+        </TabBtn>
         <TabBtn active={tab === "settings"} onClick={() => setTab("settings")}>
           <Settings className="w-3.5 h-3.5" /> Pengaturan
         </TabBtn>
       </div>
 
       <div className="animate-slide-up" key={tab}>
-        {tab === "orders" ? <OrdersTab /> : tab === "claims" ? <ClaimsTab /> : <SettingsTab />}
+        {tab === "orders" ? <OrdersTab /> : tab === "claims" ? <ClaimsTab /> : tab === "refunds" ? <RefundsTab /> : <SettingsTab />}
       </div>
     </div>
   );
@@ -305,7 +317,7 @@ function FilterBar({
 function OrdersTab() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  type OrderDraft = { status: string; admin_notes: string; rejection_reason: string };
+  type OrderDraft = { status: string; admin_notes: string; rejection_reason: string; rejection_type: string; amount_paid_by_customer: string; amount_remaining: string };
   const [drafts, setDrafts] = useState<Record<string, Partial<OrderDraft>>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
@@ -323,12 +335,23 @@ function OrdersTab() {
   useEffect(() => { load(); }, []);
 
   function draftFor(o: Order): OrderDraft {
-    return { status: o.status, admin_notes: o.admin_notes || "", rejection_reason: o.rejection_reason || "", ...drafts[o.id] };
+    return {
+      status: o.status,
+      admin_notes: o.admin_notes || "",
+      rejection_reason: o.rejection_reason || "",
+      rejection_type: o.rejection_type || (o.status === "cancelled" || o.status === "failed" ? "other" : ""),
+      amount_paid_by_customer: o.amount_paid_by_customer != null ? String(o.amount_paid_by_customer) : "",
+      amount_remaining: o.amount_remaining != null ? String(o.amount_remaining) : "",
+      ...drafts[o.id],
+    };
   }
 
   function isDirty(o: Order): boolean {
     const d = draftFor(o);
-    return d.status !== o.status || d.admin_notes !== (o.admin_notes || "") || d.rejection_reason !== (o.rejection_reason || "");
+    return d.status !== o.status || d.admin_notes !== (o.admin_notes || "") || d.rejection_reason !== (o.rejection_reason || "")
+      || d.rejection_type !== (o.rejection_type || (o.status === "cancelled" || o.status === "failed" ? "other" : ""))
+      || parseNum(d.amount_paid_by_customer) !== (o.amount_paid_by_customer ?? 0)
+      || parseNum(d.amount_remaining) !== (o.amount_remaining ?? 0);
   }
 
   function setDraft(id: string, patch: Partial<OrderDraft>) {
@@ -343,7 +366,15 @@ function OrdersTab() {
       const res = await fetch("/api/admin/orders", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: o.id, status: d.status, admin_notes: d.admin_notes, rejection_reason: d.rejection_reason }),
+        body: JSON.stringify({
+          id: o.id,
+          status: d.status,
+          admin_notes: d.admin_notes,
+          rejection_reason: d.rejection_reason,
+          rejection_type: d.rejection_type,
+          amount_paid_by_customer: parseNum(d.amount_paid_by_customer),
+          amount_remaining: parseNum(d.amount_remaining),
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal menyimpan.");
@@ -497,6 +528,39 @@ function OrdersTab() {
               </div>
 
               <div className={cn("p-3 rounded-xl border", d.status === "cancelled" || d.status === "failed" ? "bg-red-50/60 border-red-100" : "bg-gray-50 border-gray-100")}>
+                <div className="grid sm:grid-cols-3 gap-3 mb-3">
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 block mb-1">Tipe Penolakan</label>
+                    <select
+                      className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-300"
+                      value={d.rejection_type || "other"}
+                      onChange={(e) => setDraft(o.id, { rejection_type: e.target.value })}
+                    >
+                      <option value="other">Lainnya (standar)</option>
+                      <option value="insufficient">Jumlah pembayaran kurang (insufficient)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 block mb-1">Dibayar Pelanggan (Rp)</label>
+                    <input
+                      className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-300 placeholder:text-gray-300"
+                      value={d.amount_paid_by_customer}
+                      onChange={(e) => setDraft(o.id, { amount_paid_by_customer: e.target.value })}
+                      placeholder="mis. 50000"
+                      inputMode="numeric"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 block mb-1">Sisa Kekurangan (Rp)</label>
+                    <input
+                      className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-300 placeholder:text-gray-300"
+                      value={d.amount_remaining}
+                      onChange={(e) => setDraft(o.id, { amount_remaining: e.target.value })}
+                      placeholder="mis. 10000"
+                      inputMode="numeric"
+                    />
+                  </div>
+                </div>
                 <label className="text-xs font-medium text-gray-500 block mb-1">
                   Alasan Penolakan (dikirim ke email pelanggan)
                 </label>
@@ -513,6 +577,13 @@ function OrdersTab() {
                 />
                 <p className="text-[11px] text-gray-400 mt-1">
                   Simpan dengan status <strong>Cancelled</strong> atau <strong>Failed</strong> + alasan → email penolakan otomatis terkirim ke pelanggan (sekali saja).
+                  {d.rejection_type === "insufficient" ? (
+                    <span className="text-blue-600 ml-1">
+                      Tipe <strong>insufficient</strong> → pelanggan bisa memilih <em>Ajukan Refund</em> atau <em>Bayar Kekurangan</em> (pembayaran pelengkap) dari halaman status.
+                    </span>
+                  ) : (
+                    ""
+                  )}
                   {o.rejection_email_sent_at && (
                     <span className="text-emerald-600 ml-1">✓ Email penolakan terkirim {new Date(o.rejection_email_sent_at).toLocaleString("id-ID")}</span>
                   )}
@@ -795,6 +866,192 @@ function ClaimsTab() {
                   {isSaving ? "Menyimpan..." : "Simpan"}
                 </button>
               </div>
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
+type RefundRequest = {
+  id: string;
+  created_at: string;
+  full_name: string;
+  email: string | null;
+  whatsapp: string | null;
+  tier_label: string | null;
+  amount: number;
+  status: string;
+  admin_notes: string | null;
+  processed_at: string | null;
+  order_id: string | null;
+  refund_proof_url: string;
+  customer_proof_url: string;
+};
+
+function RefundsTab() {
+  const [items, setItems] = useState<RefundRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  const [files, setFiles] = useState<Record<string, File | null>>({});
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/refunds");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal memuat data refund.");
+      setItems(data.data || []);
+    } catch (err: any) {
+      setError(err.message || "Gagal memuat data refund.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { load(); }, []);
+
+  const pending = items.filter((r) => r.status === "pending");
+  const processed = items.filter((r) => r.status === "processed");
+
+  async function process(item: RefundRequest) {
+    setSavingId(item.id);
+    setError(null);
+    const file = files[item.id];
+    try {
+      const fd = new FormData();
+      fd.append("id", item.id);
+      fd.append("admin_notes", notes[item.id] || "");
+      if (file) fd.append("proofFile", file);
+      const res = await fetch("/api/admin/refunds", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal memproses refund.");
+      setFiles((f) => ({ ...f, [item.id]: null }));
+      setNotes((n) => { const next = { ...n }; delete next[item.id]; return next; });
+      await load();
+    } catch (err: any) {
+      setError(err.message || "Gagal memproses refund.");
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  if (loading) return <LoadingSkeleton />;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-3">
+        <SummaryCard icon={RotateCcw} label="Menunggu Proses" value={pending.length} color="amber" />
+        <SummaryCard icon={RotateCcw} label="Sudah Diproses" value={processed.length} color="emerald" />
+        <SummaryCard icon={DollarSign} label="Total Dikembalikan" value={rupiah(processed.reduce((s, r) => s + r.amount, 0))} color="blue" />
+      </div>
+
+      {error && (
+        <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-sm text-red-700">{error}</div>
+      )}
+
+      {items.length === 0 ? (
+        <div className="card-sm text-center py-12">
+          <RotateCcw className="w-8 h-8 text-gray-200 mx-auto mb-3" />
+          <p className="text-sm text-gray-400">Belum ada pengajuan refund.</p>
+        </div>
+      ) : (
+        items.map((item) => {
+          const isPending = item.status === "pending";
+          const isSaving = savingId === item.id;
+          return (
+            <div key={item.id} className="card-sm space-y-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="font-semibold text-gray-900 text-sm">{item.full_name}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">
+                    {item.email || item.whatsapp || "—"}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-bold text-gray-900">{rupiah(item.amount)}</div>
+                  <div className="text-xs text-gray-500">{item.tier_label || "—"}</div>
+                </div>
+              </div>
+
+              <div className="text-[11px] text-gray-400">
+                Diajukan: {new Date(item.created_at).toLocaleString("id-ID")}
+                {item.status === "processed" && item.processed_at && (
+                  <> · Diproses: {new Date(item.processed_at).toLocaleString("id-ID")}</>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {item.customer_proof_url && (
+                  <a href={item.customer_proof_url} target="_blank" rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-all duration-200">
+                    <ExternalLink className="w-3 h-3" /> Bukti Bayar Pelanggan
+                  </a>
+                )}
+                {item.refund_proof_url && (
+                  <a href={item.refund_proof_url} target="_blank" rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-all duration-200">
+                    <ExternalLink className="w-3 h-3" /> Bukti Transfer Refund
+                  </a>
+                )}
+                <StatusBadge status={item.status === "processed" ? "paid" : "pending"} />
+              </div>
+
+              {isPending && (
+                <>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 block mb-1">
+                      Catatan Admin (opsional)
+                    </label>
+                    <input
+                      className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 placeholder:text-gray-300"
+                      value={notes[item.id] || ""}
+                      onChange={(e) => setNotes((n) => ({ ...n, [item.id]: e.target.value }))}
+                      placeholder="Contoh: Refund disimpan ke BCA xxxxxx atas nama pemesan"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 block mb-1">
+                      Bukti Transfer Refund (wajib, JPEG/PNG/WebP ≤5MB) — dikirim sebagai lampiran email
+                    </label>
+                    <label className="flex items-center justify-center gap-2 w-full p-4 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/70 cursor-pointer hover:border-emerald-300 hover:bg-emerald-50/30 transition-colors duration-200">
+                      {files[item.id] ? (
+                        <span className="text-sm font-medium text-emerald-700 break-all flex items-center gap-2">
+                          <Paperclip className="w-4 h-4" /> {files[item.id]?.name}
+                        </span>
+                      ) : (
+                        <span className="text-sm font-semibold text-gray-600 flex items-center gap-2">
+                          <Upload className="w-4 h-4" /> Pilih bukti transfer
+                        </span>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={(e) => setFiles((f) => ({ ...f, [item.id]: e.target.files?.[0] || null }))}
+                      />
+                    </label>
+                  </div>
+                  <button
+                    onClick={() => process(item)}
+                    disabled={isSaving || !files[item.id]}
+                    className="flex items-center justify-center gap-2 w-full text-xs font-semibold bg-gray-900 hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-lg transition-all duration-200"
+                  >
+                    {isSaving ? <Power size={14} /> : <Save size={14} />}
+                    {isSaving ? "Memproses…" : "Proses & Kirim Email Refund"}
+                  </button>
+                </>
+              )}
+
+              {item.admin_notes && (
+                <p className="text-[11px] text-gray-500 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2">
+                  <strong>Catatan admin:</strong> {item.admin_notes}
+                </p>
+              )}
             </div>
           );
         })

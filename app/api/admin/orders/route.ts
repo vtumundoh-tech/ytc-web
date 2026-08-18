@@ -30,7 +30,11 @@ type Order = {
   email_status: string | null;
   cashback_code?: string | null;
   rejection_reason?: string | null;
+  rejection_type?: string | null;
+  amount_paid_by_customer?: number | null;
+  amount_remaining?: number | null;
   rejection_email_sent_at?: string | null;
+  supplement_for?: string | null;
 };
 
 export async function GET() {
@@ -48,7 +52,7 @@ export async function GET() {
 
 export async function PATCH(req: NextRequest) {
   const body = await req.json();
-  const { id, status, admin_notes, rejection_reason } = body || {};
+  const { id, status, admin_notes, rejection_reason, rejection_type, amount_paid_by_customer, amount_remaining } = body || {};
   if (!id) return NextResponse.json({ error: "id wajib diisi" }, { status: 400 });
 
   const normalizedStatus = String(status || "").toLowerCase();
@@ -60,7 +64,7 @@ export async function PATCH(req: NextRequest) {
 
   const { data: existing, error: fetchError } = await supabase
     .from("orders")
-    .select("id, status, email, full_name, tier_label, amount, midtrans_order_id, download_token, download_expires_at, email_status, cashback_code, rejection_reason, rejection_email_sent_at")
+    .select("id, status, email, full_name, tier_label, amount, midtrans_order_id, download_token, download_expires_at, email_status, cashback_code, rejection_reason, rejection_type, amount_paid_by_customer, amount_remaining, rejection_email_sent_at, supplement_for")
     .eq("id", id)
     .maybeSingle();
   if (fetchError || !existing) {
@@ -70,8 +74,12 @@ export async function PATCH(req: NextRequest) {
 
   const update: Record<string, unknown> = { status: normalizedStatus, admin_notes };
   if (typeof rejection_reason === "string") update.rejection_reason = rejection_reason;
+  if (typeof rejection_type === "string") update.rejection_type = rejection_type || null;
+  if (Number.isFinite(Number(amount_paid_by_customer))) update.amount_paid_by_customer = Number(amount_paid_by_customer);
+  if (Number.isFinite(Number(amount_remaining))) update.amount_remaining = Number(amount_remaining);
   let emailSent: boolean | null = null;
   let emailKind: "invoice" | "rejected" | null = null;
+  let parentApproved = false;
 
   if (normalizedStatus === "paid" && order.status !== "paid") {
     let downloadToken = order.download_token;
@@ -81,6 +89,46 @@ export async function PATCH(req: NextRequest) {
       update.download_expires_at = new Date(Date.now() + DOWNLOAD_TOKEN_TTL_MS).toISOString();
     }
     update.paid_at = new Date().toISOString();
+
+    if (order.supplement_for) {
+      const parentId = order.supplement_for;
+      const { data: parent } = await supabase
+        .from("orders")
+        .select("id, status, email, full_name, tier_label, amount, midtrans_order_id, download_token, download_expires_at, cashback_code, email_status")
+        .eq("id", parentId)
+        .maybeSingle();
+      if (parent && parent.status !== "paid") {
+        let parentToken = parent.download_token;
+        const payload: Record<string, unknown> = {
+          status: "paid",
+          paid_at: new Date().toISOString(),
+          email_status: "sent",
+        };
+        if (!parentToken) {
+          parentToken = generateDownloadToken();
+          payload.download_token = parentToken;
+        }
+        payload.download_expires_at = new Date(Date.now() + DOWNLOAD_TOKEN_TTL_MS).toISOString();
+        const sent = await sendInvoiceEmail({
+          full_name: parent.full_name,
+          email: parent.email,
+          tier_label: parent.tier_label,
+          amount: parent.amount,
+          midtrans_order_id: parent.midtrans_order_id,
+          paid_at: new Date().toISOString(),
+          downloadToken: parentToken,
+          cashbackCode: parent.cashback_code,
+        });
+        payload.email_status = sent ? "sent" : "failed";
+        const { error: parentErr } = await supabase.from("orders").update(payload).eq("id", parentId);
+        if (parentErr) {
+          console.error("auto-approve parent error:", parentErr);
+        } else {
+          parentApproved = true;
+        }
+      }
+    }
+
     emailSent = await sendInvoiceEmail({
       full_name: order.full_name,
       email: order.email,
@@ -89,7 +137,7 @@ export async function PATCH(req: NextRequest) {
       midtrans_order_id: order.midtrans_order_id,
       paid_at: new Date().toISOString(),
       downloadToken,
-      cashbackCode: order.cashback_code,
+      cashbackCode: order.supplement_for ? null : order.cashback_code,
     });
     emailKind = "invoice";
     update.email_status = emailSent ? "sent" : "failed";
@@ -100,6 +148,7 @@ export async function PATCH(req: NextRequest) {
     rejection_reason.trim() !== "" &&
     !order.rejection_email_sent_at
   ) {
+    const isInsufficient = rejection_type === "insufficient";
     emailSent = await sendOrderRejectedEmail({
       full_name: order.full_name,
       email: order.email,
@@ -107,6 +156,10 @@ export async function PATCH(req: NextRequest) {
       tier_label: order.tier_label,
       amount: order.amount,
       reason: rejection_reason,
+      insufficient: isInsufficient,
+      statusPageLink: order.download_token
+        ? `${(process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "")}/order?token=${encodeURIComponent(order.download_token)}`
+        : null,
     });
     emailKind = "rejected";
     if (emailSent) update.rejection_email_sent_at = new Date().toISOString();
@@ -125,6 +178,15 @@ export async function PATCH(req: NextRequest) {
           ? " | email penolakan terkirim"
           : " | email penolakan gagal"
         : "";
+
+  if (parentApproved) {
+    await writeAudit(supabase, {
+      action: "order_supplement_approve_parent",
+      target_type: "order",
+      target_id: String(order.supplement_for),
+      detail: `Order pelengkap Lunas → order induk otomatis Lunas + invoice induk terkirim`,
+    });
+  }
 
   await writeAudit(supabase, {
     action: "order_status_change",

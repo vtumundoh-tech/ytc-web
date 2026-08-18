@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     const supabase = supabaseServer();
     const { data, error } = await supabase
       .from("orders")
-      .select("status, amount, tier_label, payment_type, paid_at, rejection_reason")
+      .select("status, amount, tier, tier_label, payment_type, paid_at, rejection_reason, rejection_type, amount_paid_by_customer, amount_remaining, cashback_code")
       .eq("download_token", token)
       .maybeSingle();
 
@@ -35,10 +35,15 @@ export async function GET(req: NextRequest) {
       paid: data.status === "paid",
       rejected: data.status === "cancelled" || data.status === "failed",
       amount: data.amount,
+      tier: data.tier,
       tierLabel: data.tier_label,
       paymentType: data.payment_type,
       paidAt: data.paid_at,
       rejectionReason: data.rejection_reason || "",
+      rejectionType: data.rejection_type || "",
+      amountPaidByCustomer: data.amount_paid_by_customer || null,
+      amountRemaining: data.amount_remaining || null,
+      cashbackCode: data.cashback_code || "",
     });
   } catch (err: any) {
     console.error("order-status error:", err);

@@ -114,6 +114,32 @@ export async function notifyPaymentClaimed(data: PaymentClaimedData): Promise<bo
   return sendTelegramMessage(lines.join("\n"));
 }
 
+export type RefundRequestNotifData = {
+  full_name: string;
+  whatsapp?: string | null;
+  email?: string | null;
+  tier_label: string;
+  amount: number;
+  paid_at?: string | null;
+};
+
+export async function notifyRefundRequest(data: RefundRequestNotifData): Promise<boolean> {
+  if (!isConfigured()) return false;
+  const lines = [
+    "💸 <b>PERMINTAAN REFUND BARU</b> · #RefundBaru",
+    "",
+    `👤 Nama    : <b>${escapeHtml(data.full_name)}</b>`,
+    `📱 WA      : ${data.whatsapp ? escapeHtml(data.whatsapp) : "-"}`,
+    `📧 Email   : ${data.email ? escapeHtml(data.email) : "-"}`,
+    `📦 Paket   : ${escapeHtml(data.tier_label)}`,
+    `💰 Refund  : ${rupiah(data.amount)}`,
+    `🕐 Waktu   : ${fmtDate(new Date().toISOString())}`,
+    "",
+    "⚠️ <i>Tinjau di panel admin (tab Refund), lalu upload bukti transfer refund & submit — email dengan lampiran bukti otomatis terkirim ke pelanggan.</i>",
+  ];
+  return sendTelegramMessage(lines.join("\n"));
+}
+
 export type ClaimNotifData = {
   full_name: string;
   whatsapp?: string | null;

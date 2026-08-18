@@ -13,6 +13,7 @@ function BeliForm() {
   const searchParams = useSearchParams();
   const preselected = searchParams.get("tier") || "";
   const preselectedAddon = searchParams.get("addon1080") === "1";
+  const supplementToken = searchParams.get("supplement") || "";
   const { settings } = useAppSettings();
   const tiers = settings.tiers;
   const promoEnabled = settings.promoEnabled;
@@ -38,6 +39,12 @@ function BeliForm() {
   const [qrisOrderId, setQrisOrderId] = useState("");
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [rejectionType, setRejectionType] = useState("");
+  const [amountPaidByCustomer, setAmountPaidByCustomer] = useState<number | null>(null);
+  const [amountRemaining, setAmountRemaining] = useState<number | null>(null);
+  const [supplementLoading, setSupplementLoading] = useState(!!supplementToken);
+  const [refundOk, setRefundOk] = useState(false);
+  const [busy, setBusy] = useState<"" | "refund" | "supplement">("");
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [proofLoading, setProofLoading] = useState(false);
   const [proofError, setProofError] = useState("");
@@ -105,6 +112,9 @@ function BeliForm() {
             openPaidModal();
           } else if (data.rejected) {
             setRejectionReason(data.rejectionReason || "");
+            setRejectionType(data.rejectionType || "");
+            setAmountPaidByCustomer(data.amountPaidByCustomer || null);
+            setAmountRemaining(data.amountRemaining || null);
             setQrisStep("rejected");
           }
         }
@@ -120,12 +130,42 @@ function BeliForm() {
     };
   }, [qrisModal, downloadToken]);
 
+  useEffect(() => {
+    if (!supplementToken) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/order-status?token=${encodeURIComponent(supplementToken)}`, { cache: "no-store" });
+        const data = await res.json();
+        if (cancelled) return;
+        if (data && data.found && data.amount) {
+          setDownloadToken(supplementToken);
+          setQrisAmount(data.amount);
+          setQrisOrderId("");
+          setQrisStep("pay");
+          setQrisModal(true);
+          setPaymentConfirmed(false);
+        } else {
+          setError("Tautan pembayaran pelengkap tidak valid. Gunakan tautan dari email atau halaman status pesanan.");
+        }
+      } catch {
+        if (!cancelled) setError("Terjadi kesalahan saat memuat pembayaran pelengkap.");
+      } finally {
+        if (!cancelled) setSupplementLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [supplementToken]);
+
   function handleBatal() {
     setQrisModal(false);
     setProofFile(null);
     setProofError("");
     setPaymentConfirmed(false);
     setLoading(false);
+    if (supplementToken) router.push("/");
   }
 
   function handleProofFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -171,10 +211,54 @@ function BeliForm() {
     }
   }
 
+  async function handleRefundRequest() {
+    if (busy) return;
+    setBusy("refund");
+    setError("");
+    try {
+      const res = await fetch("/api/refund-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: downloadToken }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal mengajukan refund.");
+      setRefundOk(true);
+    } catch (err: any) {
+      setError(err.message || "Gagal mengajukan refund. Coba lagi.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function handleBayarKekurangan() {
+    if (busy) return;
+    setBusy("supplement");
+    setError("");
+    try {
+      const res = await fetch("/api/order-supplement", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: downloadToken }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal membuat pembayaran pelengkap.");
+      router.push(`/beli?supplement=${encodeURIComponent(data.downloadToken)}`);
+    } catch (err: any) {
+      setError(err.message || "Gagal membuat pembayaran pelengkap. Coba lagi.");
+      setBusy("");
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    if (!fullName || !email || !tier || !agree) return;
+    if (!fullName || !whatsapp || !email || !tier || !agree) return;
+    if (!/^\d{8,15}$/.test(whatsapp.trim())) {
+      setError("Nomor WhatsApp harus digit angka 8–15 (mis. 8123456789).");
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch("/api/checkout", {
@@ -213,7 +297,7 @@ function BeliForm() {
   const addonPrice = tier ? settings.addonPrices[tier] || 0 : 0;
   const basePrice = selected ? (promoEnabled ? selected.amount : selected.originalAmount) : 0;
   const totalPrice = tier ? basePrice + (addon1080 ? addonPrice : 0) : 0;
-  const canSubmit = fullName && email && tier && agree && !loading;
+  const canSubmit = fullName && whatsapp && email && tier && agree && !loading && /^\d{8,15}$/.test(whatsapp.trim());
   const isCashbackEligible = cashback > 0;
 
   return (
@@ -258,7 +342,7 @@ function BeliForm() {
           <div>
             <label className="field-label">
               <Phone className="w-3.5 h-3.5 inline mr-1.5 text-emerald-500" />
-              Nomor WhatsApp
+              Nomor WhatsApp <span className="text-red-400">*</span>
             </label>
             <input
               className="input-field"
@@ -266,6 +350,8 @@ function BeliForm() {
               placeholder="Contoh: 08123456789"
               value={whatsapp}
               onChange={(e) => setWhatsapp(e.target.value)}
+              required
+              pattern="\d{8,15}"
             />
             <p className="field-hint">Kami akan menghubungi Anda melalui nomor ini untuk konfirmasi dan informasi lebih lanjut  .</p>
             <p className="field-hint">Harap gunakan nomor yang sama jika anda ingin mengklaim cashback</p>
@@ -644,31 +730,102 @@ function BeliForm() {
 
             {qrisStep === "rejected" && (
               <>
-                <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-                  <X className="w-7 h-7 text-red-600" />
-                </div>
-                <h2 className="text-lg font-bold text-gray-900 mb-2">Pesanan Tidak Sesuai Ketentuan</h2>
-                <p className="text-sm text-gray-500 mb-4">
-                  Kami mohon maaf, pesanan Anda tidak dapat kami proses.
-                </p>
+                {rejectionType === "insufficient" && refundOk ? (
+                  <>
+                    <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+                      <CheckCircle className="w-7 h-7 text-emerald-600" />
+                    </div>
+                    <h2 className="text-lg font-bold text-gray-900 mb-2">Permintaan Refund Dikirim</h2>
+                    <p className="text-sm text-gray-500 mb-4">
+                      Permintaan refund Anda sudah terkirim ke admin. Kami akan memprosesnya paling lambat{" "}
+                      <strong>1x24 jam</strong> — bukti transfer refund akan dikirim ke email <strong>{email}</strong>.
+                    </p>
+                    <button
+                      onClick={() => router.push("/")}
+                      className="w-full inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 shadow-md"
+                    >
+                      <Home className="w-4 h-4" /> Kembali ke Beranda
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                      <X className="w-7 h-7 text-red-600" />
+                    </div>
+                    <h2 className="text-lg font-bold text-gray-900 mb-2">
+                      {rejectionType === "insufficient" ? "Jumlah Pembayaran Tidak Sesuai" : "Pesanan Tidak Sesuai Ketentuan"}
+                    </h2>
+                    <p className="text-sm text-gray-500 mb-4">
+                      {rejectionType === "insufficient"
+                        ? "Pembayaran yang kami terima kurang dari nominal yang diminta."
+                        : "Kami mohon maaf, pesanan Anda tidak dapat kami proses."}
+                    </p>
 
-                <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-left text-xs text-red-800 mb-4">
-                  <strong>Alasan:</strong> {rejectionReason || "Pesanan Anda tidak sesuai dengan ketentuan yang berlaku."}
-                </div>
+                    {rejectionType === "insufficient" && (
+                      <div className="p-4 rounded-xl bg-gray-50 border border-gray-100 text-left text-xs text-gray-600 space-y-1.5 mb-4">
+                        <div className="flex justify-between">
+                          <span>Harga Produk</span>
+                          <span className="font-bold text-gray-900">{formatRupiah((amountPaidByCustomer || 0) + (amountRemaining || 0))}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Yang Telah Dibayar</span>
+                          <span className="font-semibold">{formatRupiah(amountPaidByCustomer || 0)}</span>
+                        </div>
+                        <div className="flex justify-between border-t border-gray-200 pt-1.5">
+                          <span>Sisa yang Harus Dibayar</span>
+                          <span className="font-bold text-red-600">{formatRupiah(amountRemaining || 0)}</span>
+                        </div>
+                      </div>
+                    )}
 
-                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-left text-xs text-amber-800 mb-4">
-                  <BellRing className="w-4 h-4 inline mr-1.5 text-amber-600" />
-                  Dana yang telah Anda bayarkan akan dikembalikan ke rekening pengirim paling lambat{" "}
-                  <strong>1x24 jam</strong>, sesuai jumlah yang ditransfer (potongan transfer bank menjadi tanggungan
-                  pelanggan). Mohon menunggu — detail dikirim juga ke email <strong>{email}</strong>.
-                </div>
+                    <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-left text-xs text-red-800 mb-4">
+                      <strong>Alasan:</strong> {rejectionReason || "Pesanan Anda tidak sesuai dengan ketentuan yang berlaku."}
+                    </div>
 
-                <button
-                  onClick={() => router.push("/")}
-                  className="w-full inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 shadow-md"
-                >
-                  <Home className="w-4 h-4" /> Kembali ke Beranda
-                </button>
+                    <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-left text-xs text-amber-800 mb-4">
+                      <BellRing className="w-4 h-4 inline mr-1.5 text-amber-600" />
+                      {rejectionType === "insufficient" ? (
+                        <>Pilih salah satu opsi: <strong>1)</strong> Ajukan refund — dana dikembalikan ≤1x24 jam ke rekening pengirim (potongan transfer bank ditanggung pelanggan); <strong>2)</strong> Bayar kekurangan — lengkapi nominal kurang via QRIS lalu pesanan langsung diproses.</>
+                      ) : (
+                        <>Dana yang telah Anda bayarkan akan dikembalikan ke rekening pengirim paling lambat{" "}
+                        <strong>1x24 jam</strong>, sesuai jumlah yang ditransfer (potongan transfer bank menjadi tanggungan
+                        pelanggan). Mohon menunggu — detail dikirim juga ke email <strong>{email}</strong>.</>
+                      )}
+                    </div>
+
+                    {error && !busy && (
+                      <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-xs text-red-700 mb-3">{error}</div>
+                    )}
+
+                    {rejectionType === "insufficient" ? (
+                      <>
+                        <button
+                          onClick={handleRefundRequest}
+                          disabled={!!busy}
+                          className="w-full flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 disabled:opacity-50 shadow-md"
+                        >
+                          {busy === "refund" ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
+                          Ajukan Refund
+                        </button>
+                        <button
+                          onClick={handleBayarKekurangan}
+                          disabled={!!busy}
+                          className="mt-3 w-full flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 disabled:opacity-50 shadow-md"
+                        >
+                          {busy === "supplement" ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                          Bayar Kekurangan ({formatRupiah(amountRemaining || 0)})
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => router.push("/")}
+                        className="w-full inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 shadow-md"
+                      >
+                        <Home className="w-4 h-4" /> Kembali ke Beranda
+                      </button>
+                    )}
+                  </>
+                )}
               </>
             )}
           </div>
