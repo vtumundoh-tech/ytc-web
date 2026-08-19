@@ -7,7 +7,8 @@ import { formatPrice, formatRupiah } from "@/lib/tiers";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { validateFileSignature, validateFileSize, isAllowedMimeType } from "@/lib/fileValidation";
 import { parseJsonSafe, isHeicFile, HEIC_ERROR } from "@/lib/fetchJson";
-import { CreditCard, User, Phone, Mail, CheckCircle, ArrowRight, ExternalLink, Gift, TrendingUp, Download, Loader2, QrCode, Home, BellRing, Upload, FileImage, X, AlertTriangle } from "lucide-react";
+import { COUNTRY_CODES, OTHER_COUNTRY_VALUE, normalizeWhatsapp } from "@/lib/whatsapp";
+import { CreditCard, User, Phone, Mail, CheckCircle, ArrowRight, ExternalLink, Gift, TrendingUp, Download, Loader2, QrCode, Home, BellRing, Upload, FileImage, X, AlertTriangle, Timer, RefreshCw } from "lucide-react";
 
 function cn(...classes: (string | false | undefined | null)[]) {
   return classes.filter(Boolean).join(" ");
@@ -25,12 +26,19 @@ function BeliForm() {
 
   const [fullName, setFullName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [countryDial, setCountryDial] = useState("62");
+  const [customDial, setCustomDial] = useState("");
   const [email, setEmail] = useState("");
   const [emailVerified, setEmailVerified] = useState(false);
   const [verifyScreen, setVerifyScreen] = useState<"idle" | "otp">("idle");
   const [otpCode, setOtpCode] = useState("");
   const [verifyError, setVerifyError] = useState("");
   const [verifying, setVerifying] = useState(false);
+  const [otpSeconds, setOtpSeconds] = useState(0);
+  const [otpExpired, setOtpExpired] = useState(false);
+  const [otpTick, setOtpTick] = useState(0);
+  const [qrisSeconds, setQrisSeconds] = useState(0);
+  const [qrisExpired, setQrisExpired] = useState(false);
   const [tier, setTier] = useState(preselected);
   const [addon1080, setAddon1080] = useState(preselectedAddon);
   const [agree, setAgree] = useState(false);
@@ -44,10 +52,9 @@ function BeliForm() {
   const [countdown, setCountdown] = useState(5);
   const autoFired = useRef(false);
   const [qrisModal, setQrisModal] = useState(false);
-  const [qrisStep, setQrisStep] = useState<"pay" | "confirm" | "proof" | "thanks" | "rejected">("pay");
+  const [qrisStep, setQrisStep] = useState<"pay" | "proof" | "thanks" | "rejected">("pay");
   const [qrisAmount, setQrisAmount] = useState(0);
   const [qrisOrderId, setQrisOrderId] = useState("");
-  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [rejectionType, setRejectionType] = useState("");
   const [amountPaidByCustomer, setAmountPaidByCustomer] = useState<number | null>(null);
@@ -154,7 +161,6 @@ function BeliForm() {
           setQrisOrderId("");
           setQrisStep("pay");
           setQrisModal(true);
-          setPaymentConfirmed(false);
         } else {
           setError("Tautan pembayaran pelengkap tidak valid. Gunakan tautan dari email atau halaman status pesanan.");
         }
@@ -169,11 +175,44 @@ function BeliForm() {
     };
   }, [supplementToken]);
 
+  useEffect(() => {
+    if (verifyScreen !== "otp" || emailVerified) return;
+    setOtpExpired(false);
+    setOtpSeconds(5 * 60);
+    const t = setInterval(() => {
+      setOtpSeconds((s) => {
+        if (s <= 1) {
+          clearInterval(t);
+          setOtpExpired(true);
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(t);
+  }, [verifyScreen, emailVerified, otpTick]);
+
+  useEffect(() => {
+    if (!qrisModal || qrisStep !== "pay") return;
+    setQrisSeconds(3 * 60);
+    setQrisExpired(false);
+    const t = setInterval(() => {
+      setQrisSeconds((s) => {
+        if (s <= 1) {
+          clearInterval(t);
+          setQrisExpired(true);
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(t);
+  }, [qrisModal, qrisStep]);
+
   function handleBatal() {
     setQrisModal(false);
     setProofFile(null);
     setProofError("");
-    setPaymentConfirmed(false);
     setLoading(false);
     if (supplementToken) router.push("/");
   }
@@ -281,6 +320,10 @@ function BeliForm() {
       if (!data.ok) throw new Error(data.error || "Gagal mengirim kode.");
       setVerifyScreen("otp");
       setOtpCode("");
+      setVerifyError("");
+      setOtpSeconds(5 * 60);
+      setOtpExpired(false);
+      setOtpTick((t) => t + 1);
     } catch (err: any) {
       setVerifyError(err.message || "Gagal mengirim kode verifikasi.");
     } finally {
@@ -316,8 +359,8 @@ function BeliForm() {
     e.preventDefault();
     setError("");
     if (!fullName || !whatsapp || !email || !tier || !agree) return;
-    if (!/^\d{8,15}$/.test(whatsapp.trim())) {
-      setError("Nomor WhatsApp belum lengkap — isi minimal 8 digit angka (tanpa +62/0 di depan).");
+    if (!waValid) {
+      setError("Nomor WhatsApp belum lengkap — isi minimal 8 digit angka (contoh: 8123456789).");
       setLoading(false);
       return;
     }
@@ -326,12 +369,13 @@ function BeliForm() {
       setLoading(false);
       return;
     }
+    const waNumber = normalizeWhatsapp(countryDial === OTHER_COUNTRY_VALUE ? customDial : countryDial, whatsapp);
     setLoading(true);
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName, whatsapp, email, tier, addon1080, agreeSnk: true }),
+        body: JSON.stringify({ fullName, whatsapp: waNumber, email, tier, addon1080, agreeSnk: true, countryDial: countryDial === OTHER_COUNTRY_VALUE ? customDial : countryDial }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal membuat transaksi");
@@ -346,7 +390,6 @@ function BeliForm() {
         setQrisOrderId(data.orderId || "");
         setProofFile(null);
         setProofError("");
-        setPaymentConfirmed(false);
         setQrisStep("pay");
         setQrisModal(true);
       } else {
@@ -365,11 +408,15 @@ function BeliForm() {
   const basePrice = selected ? (promoEnabled ? selected.amount : selected.originalAmount) : 0;
   const totalPrice = tier ? basePrice + (addon1080 ? addonPrice : 0) : 0;
   const waValue = whatsapp.trim();
-  const waValid = /^\d{8,15}$/.test(waValue);
+  const waDigits = waValue.replace(/[^\d]/g, "").replace(/^0+/, "");
+  const waValid = waDigits.length >= 8 && waDigits.length <= 15;
   const waInvalid = waValue !== "" && !waValid;
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const canSubmit = fullName && waValid && email && emailVerified && tier && agree && !loading;
   const isCashbackEligible = cashback > 0;
+  const pad2 = (n: number) => String(n).padStart(2, "0");
+  const otpClock = `${pad2(Math.floor(otpSeconds / 60))}:${pad2(otpSeconds % 60)}`;
+  const qrisClock = `${pad2(Math.floor(qrisSeconds / 60))}:${pad2(qrisSeconds % 60)}`;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 sm:py-12">
@@ -393,6 +440,51 @@ function BeliForm() {
         onSubmit={handleSubmit}
         className="card-lg space-y-6"
       >
+        <div>
+          <div className="p-4 rounded-xl bg-amber-50/70 border border-amber-200 mb-3">
+            <p className="text-sm font-semibold text-amber-900 mb-2">
+              ⚠️ Baca sebelum melanjutkan — penting:
+            </p>
+            <ul className="text-xs text-amber-800 list-disc list-inside space-y-1">
+              <li>Pastikan jumlah QRIS yang Anda bayar <strong>sesuai nominal</strong>. Jika kurang, pesanan ditolak dan Anda harus memilih <strong>refund</strong> (dana kembali ≤1×24 jam, potongan transfer bank ditanggung pelanggan) atau <strong>bayar kekurangan</strong> (klausul 4.4).</li>
+              <li>Yang sudah <strong>disetujui / Lunas tidak dapat di-refund</strong> (klausul 5.5).</li>
+              <li>Key &amp; unduhan dikirim ke <strong>email</strong> — cek juga folder Promosi / Spam / Junk.</li>
+              <li>Nomor WhatsApp wajib lengkap (minimal 8 digit angka) untuk konfirmasi &amp; cashback.</li>
+            </ul>
+            <a
+              href="/syarat-ketentuan"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-block mt-2 text-xs font-semibold text-amber-700 underline underline-offset-2 hover:text-amber-900"
+            >
+              Baca Syarat &amp; Ketentuan lengkap →
+            </a>
+          </div>
+          <label className="flex items-start gap-3 p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-50/30 border border-emerald-100 cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-0.5 accent-emerald-600 w-4 h-4 rounded"
+              checked={agree}
+              onChange={(e) => setAgree(e.target.checked)}
+            />
+            <div>
+              <div className="text-sm font-semibold text-emerald-900">
+                Saya telah <u>membaca</u> dan menyetujui{" "}
+                <a
+                  href="/syarat-ketentuan"
+                  target="_blank"
+                  className="underline underline-offset-2 hover:text-emerald-700"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Syarat & Ketentuan
+                  <ExternalLink className="w-3 h-3 inline ml-0.5" />
+                </a>{" "}
+                terlebih dahulu. Dengan menyetujui berarti saya menyetujui <strong>seluruh</strong> klausul Syarat &amp; Ketentuan di atas termasuk ketentuan pembayaran, refund, dan cashback tanpa konfirmasi tambahan.
+              </div>
+            </div>
+          </label>
+        </div>
+
         <div className="space-y-5">
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Data Diri</h2>
 
@@ -415,21 +507,50 @@ function BeliForm() {
               <Phone className="w-3.5 h-3.5 inline mr-1.5 text-emerald-500" />
               Nomor WhatsApp <span className="text-red-400">*</span>
             </label>
-            <input
-              className={cn(
-                "input-field",
-                waInvalid ? "border-red-400 focus:ring-red-300 focus:border-red-400" : ""
-              )}
-              type="tel"
-              placeholder="Contoh: 08123456789"
-              value={whatsapp}
-              onChange={(e) => setWhatsapp(e.target.value)}
-              required
-            />
+            <div className="flex gap-2">
+              <select
+                className="shrink-0 rounded-lg border border-gray-200 px-2.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400"
+                value={countryDial}
+                onChange={(e) => { setCountryDial(e.target.value); setError(""); }}
+              >
+                {COUNTRY_CODES.map((c) => (
+                  <option key={c.code} value={c.dial}>{c.flag} {c.label} +{c.dial}</option>
+                ))}
+                <option value={OTHER_COUNTRY_VALUE}>🌐 Lainnya (input sendiri)</option>
+              </select>
+              <div className="flex-1 min-w-0">
+                <input
+                  className={cn(
+                    "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400",
+                    waInvalid ? "border-red-400 focus:ring-red-300 focus:border-red-400" : ""
+                  )}
+                  type="tel"
+                  placeholder="Contoh: 8123456789"
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
+                  required
+                />
+                {countryDial === OTHER_COUNTRY_VALUE && (
+                  <input
+                    className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 placeholder:text-gray-300"
+                    type="tel"
+                    placeholder="Kode negara, mis. 852 (Hong Kong)"
+                    value={customDial}
+                    onChange={(e) => setCustomDial(e.target.value.replace(/[^\d]/g, ""))}
+                  />
+                )}
+              </div>
+            </div>
             {waInvalid && (
               <p className="text-xs font-medium text-red-600 mt-1.5 flex items-start gap-1.5">
                 <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                Nomor WhatsApp belum lengkap — isi minimal 8 digit angka (tanpa tanda +62/0 di depan, contoh: 8123456789).
+                Nomor WhatsApp belum lengkap — isi minimal 8 digit angka tanpa awalan 0 (contoh: 8123456789).
+              </p>
+            )}
+            {countryDial === OTHER_COUNTRY_VALUE && !/^\d{1,4}$/.test(customDial) && waValue !== "" && (
+              <p className="text-xs font-medium text-red-600 mt-1.5 flex items-start gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                Lengkapi kode negara (1–4 digit) pada kolom di bawah.
               </p>
             )}
             <p className="field-hint">Kami akan menghubungi Anda melalui nomor ini untuk konfirmasi dan informasi lebih lanjut  .</p>
@@ -467,33 +588,56 @@ function BeliForm() {
                 <p className="text-xs text-blue-800 mb-2">
                   Kode verifikasi 6 digit dikirim ke <strong>{email}</strong>. 📬 Kalau tidak muncul, cek juga folder <strong>Promosi / Spam / Junk</strong>.
                 </p>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className={cn(
+                    "inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full",
+                    otpExpired ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-800"
+                  )}>
+                    <Timer className="w-3 h-3" />
+                    {otpExpired ? "Kode kedaluwarsa" : `Berlaku ${otpClock}`}
+                  </span>
+                  {!otpExpired && <span className="text-[11px] text-blue-600">masukkan kode sebelum waktu habis</span>}
+                </div>
                 <div className="flex gap-2">
                   <input
                     className="flex-1 min-w-0 rounded-lg border border-gray-200 px-3 py-2 text-sm tracking-widest font-mono text-center focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400"
                     placeholder="••••••"
                     maxLength={6}
                     inputMode="numeric"
+                    disabled={otpExpired}
                     value={otpCode}
                     onChange={(e) => { setOtpCode(e.target.value.replace(/\D/g, "")); setVerifyError(""); }}
                   />
                   <button
                     type="button"
                     onClick={handleVerifyCode}
-                    disabled={verifying}
+                    disabled={verifying || otpExpired}
                     className="shrink-0 inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg font-semibold text-xs text-white bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 disabled:opacity-50"
                   >
                     {verifying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
                     Verifikasi
                   </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleSendVerifyCode}
-                  disabled={verifying}
-                  className="mt-2 text-[11px] font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-900"
-                >
-                  Kirim ulang kode
-                </button>
+                {otpExpired ? (
+                  <button
+                    type="button"
+                    onClick={handleSendVerifyCode}
+                    disabled={verifying}
+                    className="mt-2 w-full inline-flex items-center justify-center gap-1.5 rounded-lg font-semibold text-xs text-white bg-blue-600 hover:bg-blue-700 px-4 py-2.5 disabled:opacity-50"
+                  >
+                    {verifying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                    Kirim Ulang Kode
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleSendVerifyCode}
+                    disabled={verifying}
+                    className="mt-2 text-[11px] font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-900"
+                  >
+                    Kirim ulang kode
+                  </button>
+                )}
                 {verifyError && (
                   <p className="text-xs font-medium text-red-700 mt-2 flex items-start gap-1.5">
                     <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" /> {verifyError}
@@ -511,7 +655,7 @@ function BeliForm() {
                   {verifying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
                   {verifying ? "Mengirim kode…" : "Kirim Kode Verifikasi"}
                 </button>
-                <p className="text-[11px] text-gray-400 mt-1">Kode berlaku 10 menit. Maks 3x kirim &amp; 3x percobaan; jika lewat, tunggu 15 menit.</p>
+                <p className="text-[11px] text-gray-400 mt-1">Kode berlaku 5 menit &amp; hanya untuk satu sesi pembelian ini.</p>
                 {verifyError && (
                   <p className="text-xs font-medium text-red-600 mt-1.5 flex items-start gap-1.5">
                     <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" /> {verifyError}
@@ -608,51 +752,6 @@ function BeliForm() {
 
         <hr className="border-gray-100" />
 
-        <div>
-          <div className="p-4 rounded-xl bg-amber-50/70 border border-amber-200 mb-3">
-            <p className="text-sm font-semibold text-amber-900 mb-2">
-              ⚠️ Baca sebelum melanjutkan — penting:
-            </p>
-            <ul className="text-xs text-amber-800 list-disc list-inside space-y-1">
-              <li>Pastikan jumlah QRIS yang Anda bayar <strong>sesuai nominal</strong>. Jika kurang, pesanan ditolak dan Anda harus memilih <strong>refund</strong> (dana kembali ≤1×24 jam, potongan transfer bank ditanggung pelanggan) atau <strong>bayar kekurangan</strong> (klausul 4.4).</li>
-              <li>Yang sudah <strong>disetujui / Lunas tidak dapat di-refund</strong> (klausul 5.5).</li>
-              <li>Key &amp; unduhan dikirim ke <strong>email</strong> — cek juga folder Promosi / Spam / Junk.</li>
-              <li>Nomor WhatsApp wajib lengkap (minimal 8 digit angka) untuk konfirmasi &amp; cashback.</li>
-            </ul>
-            <a
-              href="/syarat-ketentuan"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-block mt-2 text-xs font-semibold text-amber-700 underline underline-offset-2 hover:text-amber-900"
-            >
-              Baca Syarat &amp; Ketentuan lengkap →
-            </a>
-          </div>
-          <label className="flex items-start gap-3 p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-50/30 border border-emerald-100 cursor-pointer">
-            <input
-              type="checkbox"
-              className="mt-0.5 accent-emerald-600 w-4 h-4 rounded"
-              checked={agree}
-              onChange={(e) => setAgree(e.target.checked)}
-            />
-            <div>
-              <div className="text-sm font-semibold text-emerald-900">
-                Saya telah <u>membaca</u> dan menyetujui{" "}
-                <a
-                  href="/syarat-ketentuan"
-                  target="_blank"
-                  className="underline underline-offset-2 hover:text-emerald-700"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  Syarat & Ketentuan
-                  <ExternalLink className="w-3 h-3 inline ml-0.5" />
-                </a>{" "}
-                terlebih dahulu.
-              </div>
-            </div>
-          </label>
-        </div>
-
         {error && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -704,38 +803,67 @@ function BeliForm() {
                   Scan kode QR di bawah menggunakan GoPay atau aplikasi e-wallet / m-banking Anda.
                 </p>
 
-                <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 mb-4">
-                  {settings.qrisImageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={settings.qrisImageUrl} alt="QRIS" className="mx-auto w-52 h-52 object-contain" />
-                  ) : (
-                    <p className="text-sm text-gray-400 py-10">QRIS belum dikonfigurasi admin.</p>
-                  )}
+                <div className={cn(
+                  "mb-4 inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-full",
+                  qrisExpired ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-800"
+                )}>
+                  <Timer className="w-3 h-3" />
+                  {qrisExpired ? "Kode QR kedaluwarsa" : `QR berlaku ${qrisClock}`}
                 </div>
+
+                {qrisExpired ? (
+                  <div className="p-8 rounded-xl bg-gray-50 border border-gray-100 mb-4">
+                    <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3">
+                      <X className="w-6 h-6 text-red-500" />
+                    </div>
+                    <p className="text-sm font-semibold text-gray-700 mb-1">Kode QR sudah tidak tampil</p>
+                    <p className="text-xs text-gray-400 mb-4">
+                      QRIS ini statis — kamu tetap bisa membayar ke nomor QRIS yang sama. Tekan tombol di bawah untuk menampilkan kembali kode QR.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => { setQrisSeconds(3 * 60); setQrisExpired(false); }}
+                      className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-all duration-200"
+                    >
+                      <RefreshCw className="w-4 h-4" /> Lihat Lagi
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 mb-4">
+                      {settings.qrisImageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={settings.qrisImageUrl} alt="QRIS" className="mx-auto w-52 h-52 object-contain" />
+                      ) : (
+                        <p className="text-sm text-gray-400 py-10">QRIS belum dikonfigurasi admin.</p>
+                      )}
+                    </div>
+
+                    {settings.qrisPaymentNotice && (
+                      <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-left text-xs text-amber-800 mb-4">
+                        <BellRing className="w-4 h-4 inline mr-1.5 text-amber-600" />
+                        {settings.qrisPaymentNotice}
+                      </div>
+                    )}
+
+                    <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 text-left mb-4">
+                      <h3 className="text-xs font-semibold text-blue-800 mb-2">Cara Pembayaran</h3>
+                      <ol className="text-xs text-blue-900 space-y-1 list-decimal list-inside">
+                        {(settings.qrisInstructions || "").split("\n").filter(Boolean).map((line, i) => (
+                          <li key={i}>{line}</li>
+                        ))}
+                      </ol>
+                    </div>
+                  </>
+                )}
 
                 <div className="flex justify-between items-center text-sm mb-4">
                   <span className="text-gray-500">Total yang dibayar</span>
                   <span className="font-bold text-gray-900">{formatRupiah(qrisAmount)}</span>
                 </div>
 
-                {settings.qrisPaymentNotice && (
-                  <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-left text-xs text-amber-800 mb-4">
-                    <BellRing className="w-4 h-4 inline mr-1.5 text-amber-600" />
-                    {settings.qrisPaymentNotice}
-                  </div>
-                )}
-
-                <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 text-left mb-4">
-                  <h3 className="text-xs font-semibold text-blue-800 mb-2">Cara Pembayaran</h3>
-                  <ol className="text-xs text-blue-900 space-y-1 list-decimal list-inside">
-                    {(settings.qrisInstructions || "").split("\n").filter(Boolean).map((line, i) => (
-                      <li key={i}>{line}</li>
-                    ))}
-                  </ol>
-                </div>
-
                 <button
-                  onClick={() => { setPaymentConfirmed(false); setQrisStep("confirm"); }}
+                  onClick={() => setQrisStep("proof")}
                   className="w-full flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 shadow-md"
                 >
                   <CheckCircle className="w-4 h-4" />
@@ -749,54 +877,6 @@ function BeliForm() {
                   <span className="text-gray-300">·</span>
                   <button onClick={() => router.push("/")} className="inline-flex items-center gap-1.5 font-semibold text-gray-500 hover:text-gray-700 underline underline-offset-2">
                     <Home className="w-3.5 h-3.5" /> Kembali ke Beranda
-                  </button>
-                </div>
-              </>
-            )}
-
-            {qrisStep === "confirm" && (
-              <>
-                <CheckCircle className="w-10 h-10 text-emerald-600 mx-auto mb-3" />
-                <h2 className="text-lg font-bold text-gray-900 mb-1">Konfirmasi Jumlah Pembayaran</h2>
-                <p className="text-sm text-gray-500 mb-4">
-                  Sebelum melanjutkan, pastikan Anda telah membaca dan mengikuti aturan pembayaran berikut.
-                </p>
-
-                <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-left text-xs text-amber-800 mb-4">
-                  <BellRing className="w-4 h-4 inline mr-1.5 text-amber-600" />
-                  {settings.qrisPaymentNotice || "Harap isi jumlah pembayaran yang sesuai."}
-                </div>
-
-                <label className="flex items-start gap-3 p-4 rounded-xl bg-gray-50 border border-gray-200 cursor-pointer text-left mb-4">
-                  <input
-                    type="checkbox"
-                    className="mt-0.5 accent-emerald-600 w-4 h-4 rounded"
-                    checked={paymentConfirmed}
-                    onChange={(e) => setPaymentConfirmed(e.target.checked)}
-                  />
-                  <div className="text-sm text-gray-700">
-                    Saya memastikan jumlah pembayaran <strong>sudah sesuai</strong> dengan nominal yang diminta.
-                    Bila belum sesuai, saya siap mengikuti aturan yang berlaku (dana dikembalikan ke rekening pengirim
-                    sesuai jumlah yang ditransfer, potongan transfer bank ditanggung pelanggan).
-                  </div>
-                </label>
-
-                <button
-                  onClick={() => setQrisStep("proof")}
-                  disabled={!paymentConfirmed}
-                  className="w-full flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
-                >
-                  <ArrowRight className="w-4 h-4" />
-                  Lanjut ke Upload Bukti
-                </button>
-
-                <div className="mt-3 flex items-center justify-center gap-2 text-xs">
-                  <button onClick={() => setQrisStep("pay")} className="inline-flex items-center gap-1.5 font-semibold text-gray-500 hover:text-gray-700 underline underline-offset-2">
-                    <ArrowRight className="w-3.5 h-3.5 rotate-180" /> Kembali
-                  </button>
-                  <span className="text-gray-300">·</span>
-                  <button onClick={handleBatal} className="inline-flex items-center gap-1.5 font-semibold text-gray-500 hover:text-gray-700 underline underline-offset-2">
-                    <X className="w-3.5 h-3.5" /> Batal
                   </button>
                 </div>
               </>

@@ -82,16 +82,18 @@ export async function POST(req: NextRequest) {
     });
     if (insertError) throw insertError;
 
-    void notifyNewOrder({
-      full_name: fullNameStr,
-      whatsapp: whatsappStr,
-      email: emailStr,
-      tier_label: tierLabel,
-      amount: totalAmount,
-      midtrans_order_id: orderId,
-      paid_at: isInstant ? now : null,
-      pending: !isInstant,
-    });
+    if (isInstant) {
+      void notifyNewOrder({
+        full_name: fullNameStr,
+        whatsapp: whatsappStr,
+        email: emailStr,
+        tier_label: tierLabel,
+        amount: totalAmount,
+        midtrans_order_id: orderId,
+        paid_at: now,
+        pending: false,
+      });
+    }
 
     let emailSent = false;
     if (isInstant) {

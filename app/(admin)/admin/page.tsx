@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { LogOut, ShoppingBag, Gift, Users, DollarSign, ExternalLink, Save, Download, FileText, Settings, Power, Search, Calendar, Filter, X, QrCode, Upload, RotateCcw, AlertTriangle, Paperclip } from "lucide-react";
+import { LogOut, ShoppingBag, Gift, Users, DollarSign, ExternalLink, Save, Download, FileText, Settings, Power, Search, Calendar, Filter, X, QrCode, Upload, RotateCcw, AlertTriangle, Paperclip, BellRing, Copy } from "lucide-react";
 import { useMemo } from "react";
 import { parseJsonSafe, isHeicFile, HEIC_ERROR } from "@/lib/fetchJson";
+import { waLink } from "@/lib/whatsapp";
 
 type Order = {
   id: string;
@@ -198,18 +199,21 @@ type FilterState = {
   fromDate: string;
   toDate: string;
   tier: string;
+  status: string;
 };
 
 function FilterBar({
   state,
   onState,
   tierOptions,
+  statusOptions,
   placeholder,
   accent,
 }: {
   state: FilterState;
   onState: (s: FilterState) => void;
   tierOptions: string[];
+  statusOptions?: string[];
   placeholder: string;
   accent: "emerald" | "violet";
 }) {
@@ -228,7 +232,7 @@ function FilterBar({
   }
 
   function hasAnyFilter() {
-    return state.query.trim() !== "" || state.fromDate !== "" || state.toDate !== "" || state.tier !== "";
+    return state.query.trim() !== "" || state.fromDate !== "" || state.toDate !== "" || state.tier !== "" || state.status !== "";
   }
 
   return (
@@ -301,10 +305,23 @@ function FilterBar({
           ))}
         </select>
 
+        {statusOptions && (
+          <select
+            className={cn("rounded-lg border border-gray-200 px-2.5 py-2 text-sm bg-white focus:outline-none", focus)}
+            value={state.status}
+            onChange={(e) => onState({ ...state, status: e.target.value })}
+          >
+            <option value="">Semua Status</option>
+            {statusOptions.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        )}
+
         {hasAnyFilter() && (
           <button
             type="button"
-            onClick={() => onState({ query: "", fromDate: "", toDate: "", tier: "" })}
+            onClick={() => onState({ query: "", fromDate: "", toDate: "", tier: "", status: "" })}
             className="inline-flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-100 transition-colors duration-200"
           >
             <X className="w-3.5 h-3.5" /> Reset
@@ -323,7 +340,8 @@ function OrdersTab() {
   const [saving, setSaving] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<FilterState>({ query: "", fromDate: "", toDate: "", tier: "" });
+  const [paidReminder, setPaidReminder] = useState<{ name: string; whatsapp: string; email: string; paket: string; nominal: number } | null>(null);
+  const [filter, setFilter] = useState<FilterState>({ query: "", fromDate: "", toDate: "", tier: "", status: "" });
 
   async function load() {
     setLoading(true);
@@ -363,6 +381,7 @@ function OrdersTab() {
     setSaving(o.id);
     setError(null);
     const d = draftFor(o);
+    const wasPaid = o.status === "paid";
     try {
       const res = await fetch("/api/admin/orders", {
         method: "PATCH",
@@ -387,6 +406,9 @@ function OrdersTab() {
       await load();
       setSavedId(o.id);
       setTimeout(() => setSavedId(null), 2500);
+      if (d.status === "paid" && !wasPaid) {
+        setPaidReminder({ name: o.full_name, whatsapp: o.whatsapp, email: o.email || "", paket: o.tier_label, nominal: o.amount });
+      }
     } catch (err: any) {
       setError(err.message || "Gagal menyimpan.");
     } finally {
@@ -406,6 +428,7 @@ function OrdersTab() {
     const to = filter.toDate ? new Date(filter.toDate + "T23:59:59.999").getTime() : null;
     return orders.filter((o) => {
       if (filter.tier && o.tier_label !== filter.tier) return false;
+      if (filter.status && o.status !== filter.status) return false;
       if (q && !`${o.full_name} ${o.whatsapp} ${o.email || ""} ${o.midtrans_order_id} ${o.cashback_code || ""}`.toLowerCase().includes(q)) return false;
       if (from || to) {
         const t = new Date(o.created_at).getTime();
@@ -438,9 +461,52 @@ function OrdersTab() {
         state={filter}
         onState={setFilter}
         tierOptions={tierOptions}
+        statusOptions={ORDER_STATUSES}
         placeholder="Cari nama / WA / email / ID…"
         accent="emerald"
       />
+
+      {paidReminder && (() => {
+        const tpl = `Halo ${paidReminder.name}, terima kasih \u{1F64F} atas pembelian paket ${paidReminder.paket} di **MineClip Studio**! Pembayaran senilai Rp ${paidReminder.nominal.toLocaleString("id-ID")} sudah kami terima & di-verified \u2705.\n\nSupaya aplikasi bisa aktif, kami butuh **Machine ID** kamu: buka aplikasi YouTube Clipper (installer & link unduhan sudah kami kirim ke email ${paidReminder.email}), di halaman aktivasi copy angka 12 digit (contoh: BCBA523AF764) lalu kirim di chat ini.\n\nSetelah Machine ID kami terima, **key aktivasi** langsung kami kirim di chat ini maksimal 1x24 jam.`;
+        return (
+          <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 mb-4">
+            <div className="flex items-start gap-3">
+              <BellRing className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-semibold text-blue-800 mb-1">Order berubah menjadi PAID — hubungi pelanggan sekarang</h3>
+                <p className="text-xs text-blue-700 mb-2">
+                  Status untuk <strong>{paidReminder.name}</strong> (paket {paidReminder.paket}) sudah di-<em>paid</em>. Kirim pesan ini via WhatsApp lalu minta <strong>Machine ID</strong> (12 digit) untuk generate key.
+                </p>
+                <p className="text-[11px] text-blue-600 bg-white/60 border border-blue-100 rounded-lg p-2 whitespace-pre-line mb-3">{tpl}</p>
+                <div className="flex flex-wrap gap-2">
+                  <a
+                    href={`${waLink(paidReminder.whatsapp)}?text=${encodeURIComponent(tpl)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded-lg transition-colors duration-200"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" /> Buka WhatsApp
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => navigator.clipboard?.writeText(tpl)}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 bg-white border border-blue-200 hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors duration-200"
+                  >
+                    <Copy className="w-3.5 h-3.5" /> Salin pesan
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaidReminder(null)}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-gray-700 px-3 py-2 rounded-lg transition-colors duration-200"
+                  >
+                    <X className="w-3.5 h-3.5" /> Tutup
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {error && (
         <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-sm text-red-700">
@@ -528,13 +594,15 @@ function OrdersTab() {
                 </div>
               </div>
 
-              <div className={cn("p-3 rounded-xl border", d.status === "cancelled" || d.status === "failed" ? "bg-red-50/60 border-red-100" : "bg-gray-50 border-gray-100")}>
+              {(() => { const rejectActive = d.status === "cancelled" || d.status === "failed"; return (
+              <div className={cn("p-3 rounded-xl border", rejectActive ? "bg-red-50/60 border-red-100" : "bg-gray-50 border-gray-100")}>
                 <div className="grid sm:grid-cols-3 gap-3 mb-3">
                   <div>
                     <label className="text-xs font-medium text-gray-500 block mb-1">Tipe Penolakan</label>
                     <select
-                      className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-300"
+                      className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
                       value={d.rejection_type || "other"}
+                      disabled={!rejectActive}
                       onChange={(e) => setDraft(o.id, { rejection_type: e.target.value })}
                     >
                       <option value="other">Lainnya (standar)</option>
@@ -544,8 +612,9 @@ function OrdersTab() {
                   <div>
                     <label className="text-xs font-medium text-gray-500 block mb-1">Dibayar Pelanggan (Rp)</label>
                     <input
-                      className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-300 placeholder:text-gray-300"
+                      className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-300 placeholder:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
                       value={d.amount_paid_by_customer}
+                      disabled={!rejectActive}
                       onChange={(e) => setDraft(o.id, { amount_paid_by_customer: e.target.value })}
                       placeholder="mis. 50000"
                       inputMode="numeric"
@@ -554,8 +623,9 @@ function OrdersTab() {
                   <div>
                     <label className="text-xs font-medium text-gray-500 block mb-1">Sisa Kekurangan (Rp)</label>
                     <input
-                      className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-300 placeholder:text-gray-300"
+                      className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-300 placeholder:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
                       value={d.amount_remaining}
+                      disabled={!rejectActive}
                       onChange={(e) => setDraft(o.id, { amount_remaining: e.target.value })}
                       placeholder="mis. 10000"
                       inputMode="numeric"
@@ -567,17 +637,20 @@ function OrdersTab() {
                 </label>
                 <textarea
                   className={cn(
-                    "w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm focus:outline-none placeholder:text-gray-300 min-h-[60px] bg-white",
-                    d.status === "cancelled" || d.status === "failed"
+                    "w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm focus:outline-none placeholder:text-gray-300 min-h-[60px] bg-white disabled:opacity-50 disabled:cursor-not-allowed",
+                    rejectActive
                       ? "focus:ring-2 focus:ring-red-500/20 focus:border-red-300"
                       : "focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400"
                   )}
                   value={d.rejection_reason}
+                  disabled={!rejectActive}
                   onChange={(e) => setDraft(o.id, { rejection_reason: e.target.value })}
                   placeholder="Contoh: Jumlah pembayaran tidak sesuai. Pesanan tidak dapat diproses dan dana akan dikembalikan paling lambat 1x24 jam."
                 />
                 <p className="text-[11px] text-gray-400 mt-1">
-                  Simpan dengan status <strong>Cancelled</strong> atau <strong>Failed</strong> + alasan → email penolakan otomatis terkirim ke pelanggan (sekali saja).
+                  {rejectActive
+                    ? "Simpan → email penolakan otomatis terkirim ke pelanggan (sekali saja)."
+                    : "Field penolakan aktif hanya saat status <strong>Cancelled</strong> atau <strong>Failed</strong>."}
                   {d.rejection_type === "insufficient" ? (
                     <span className="text-blue-600 ml-1">
                       Tipe <strong>insufficient</strong> → pelanggan bisa memilih <em>Ajukan Refund</em> atau <em>Bayar Kekurangan</em> (pembayaran pelengkap) dari halaman status.
@@ -590,6 +663,7 @@ function OrdersTab() {
                   )}
                 </p>
               </div>
+              ); })()}
 
                 <div className="flex items-center justify-between pt-2 border-t border-gray-50">
                 <div className="flex items-center gap-2">
@@ -643,7 +717,7 @@ function ClaimsTab() {
   const [saving, setSaving] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<FilterState>({ query: "", fromDate: "", toDate: "", tier: "" });
+  const [filter, setFilter] = useState<FilterState>({ query: "", fromDate: "", toDate: "", tier: "", status: "" });
 
   async function load() {
     setLoading(true);

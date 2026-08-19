@@ -371,7 +371,7 @@ export async function sendEmailVerificationMail(data: { email: string; otp: stri
     <div class="body">
       <p>Gunakan kode di bawah untuk memverifikasi alamat email Anda saat pembelian:</p>
       <div class="code">${data.otp}</div>
-      <p class="muted">Kode berlaku selama <strong>10 menit</strong>. 3 kali kode salah akan mengunci permintaan selama 15 menit.</p>
+      <p class="muted">Kode berlaku selama <strong>5 menit</strong>. 3 kali kode salah akan mengunci permintaan selama 15 menit.</p>
       <div class="note">
         <strong>Email tidak muncul?</strong> Periksa juga folder <strong>Promosi / Sosial / Pembaruan</strong> atau
         <strong>Spam / Junk</strong> di penyedia email Anda (Gmail, Yahoo, Outlook, dll.).
@@ -387,7 +387,7 @@ export async function sendEmailVerificationMail(data: { email: string; otp: stri
 Gunakan kode berikut untuk memverifikasi alamat email Anda saat pembelian:
 KODE VERIFIKASI: ${data.otp}
 
-Kode berlaku selama 10 menit. 3 kali kode salah akan mengunci permintaan selama 15 menit.
+Kode berlaku selama 5 menit. 3 kali kode salah akan mengunci permintaan selama 15 menit.
 
 Email tidak muncul? Periksa juga folder Promosi/Sosial/Pembaruan atau Spam/Junk di penyedia email Anda.
 

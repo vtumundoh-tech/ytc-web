@@ -3,7 +3,6 @@ import { supabaseServer } from "@/lib/supabaseServer";
 import { checkRateLimit, rateLimitKey } from "@/lib/rateLimit";
 import { getRequestMeta } from "@/lib/requestMeta";
 import { generateDownloadToken } from "@/lib/cashCode";
-import { notifyNewOrder } from "@/lib/telegram";
 
 export const dynamic = "force-dynamic";
 
@@ -91,17 +90,6 @@ export async function POST(req: NextRequest) {
       .select("id")
       .single();
     if (insertError) throw insertError;
-
-    void notifyNewOrder({
-      full_name: parent.full_name,
-      whatsapp: parent.whatsapp,
-      email: parent.email,
-      tier_label: `${parent.tier_label} (Pelengkap)`,
-      amount: remaining,
-      midtrans_order_id: supplementId,
-      paid_at: null,
-      pending: true,
-    });
 
     return NextResponse.json({
       ok: true,

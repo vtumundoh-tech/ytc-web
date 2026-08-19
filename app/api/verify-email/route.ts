@@ -8,7 +8,7 @@ import { sendEmailVerificationMail } from "@/lib/mail";
 
 export const dynamic = "force-dynamic";
 
-const OTP_TTL_MS = 10 * 60 * 1000;
+const OTP_TTL_MS = 5 * 60 * 1000;
 const LOCK_MS = 15 * 60 * 1000;
 const MAX_ATTEMPTS = 3;
 const MAX_SENDS_PER_EMAIL = 3;
