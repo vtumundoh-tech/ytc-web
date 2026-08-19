@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { LogOut, ShoppingBag, Gift, Users, DollarSign, ExternalLink, Save, Download, FileText, Settings, Power, Search, Calendar, Filter, X, QrCode, Upload, RotateCcw, AlertTriangle, Paperclip } from "lucide-react";
 import { useMemo } from "react";
+import { parseJsonSafe, isHeicFile, HEIC_ERROR } from "@/lib/fetchJson";
 
 type Order = {
   id: string;
@@ -923,13 +924,14 @@ function RefundsTab() {
     setError(null);
     const file = files[item.id];
     try {
+      if (file && isHeicFile(file)) throw new Error(HEIC_ERROR);
       const fd = new FormData();
       fd.append("id", item.id);
       fd.append("admin_notes", notes[item.id] || "");
       if (file) fd.append("proofFile", file);
       const res = await fetch("/api/admin/refunds", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Gagal memproses refund.");
+      const data = await parseJsonSafe<{ error?: string }>(res);
+      if (!data.ok) throw new Error(data.error || "Gagal memproses refund.");
       setFiles((f) => ({ ...f, [item.id]: null }));
       setNotes((n) => { const next = { ...n }; delete next[item.id]; return next; });
       await load();
@@ -1089,12 +1091,13 @@ function SettingsTab() {
     setQrisUploading(true);
     setError("");
     try {
+      if (isHeicFile(file)) throw new Error(HEIC_ERROR);
       const fd = new FormData();
       fd.append("file", file);
       const res = await fetch("/api/admin/qris-image", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Gagal mengunggah.");
-      setForm((f) => (f ? { ...f, qris_image_url: data.publicUrl } : f));
+      const data = await parseJsonSafe<{ error?: string; publicUrl?: string }>(res);
+      if (!data.ok) throw new Error(data.error || "Gagal mengunggah.");
+      setForm((f) => (f ? { ...f, qris_image_url: data.data.publicUrl || "" } : f));
     } catch (err: any) {
       setError(err.message || "Gagal mengunggah gambar QRIS.");
     } finally {

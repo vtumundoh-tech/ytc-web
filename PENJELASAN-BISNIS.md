@@ -82,10 +82,14 @@ Alur pembelian (model sewa via website **live**):
 
 1. **Buka website** — kunjungi beranda resmi.
 2. **Pilih paket** — di halaman **Beli**, pilih durasi (1/7/17/30 hari) dan tentukan mau resolusi **720p** atau upgrade **1080p**.
-3. **Isi data diri** — masukkan nama, nomor WhatsApp, dan email (key akan dikirim ke sini). Masukkan juga **Machine ID** (12 huruf/angka) dari halaman aktivasi aplikasi Anda.
-4. **Checkout & bayar** — lanjut ke pembayaran sesuai metode yang tersedia (lihat [Pembayaran](#5-pembayaran)).
-5. **Terima key** — setelah pembayaran terverifikasi, **key aktivasi** dikirimkan via **email / WhatsApp**.
-6. **Aktivasi** — masukkan key di halaman aktivasi aplikasi (lihat [Instalasi & Aktivasi](#6-instalasi--aktivasi)).
+3. **Isi data diri** — masukkan nama, nomor WhatsApp, dan email. **Email wajib diverifikasi**: sistem mengirim **kode 6 digit (OTP)** ke email, masukkan kode tersebut sebelum melanjutkan (`📬` jika tidak muncul, cek folder **Promosi/Spam/Junk**). Kode berlaku 10 menit, maks 3x kirim &amp; 3x percobaan.
+4. **Setujui S&K** — baca dan centang Syarat & Ketentuan yang ditampilkan di halaman (skippable saat sudah terbaca).
+5. **Checkout & bayar** — pilih metode pembayaran; untuk QRIS, scan kode, lalu klik **"Saya sudah bayar"** dan unggah bukti.
+6. **Menunggu verifikasi admin** — jika nominal yang dibayar **kurang**, order ditolak sementara & pelanggan bisa melunasi bagian yang kurang (**pembayaran pelengkap**); jika relevan, pelanggan bisa mengajukan **refund**.
+7. **Terima key** — setelah pembayaran terverifikasi, **key aktivasi** dikirimkan via **email / WhatsApp** (email invoice berisi link unduhan otomatis).
+8. **Aktivasi** — masukkan key di halaman aktivasi aplikasi (lihat [Instalasi & Aktivasi](#6-instalasi--aktivasi)).
+
+> ℹ️ Setiap event penting (order baru, konfirmasi bayar, klaim cashback, permintaan refund) otomatis dinotifikasi ke **admin via Telegram**, disertai dashboard interaktif `/status` untuk memeriksa Pembelian / Klaim / Refund.
 
 Kategori harga tersedia quick link ke [Paket & Harga](#3-paket--harga).
 
@@ -95,16 +99,20 @@ Kategori harga tersedia quick link ke [Paket & Harga](#3-paket--harga).
 
 Metode pembayaran **saat ini di situs**:
 
-- **QRIS** (scan kode QR).
-- **Transfer bank** (nomor rekening akan ditampilkan saat checkout).
+- **QRIS** — scan kode QR di halaman pembayaran, lalu klik **"Saya sudah bayar"** dan unggah bukti tangkapan layar.
+- **Transfer bank** — nominal & rekening tujuan ditampilkan saat checkout; konfirmasi manual oleh Admin.
 
-> ℹ️ **Catatan:** Situs sedang menggabungkan integrasi pembayaran **Midtrans** untuk memudahkan pembayaran otomatis; sampai saat integrasi aktif, pembayaran dilakukan manual dan diverifikasi oleh Admin sebelum key dikirim.
+### Alur pembayaran QRIS manual (yang berjalan saat ini)
 
-### Alur pembayaran manual (versi lama, ala form pembayaran)
-1. Isi data diri & pilih paket.
-2. Setujui syarat & ketentuan (checkbox).
-3. Lakukan transfer/QRIS ke tujuan yang ditunjuk.
-4. Kirim bukti/tunggu konfirmasi, lalu key dikirim ke WA/email.
+1. Isi data diri, verifikasi email (OTP), pilih paket, setujui S&K.
+2. Modal pembayaran muncul: scan QRIS (GoPay) & ikuti instruksi, lalu klik **"Saya sudah bayar"**.
+3. Pelanggan mengunggah **bukti bayar** (opsional) → status order menjadi **"Menunggu Verifikasi"** & Admin dapat notifikasi WhatsApp/Telegram.
+4. Admin cek rekapan di panel /admin → jika sesuai, ubah status menjadi **Lunas** → email invoice + link unduhan otomatis terkirim ke email pelanggan.
+5. Jika nominal yang dibayar **kurang dari total**, order ditandai **ditukar karena pembayaran kurang** dan muncul opsi:
+   - **Bayar pelengkap** — pelanggan membayar sisa nominal (membuat order pelengkap yang terhubung ke order asal); ketika lunas, seluruhnya dianggap lunas.
+   - **Refund** — pelanggan mengajukan refund di halaman pelacakan; Admin menyetujui & mengunggah bukti transfer refund → email bukti otomatis terkirim.
+
+> ℹ️ **Catatan:** pembayaran diverifikasi manusia oleh Admin (BLM otomatis sampai integrasi Midtrans diaktifkan). Harap cek status di halaman "Lacak/status pesanan" karena email bisa masuk folder **Promosi/Spam**.
 
 ---
 

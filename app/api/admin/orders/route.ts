@@ -80,15 +80,36 @@ export async function PATCH(req: NextRequest) {
   let emailSent: boolean | null = null;
   let emailKind: "invoice" | "rejected" | null = null;
   let parentApproved = false;
+  let transitionClaimed = false;
 
   if (normalizedStatus === "paid" && order.status !== "paid") {
-    let downloadToken = order.download_token;
-    if (!downloadToken) {
-      downloadToken = generateDownloadToken();
-      update.download_token = downloadToken;
-      update.download_expires_at = new Date(Date.now() + DOWNLOAD_TOKEN_TTL_MS).toISOString();
+    const now = new Date();
+    let downloadToken = order.download_token || generateDownloadToken();
+
+    const { data: claimed, error: claimErr } = await supabase
+      .from("orders")
+      .update({
+        status: "paid",
+        paid_at: now.toISOString(),
+        download_token: downloadToken,
+        download_expires_at: new Date(now.getTime() + DOWNLOAD_TOKEN_TTL_MS).toISOString(),
+      })
+      .eq("id", id)
+      .eq("status", order.status)
+      .select("id");
+    if (claimErr) {
+      return NextResponse.json({ error: "Gagal menyimpan." }, { status: 500 });
     }
-    update.paid_at = new Date().toISOString();
+    if (!(claimed && claimed.length > 0)) {
+      await writeAudit(supabase, {
+        action: "order_status_concurrent_skipped",
+        target_type: "order",
+        target_id: order.id,
+        detail: `transisi ke paid dilewati (sudah diproses/double-click)`,
+      });
+      return NextResponse.json({ ok: true, skipped: true });
+    }
+    transitionClaimed = true;
 
     if (order.supplement_for) {
       const parentId = order.supplement_for;
@@ -98,32 +119,30 @@ export async function PATCH(req: NextRequest) {
         .eq("id", parentId)
         .maybeSingle();
       if (parent && parent.status !== "paid") {
-        let parentToken = parent.download_token;
-        const payload: Record<string, unknown> = {
-          status: "paid",
-          paid_at: new Date().toISOString(),
-          email_status: "sent",
-        };
-        if (!parentToken) {
-          parentToken = generateDownloadToken();
-          payload.download_token = parentToken;
-        }
-        payload.download_expires_at = new Date(Date.now() + DOWNLOAD_TOKEN_TTL_MS).toISOString();
-        const sent = await sendInvoiceEmail({
-          full_name: parent.full_name,
-          email: parent.email,
-          tier_label: parent.tier_label,
-          amount: parent.amount,
-          midtrans_order_id: parent.midtrans_order_id,
-          paid_at: new Date().toISOString(),
-          downloadToken: parentToken,
-          cashbackCode: parent.cashback_code,
-        });
-        payload.email_status = sent ? "sent" : "failed";
-        const { error: parentErr } = await supabase.from("orders").update(payload).eq("id", parentId);
-        if (parentErr) {
-          console.error("auto-approve parent error:", parentErr);
-        } else {
+        const parentToken = parent.download_token || generateDownloadToken();
+        const { data: parentClaimed } = await supabase
+          .from("orders")
+          .update({
+            status: "paid",
+            paid_at: now.toISOString(),
+            download_token: parentToken,
+            download_expires_at: new Date(now.getTime() + DOWNLOAD_TOKEN_TTL_MS).toISOString(),
+          })
+          .eq("id", parentId)
+          .eq("status", parent.status)
+          .select("id");
+        if (parentClaimed && parentClaimed.length > 0) {
+          const sent = await sendInvoiceEmail({
+            full_name: parent.full_name,
+            email: parent.email,
+            tier_label: parent.tier_label,
+            amount: parent.amount,
+            midtrans_order_id: parent.midtrans_order_id,
+            paid_at: now.toISOString(),
+            downloadToken: parentToken,
+            cashbackCode: parent.cashback_code,
+          });
+          await supabase.from("orders").update({ email_status: sent ? "sent" : "failed" }).eq("id", parentId);
           parentApproved = true;
         }
       }
@@ -135,12 +154,12 @@ export async function PATCH(req: NextRequest) {
       tier_label: order.tier_label,
       amount: order.amount,
       midtrans_order_id: order.midtrans_order_id,
-      paid_at: new Date().toISOString(),
+      paid_at: now.toISOString(),
       downloadToken,
       cashbackCode: order.supplement_for ? null : order.cashback_code,
     });
     emailKind = "invoice";
-    update.email_status = emailSent ? "sent" : "failed";
+    await supabase.from("orders").update({ email_status: emailSent ? "sent" : "failed" }).eq("id", id);
   } else if (
     REJECTED_STATUSES.includes(normalizedStatus) &&
     order.status !== normalizedStatus &&
@@ -149,6 +168,19 @@ export async function PATCH(req: NextRequest) {
     !order.rejection_email_sent_at
   ) {
     const isInsufficient = rejection_type === "insufficient";
+
+    const { data: claimed, error: claimErr } = await supabase
+      .from("orders")
+      .update({ status: normalizedStatus })
+      .eq("id", id)
+      .eq("status", order.status)
+      .select("id");
+    if (claimErr) return NextResponse.json({ error: "Gagal menyimpan." }, { status: 500 });
+    if (!(claimed && claimed.length > 0)) {
+      return NextResponse.json({ ok: true, skipped: true });
+    }
+    transitionClaimed = true;
+
     emailSent = await sendOrderRejectedEmail({
       full_name: order.full_name,
       email: order.email,
@@ -162,10 +194,16 @@ export async function PATCH(req: NextRequest) {
         : null,
     });
     emailKind = "rejected";
-    if (emailSent) update.rejection_email_sent_at = new Date().toISOString();
+    if (emailSent) {
+      await supabase.from("orders").update({ rejection_email_sent_at: new Date().toISOString() }).eq("id", id);
+    }
   }
 
-  const { error: updateError } = await supabase.from("orders").update(update).eq("id", id);
+  let updateError: any = null;
+  if (!transitionClaimed) {
+    const { error } = await supabase.from("orders").update(update).eq("id", id);
+    updateError = error;
+  }
   if (updateError) return NextResponse.json({ error: "Gagal menyimpan." }, { status: 500 });
 
   const emailDetail =

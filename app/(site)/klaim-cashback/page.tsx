@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { formatRupiah } from "@/lib/tiers";
+import { parseJsonSafe, isHeicFile, HEIC_ERROR } from "@/lib/fetchJson";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { Gift, User, Phone, Mail, Hash, Tag, Image, FileText, CheckCircle, AlertTriangle, ExternalLink, Search, X } from "lucide-react";
 
@@ -54,14 +55,14 @@ export default function KlaimCashbackPage() {
     setCheckState("idle");
     try {
       const res = await fetch(`/api/cashback/check?q=${encodeURIComponent(cashbackCode.trim())}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Gagal memeriksa data.");
-      if (!data.found) {
+      const data = await parseJsonSafe<{ found?: boolean; data?: any }>(res);
+      if (!data.ok) throw new Error(data.error || "Gagal memeriksa data.");
+      if (!data.data.found) {
         setCheckState("notfound");
         setUnlocked(false);
         return;
       }
-      const d = data.data;
+      const d = data.data.data;
       setFullName(d.full_name || "");
       setWhatsapp(d.whatsapp || "");
       setEmail(d.email || "");
@@ -80,6 +81,11 @@ export default function KlaimCashbackPage() {
     e.preventDefault();
     setError("");
     if (!requiredFilled) return;
+    const allFiles = [...fPayment, ...fFollow, ...fLike, ...fShare];
+    if (allFiles.some(isHeicFile)) {
+      setError(HEIC_ERROR);
+      return;
+    }
     setLoading(true);
     try {
       const fd = new FormData();
@@ -97,8 +103,8 @@ export default function KlaimCashbackPage() {
       fShare.forEach((f) => fd.append("screenshotShare", f));
 
       const res = await fetch("/api/cashback", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Gagal mengirim klaim");
+      const data = await parseJsonSafe<{ error?: string }>(res);
+      if (!data.ok) throw new Error(data.error || "Gagal mengirim klaim");
       setDone(true);
     } catch (err: any) {
       setError(err.message || "Terjadi kesalahan, coba lagi.");
@@ -119,6 +125,9 @@ export default function KlaimCashbackPage() {
           <h1 className="text-xl font-bold text-gray-900 mb-3">Klaim terkirim!</h1>
           <p className="text-gray-500 text-sm leading-relaxed">
             Admin akan memverifikasi bukti Anda maksimal 1x24 jam. Cashback akan ditransfer ke nomor WhatsApp yang Anda daftarkan.
+          </p>
+          <p className="text-gray-400 text-xs leading-relaxed mt-3">
+            📬 Email konfirmasi mungkin masuk ke folder <strong>Promosi / Spam / Junk</strong> — periksa juga folder-folder tersebut jika email belum muncul.
           </p>
         </div>
       </div>

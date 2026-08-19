@@ -6,7 +6,12 @@ import { motion } from "framer-motion";
 import { formatPrice, formatRupiah } from "@/lib/tiers";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { validateFileSignature, validateFileSize, isAllowedMimeType } from "@/lib/fileValidation";
-import { CreditCard, User, Phone, Mail, CheckCircle, ArrowRight, ExternalLink, Gift, TrendingUp, Download, Loader2, QrCode, Home, BellRing, Upload, FileImage, X } from "lucide-react";
+import { parseJsonSafe, isHeicFile, HEIC_ERROR } from "@/lib/fetchJson";
+import { CreditCard, User, Phone, Mail, CheckCircle, ArrowRight, ExternalLink, Gift, TrendingUp, Download, Loader2, QrCode, Home, BellRing, Upload, FileImage, X, AlertTriangle } from "lucide-react";
+
+function cn(...classes: (string | false | undefined | null)[]) {
+  return classes.filter(Boolean).join(" ");
+}
 
 function BeliForm() {
   const router = useRouter();
@@ -21,6 +26,11 @@ function BeliForm() {
   const [fullName, setFullName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [email, setEmail] = useState("");
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [verifyScreen, setVerifyScreen] = useState<"idle" | "otp">("idle");
+  const [otpCode, setOtpCode] = useState("");
+  const [verifyError, setVerifyError] = useState("");
+  const [verifying, setVerifying] = useState(false);
   const [tier, setTier] = useState(preselected);
   const [addon1080, setAddon1080] = useState(preselectedAddon);
   const [agree, setAgree] = useState(false);
@@ -179,6 +189,10 @@ function BeliForm() {
       setProofError("Pilih dulu screenshot bukti bayar Anda.");
       return;
     }
+    if (isHeicFile(proofFile)) {
+      setProofError(HEIC_ERROR);
+      return;
+    }
     if (!isAllowedMimeType(proofFile.type)) {
       setProofError("Format file harus JPEG/PNG/WebP.");
       return;
@@ -201,8 +215,8 @@ function BeliForm() {
         method: "POST",
         body: fd,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Gagal mengirim bukti bayar.");
+      const data = await parseJsonSafe<{ error?: string }>(res);
+      if (!data.ok) throw new Error(data.error || "Gagal mengirim bukti bayar.");
       setQrisStep("thanks");
     } catch (err: any) {
       setProofError(err.message || "Gagal mengirim bukti bayar. Coba lagi.");
@@ -250,12 +264,65 @@ function BeliForm() {
     }
   }
 
+  async function handleSendVerifyCode() {
+    setVerifyError("");
+    if (!emailValid) {
+      setVerifyError("Alamat email tidak valid, cek kembali.");
+      return;
+    }
+    setVerifying(true);
+    try {
+      const res = await fetch("/api/verify-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "send", email: email.trim() }),
+      });
+      const data = await parseJsonSafe<{ error?: string; lockedMinutes?: number }>(res);
+      if (!data.ok) throw new Error(data.error || "Gagal mengirim kode.");
+      setVerifyScreen("otp");
+      setOtpCode("");
+    } catch (err: any) {
+      setVerifyError(err.message || "Gagal mengirim kode verifikasi.");
+    } finally {
+      setVerifying(false);
+    }
+  }
+
+  async function handleVerifyCode() {
+    setVerifyError("");
+    if (!/^\d{6}$/.test(otpCode.trim())) {
+      setVerifyError("Masukkan 6 digit kode yang dikirim ke email.");
+      return;
+    }
+    setVerifying(true);
+    try {
+      const res = await fetch("/api/verify-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "verify", email: email.trim(), otp: otpCode.trim() }),
+      });
+      const data = await parseJsonSafe<{ error?: string; remaining?: number; lockedMinutes?: number }>(res);
+      if (!data.ok) throw new Error(data.error || "Verifikasi gagal.");
+      setEmailVerified(true);
+      setOtpCode("");
+    } catch (err: any) {
+      setVerifyError(err.message || "Verifikasi gagal, coba lagi.");
+    } finally {
+      setVerifying(false);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     if (!fullName || !whatsapp || !email || !tier || !agree) return;
     if (!/^\d{8,15}$/.test(whatsapp.trim())) {
-      setError("Nomor WhatsApp harus digit angka 8–15 (mis. 8123456789).");
+      setError("Nomor WhatsApp belum lengkap — isi minimal 8 digit angka (tanpa +62/0 di depan).");
+      setLoading(false);
+      return;
+    }
+    if (!emailVerified) {
+      setError("Verifikasi email dulu: masukkan email, klik \"Kirim Kode Verifikasi\", lalu masukkan kode 6 digit yang dikirim.");
       setLoading(false);
       return;
     }
@@ -297,7 +364,11 @@ function BeliForm() {
   const addonPrice = tier ? settings.addonPrices[tier] || 0 : 0;
   const basePrice = selected ? (promoEnabled ? selected.amount : selected.originalAmount) : 0;
   const totalPrice = tier ? basePrice + (addon1080 ? addonPrice : 0) : 0;
-  const canSubmit = fullName && whatsapp && email && tier && agree && !loading && /^\d{8,15}$/.test(whatsapp.trim());
+  const waValue = whatsapp.trim();
+  const waValid = /^\d{8,15}$/.test(waValue);
+  const waInvalid = waValue !== "" && !waValid;
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const canSubmit = fullName && waValid && email && emailVerified && tier && agree && !loading;
   const isCashbackEligible = cashback > 0;
 
   return (
@@ -345,14 +416,22 @@ function BeliForm() {
               Nomor WhatsApp <span className="text-red-400">*</span>
             </label>
             <input
-              className="input-field"
+              className={cn(
+                "input-field",
+                waInvalid ? "border-red-400 focus:ring-red-300 focus:border-red-400" : ""
+              )}
               type="tel"
               placeholder="Contoh: 08123456789"
               value={whatsapp}
               onChange={(e) => setWhatsapp(e.target.value)}
               required
-              pattern="\d{8,15}"
             />
+            {waInvalid && (
+              <p className="text-xs font-medium text-red-600 mt-1.5 flex items-start gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                Nomor WhatsApp belum lengkap — isi minimal 8 digit angka (tanpa tanda +62/0 di depan, contoh: 8123456789).
+              </p>
+            )}
             <p className="field-hint">Kami akan menghubungi Anda melalui nomor ini untuk konfirmasi dan informasi lebih lanjut  .</p>
             <p className="field-hint">Harap gunakan nomor yang sama jika anda ingin mengklaim cashback</p>
           </div>
@@ -367,10 +446,79 @@ function BeliForm() {
               type="email"
               placeholder="contoh@email.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setEmailVerified(false);
+                setVerifyScreen((s) => (emailVerified || s === "otp" ? "idle" : s));
+                setOtpCode("");
+                setVerifyError("");
+              }}
               required
             />
-            <p className="field-hint">Untuk pengiriman invoice & konfirmasi</p>
+            <p className="field-hint">Untuk pengiriman invoice & konfirmasi — wajib diverifikasi via kode yang dikirim ke email.</p>
+
+            {emailVerified ? (
+              <div className="mt-2 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
+                <span>Email <strong>{email}</strong> terverifikasi. Verifikasi email berlaku selama halaman ini terbuka; jika email diganti, verifikasi ulang.</span>
+              </div>
+            ) : verifyScreen === "otp" ? (
+              <div className="mt-2 p-3 rounded-xl bg-blue-50 border border-blue-200">
+                <p className="text-xs text-blue-800 mb-2">
+                  Kode verifikasi 6 digit dikirim ke <strong>{email}</strong>. 📬 Kalau tidak muncul, cek juga folder <strong>Promosi / Spam / Junk</strong>.
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    className="flex-1 min-w-0 rounded-lg border border-gray-200 px-3 py-2 text-sm tracking-widest font-mono text-center focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400"
+                    placeholder="••••••"
+                    maxLength={6}
+                    inputMode="numeric"
+                    value={otpCode}
+                    onChange={(e) => { setOtpCode(e.target.value.replace(/\D/g, "")); setVerifyError(""); }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleVerifyCode}
+                    disabled={verifying}
+                    className="shrink-0 inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg font-semibold text-xs text-white bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 disabled:opacity-50"
+                  >
+                    {verifying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                    Verifikasi
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSendVerifyCode}
+                  disabled={verifying}
+                  className="mt-2 text-[11px] font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-900"
+                >
+                  Kirim ulang kode
+                </button>
+                {verifyError && (
+                  <p className="text-xs font-medium text-red-700 mt-2 flex items-start gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" /> {verifyError}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="mt-2">
+                <button
+                  type="button"
+                  onClick={handleSendVerifyCode}
+                  disabled={verifying || !emailValid}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
+                >
+                  {verifying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
+                  {verifying ? "Mengirim kode…" : "Kirim Kode Verifikasi"}
+                </button>
+                <p className="text-[11px] text-gray-400 mt-1">Kode berlaku 10 menit. Maks 3x kirim &amp; 3x percobaan; jika lewat, tunggu 15 menit.</p>
+                {verifyError && (
+                  <p className="text-xs font-medium text-red-600 mt-1.5 flex items-start gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" /> {verifyError}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -461,6 +609,25 @@ function BeliForm() {
         <hr className="border-gray-100" />
 
         <div>
+          <div className="p-4 rounded-xl bg-amber-50/70 border border-amber-200 mb-3">
+            <p className="text-sm font-semibold text-amber-900 mb-2">
+              ⚠️ Baca sebelum melanjutkan — penting:
+            </p>
+            <ul className="text-xs text-amber-800 list-disc list-inside space-y-1">
+              <li>Pastikan jumlah QRIS yang Anda bayar <strong>sesuai nominal</strong>. Jika kurang, pesanan ditolak dan Anda harus memilih <strong>refund</strong> (dana kembali ≤1×24 jam, potongan transfer bank ditanggung pelanggan) atau <strong>bayar kekurangan</strong> (klausul 4.4).</li>
+              <li>Yang sudah <strong>disetujui / Lunas tidak dapat di-refund</strong> (klausul 5.5).</li>
+              <li>Key &amp; unduhan dikirim ke <strong>email</strong> — cek juga folder Promosi / Spam / Junk.</li>
+              <li>Nomor WhatsApp wajib lengkap (minimal 8 digit angka) untuk konfirmasi &amp; cashback.</li>
+            </ul>
+            <a
+              href="/syarat-ketentuan"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-block mt-2 text-xs font-semibold text-amber-700 underline underline-offset-2 hover:text-amber-900"
+            >
+              Baca Syarat &amp; Ketentuan lengkap →
+            </a>
+          </div>
           <label className="flex items-start gap-3 p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-50/30 border border-emerald-100 cursor-pointer">
             <input
               type="checkbox"
@@ -470,7 +637,7 @@ function BeliForm() {
             />
             <div>
               <div className="text-sm font-semibold text-emerald-900">
-                Saya setuju dengan{" "}
+                Saya telah <u>membaca</u> dan menyetujui{" "}
                 <a
                   href="/syarat-ketentuan"
                   target="_blank"
@@ -479,7 +646,8 @@ function BeliForm() {
                 >
                   Syarat & Ketentuan
                   <ExternalLink className="w-3 h-3 inline ml-0.5" />
-                </a>
+                </a>{" "}
+                terlebih dahulu.
               </div>
             </div>
           </label>
@@ -523,10 +691,11 @@ function BeliForm() {
           Pembayaran Anda diproses dengan aman.
         </p>
       </motion.form>
+{qrisModal && (
 
-      {qrisModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 no-print">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl text-center animate-scale-in">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 no-print">
+          <div className="min-h-full flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl text-center animate-scale-in my-auto">
             {qrisStep === "pay" && (
               <>
                 <QrCode className="w-10 h-10 text-blue-600 mx-auto mb-3" />
@@ -712,6 +881,9 @@ function BeliForm() {
                   <p className="text-emerald-700">
                     Jika ada kendala, kami akan menghubungi Anda melalui email/WhatsApp yang terdaftar.
                   </p>
+                  <p className="text-emerald-700">
+                    📬 Email terkadang masuk ke folder <strong>Promosi / Spam / Junk</strong> — cek juga folder-folder tersebut di penyedia email Anda.
+                  </p>
                 </div>
 
                 <div className="p-3 rounded-xl bg-blue-50 border border-blue-100 text-xs text-blue-700 mb-4 flex items-start gap-2">
@@ -829,12 +1001,14 @@ function BeliForm() {
               </>
             )}
           </div>
+          </div>
         </div>
       )}
 
       {paidModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 no-print">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl text-center animate-scale-in">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 no-print">
+          <div className="min-h-full flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl text-center animate-scale-in my-auto">
             <div className="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="w-7 h-7 text-amber-600" />
             </div>
@@ -874,6 +1048,9 @@ function BeliForm() {
                     Harap unduh di <strong>Komputer</strong>, bukan di HP. Tautan juga dikirim ke email{" "}
                     <strong>{email}</strong> bila perlu mengunduh kembali dalam 24 jam.
                   </p>
+                  <p className="text-[11px] text-emerald-700 mt-1">
+                    📬 Email terkadang masuk folder <strong>Promosi / Spam / Junk</strong> — periksa juga folder-folder tersebut jika email belum masuk.
+                  </p>
                 </>
               )}
             </div>
@@ -902,6 +1079,7 @@ function BeliForm() {
               OK <ArrowRight className="w-4 h-4" />
             </button>
             <p className="text-xs text-gray-400 mt-3">Klik OK untuk kembali ke beranda.</p>
+          </div>
           </div>
         </div>
       )}

@@ -73,6 +73,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (err: any) {
+    if (err?.code === "23505") {
+      return NextResponse.json({ error: "Refund untuk pesanan ini sudah diajukan. Muat ulang halaman." }, { status: 409 });
+    }
     console.error("refund-request error:", err);
     return NextResponse.json({ error: "Gagal mengajukan refund. Coba lagi beberapa saat." }, { status: 500 });
   }

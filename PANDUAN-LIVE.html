@@ -379,7 +379,12 @@ cd ~/apps/ytc-web</code></pre>
         <li><code class="inline">2026_permanent_2paket.sql</code></li>
         <li><code class="inline">2026_cashback_schema_fix.sql</code></li>
         <li><code class="inline">2026_cashback_code_email.sql</code></li>
-        <li><code class="inline">2026_qris_static_payment.sql</code> <em>(yang terbaru)</em></li>
+        <li><code class="inline">2026_qris_static_payment.sql</code></li>
+        <li><code class="inline">2026_qris_reject_flow.sql</code></li>
+        <li><code class="inline">2026_qris_payment_proof.sql</code></li>
+        <li><code class="inline">2026_qris_refund_supplement.sql</code></li>
+        <li><code class="inline">2026_email_verification.sql</code></li>
+        <li><code class="inline">2026_hardening_concurrency.sql</code> <em>(yang terbaru)</em></li>
       </ul>
       <p>Selanjutnya di <strong>Dashboard → Storage</strong>: pilih bucket <code class="inline">cashback-proofs</code> → ubah menjadi <strong>Private</strong> (jangan Public).</p>
       <div class="callout info"><b>Kenapa?</b> Supabase adalah "database &amp; penyimpanan" Anda (di luar VPS, sudah gratis). Migration menambah fitur; bucket private melindungi bukti klaim pelanggan.</div>
@@ -476,6 +481,9 @@ pm2 startup</code></pre>
       <pre><span class="pre-label">Isi file</span><code>server {
     listen 80;
     server_name ytc-web.com www.ytc-web.com;
+
+    # Upload bukti bayar / bukti transfer refund (gambar) maksimal 10 MB
+    client_max_body_size 10m;
 
     location / {
         proxy_pass http://127.0.0.1:3000;
@@ -669,8 +677,10 @@ docker compose up -d --build</code></pre>
       <li>Semua migration SQL sudah dijalankan di Supabase + bucket <code class="inline">cashback-proofs</code> <strong>Private</strong>.</li>
       <li>Di <code class="inline">/admin</code> → Settings: promo diatur, harga sesuai, cashback sesuai.</li>
       <li>Pembayaran QRIS: upload gambar QRIS GoPay, aktifkan toggle, cek instruksi tampil benar.</li>
+      <li>Verifikasi email OTP di halaman beli: klik "Kirim Kode Verifikasi" → kode 6 digit terkirim (cek folder Promosi/Spam!) → verifikasi berhasil → baru bisa submit.</li>
+      <li>Alur kekurangan pembayaran &amp; refund diuji: rekayasa satu order yang "ditolak karena pembayaran kurang" → pelanggan bayar pelengkap → lunas; dan satu order "refund" → approve + upload bukti → email bukti terkirim.</li>
       <li>Alur beli diuji end-to-end sampai email invoice + link unduhan masuk (cek folder Spam!).</li>
-      <li>Telegram: notif order baru &amp; klaim cashback masuk ke chat Anda; bot menjawab <code class="inline">/help</code>.</li>
+      <li>Telegram: notif order baru, konfirmasi bayar, klaim cashback, &amp; permintaan refund masuk ke chat Anda; bot menjawab <code class="inline">/status</code> (dashboard interaktif: Pembelian / Klaim / Refund), <code class="inline">/help</code>.</li>
       <li>Admin login &amp; gate password diuji, cookie sesi aman (httpOnly).</li>
       <li><code class="inline">.env.local</code> tidak ikut ter-commit; izin file rahasia ketat (bab 10).</li>
     </ul>
@@ -704,6 +714,8 @@ docker compose up -d --build</code></pre>
       <tr><td><strong>Modal QRIS tidak muncul saat beli</strong></td><td>Toggle QRIS di /admin → Settings belum aktif, atau URL gambar QRIS kosong, atau migration <code class="inline">2026_qris_static_payment.sql</code> belum dijalankan.</td></tr>
       <tr><td><strong>Email invoice tidak terkirim</strong></td><td>Cek <code class="inline">SMTP_*</code> di <code class="inline">.env.local</code>, cek folder Spam pelanggan, dan lihat kolom "Status Email" order di /admin (Terkirim/Gagal).</td></tr>
       <tr><td><strong>Gambar bukti klaim tidak bisa dibuka admin</strong></td><td>Bucket <code class="inline">cashback-proofs</code> harus <strong>Private</strong>; signed URL dibuat otomatis oleh server (isi ulang halaman admin).</td></tr>
+      <tr><td><strong>Upload bukti gagal "413 Request Entity Too Large"</strong></td><td>Nginx default batas uploadnya 1 MB. Tambahkan <code class="inline">client_max_body_size 10m;</code> pada server block (bab 5.7) lalu <code class="inline">sudo systemctl reload nginx</code>.</td></tr>
+      <tr><td><strong>Kode verifikasi email tidak terkirim</strong></td><td>Cek <code class="inline">SMTP_*</code> di <code class="inline">.env.local</code> &amp; folder Promosi/Spam. Kode berlaku 10 menit; maks 3x kirim &amp; 3x percobaan — jika lewat, tunggu 15 menit untuk kirim ulang.</td></tr>
       <tr><td><strong>Tidak bisa SSH</strong></td><td>IP benar? Firewall/panel penyedia mengizinkan port 22? "Enable password auth" aktif?</td></tr>
     </table>
   </section>

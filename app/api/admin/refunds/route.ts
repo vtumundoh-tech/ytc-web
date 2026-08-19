@@ -90,11 +90,17 @@ export async function POST(req: NextRequest) {
     if (uploadError) throw uploadError;
 
     const now = new Date().toISOString();
-    const { error: updateError } = await supabase
+    const { data: claimed, error: updateError } = await supabase
       .from("refund_requests")
       .update({ status: "processed", refund_proof_key: path, admin_notes: adminNotes, processed_at: now })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("status", "pending")
+      .select("id");
     if (updateError) throw updateError;
+    if (!(claimed && claimed.length > 0)) {
+      await supabase.storage.from(BUCKET).remove([path]).catch(() => null);
+      return NextResponse.json({ error: "Permintaan ini sudah diproses (klik ganda)." }, { status: 409 });
+    }
 
     const emailSent = await sendRefundSentEmail({
       full_name: existing.full_name,

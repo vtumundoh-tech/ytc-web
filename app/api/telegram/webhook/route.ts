@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { handleTelegramCommand, sendTelegramMessage } from "@/lib/telegram";
+import {
+  handleTelegramCommand,
+  handleTelegramCallback,
+  buildDashboardReply,
+  isAdminChatId,
+  sendTelegramMessage,
+  editTelegramMessage,
+  answerCallbackQuery,
+  type TelegramReply,
+} from "@/lib/telegram";
 import { safeEqual } from "@/lib/security";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +28,24 @@ export async function POST(req: NextRequest) {
     }
 
     const update = await req.json();
+
+    const callback = update?.callback_query;
+    if (callback?.data && callback?.message?.chat) {
+      const chatId = callback.message.chat.id;
+      if (isAdminChatId(chatId)) {
+        const reply = await handleTelegramCallback(String(callback.data));
+        const messageId = callback.message.message_id;
+        if (reply === "menu") {
+          const dash = await buildDashboardReply();
+          await editTelegramMessage(String(chatId), messageId, dash.text, dash.replyMarkup);
+        } else if (reply) {
+          await editTelegramMessage(String(chatId), messageId, reply.text, reply.replyMarkup);
+        }
+      }
+      if (callback.id) await answerCallbackQuery(String(callback.id));
+      return NextResponse.json({ ok: true });
+    }
+
     const msg = update?.message || update?.edited_message;
     if (!msg?.text || !msg.chat) {
       return NextResponse.json({ ok: true });
@@ -27,9 +54,9 @@ export async function POST(req: NextRequest) {
     const chatId = msg.chat.id;
     const text = String(msg.text);
 
-    const reply = await handleTelegramCommand(text, chatId);
+    const reply: TelegramReply | null = await handleTelegramCommand(text, chatId);
     if (reply !== null) {
-      await sendTelegramMessage(reply);
+      await sendTelegramMessage(reply.text, reply.replyMarkup);
     }
 
     return NextResponse.json({ ok: true });

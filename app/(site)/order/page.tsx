@@ -154,8 +154,8 @@ function OrderContent() {
                 ""
               )}
             </p>
-            <p className="text-xs text-gray-400 mb-5">
-              Link unduhan & invoice dikirim ke email Anda. Bila belum ada, cek folder spam.
+<p className="text-xs text-gray-400 mb-5">
+              Link unduhan & invoice dikirim ke email Anda. 📬 Bila belum ada, cek juga folder Promosi / Spam / Junk di penyedia email Anda.
             </p>
             <button
               onClick={() => router.push("/")}
@@ -199,7 +199,7 @@ function OrderContent() {
               <BellRing className="w-4 h-4 inline mr-1.5 text-amber-600" />
               Dana yang telah Anda bayarkan akan dikembalikan ke rekening pengirim paling lambat{" "}
               <strong>1x24 jam</strong>, sesuai jumlah yang ditransfer (potongan transfer bank menjadi tanggungan
-              pelanggan). Detail juga dikirim ke email Anda.
+              pelanggan). Detail juga dikirim ke email Anda. 📬 Cek juga folder <strong>Promosi / Spam / Junk</strong>.
             </div>
             <button
               onClick={() => router.push("/")}

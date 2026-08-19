@@ -111,6 +111,9 @@ export async function POST(req: NextRequest) {
       downloadToken,
     });
   } catch (err: any) {
+    if (err?.code === "23505") {
+      return NextResponse.json({ error: "Pembayaran pelengkap sudah pernah dibuat. Muat ulang halaman." }, { status: 409 });
+    }
     console.error("order-supplement error:", err);
     return NextResponse.json({ error: "Gagal membuat pembayaran pelengkap. Coba lagi beberapa saat." }, { status: 500 });
   }

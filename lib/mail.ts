@@ -116,6 +116,10 @@ export async function sendInvoiceEmail(order: OrderMailData): Promise<boolean> {
         <p style="margin-top:8px;">Jika ada kendala, balas email ini atau hubungi admin WhatsApp.</p>
       </div>
 
+      <div class="note">
+        <strong>Email tidak muncul?</strong> Periksa juga folder <strong>Promosi / Sosial / Pembaruan</strong> atau <strong>Spam / Junk</strong> di penyedia email Anda (Gmail, Yahoo, Outlook, dll.).
+      </div>
+
       <p class="foot">MineClip Studio &middot; YouTube Clipper<br>Email: mineclipstudios@gmail.com</p>
     </div>
   </div>
@@ -136,6 +140,8 @@ ${downloadLine}
 
 ${order.cashbackCode ? `KODE CASHBACK (simpan baik-baik, hanya dibuat sekali): ${order.cashbackCode}\n` : ""}
 Setelah install, salin Machine ID dari halaman aktivasi dan kirim ke admin via WhatsApp/email untuk menerima key aktivasi.
+
+Email tidak muncul? Periksa juga folder Promosi/Sosial/Pembaruan atau Spam/Junk di penyedia email Anda.
 
 MineClip Studio - YouTube Clipper`;
 
@@ -176,6 +182,9 @@ export async function sendCashbackConfirmationEmail(data: { full_name: string; e
       <p>Halo <strong>${data.full_name}</strong>,</p>
       <p style="font-size:14px;color:#475569;">Kami telah menerima permohonan klaim cashback Anda. Mohon menunggu <strong>tinjauan admin</strong> (maksimal 1x24 jam).</p>
       <p style="font-size:14px;color:#475569;">Hasil verifikasi akan diinformasikan melalui <strong>email / WhatsApp</strong> bila disetujui.</p>
+      <div style="margin-top:20px;padding:14px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;font-size:12px;color:#0c4a6e;">
+        <strong>Email tidak muncul?</strong> Periksa juga folder <strong>Promosi / Sosial / Pembaruan</strong> atau <strong>Spam / Junk</strong> di penyedia email Anda.
+      </div>
       <p style="margin-top:24px;font-size:12px;color:#64748b;">MineClip Studio - YouTube Clipper</p>
     </div>
   </div>
@@ -186,6 +195,8 @@ export async function sendCashbackConfirmationEmail(data: { full_name: string; e
 
 Kami telah menerima permohonan klaim cashback Anda. Mohon menunggu tinjauan admin (maksimal 1x24 jam).
 Hasil verifikasi akan diinformasikan melalui email / WhatsApp bila disetujui.
+
+Email tidak muncul? Periksa juga folder Promosi/Sosial/Pembaruan atau Spam/Junk di penyedia email Anda.
 
 MineClip Studio - YouTube Clipper`;
 
@@ -279,6 +290,10 @@ export async function sendOrderRejectedEmail(data: {
       <div class="row"><span>Item</span><span>Lisensi YouTube Clipper - ${data.tier_label}</span></div>
       <div class="row total"><span>Total</span><span>${rupiah(data.amount)}</span></div>
 
+      <div class="note">
+        <strong>Email tidak muncul?</strong> Periksa juga folder <strong>Promosi / Sosial / Pembaruan</strong> atau <strong>Spam / Junk</strong> di penyedia email Anda.
+      </div>
+
       <p class="foot">MineClip Studio &middot; YouTube Clipper<br>Email: mineclipstudios@gmail.com</p>
     </div>
   </div>
@@ -301,6 +316,8 @@ Order ID : ${data.midtrans_order_id}
 Item      : Lisensi YouTube Clipper - ${data.tier_label}
 Total     : ${rupiah(data.amount)}
 
+Email tidak muncul? Periksa juga folder Promosi/Sosial/Pembaruan atau Spam/Junk di penyedia email Anda.
+
 MineClip Studio - YouTube Clipper`;
 
   try {
@@ -315,6 +332,79 @@ MineClip Studio - YouTube Clipper`;
     return true;
   } catch (err: any) {
     console.error("[email] order rejected error:", err?.code || "", err?.response || err?.message || err);
+    return false;
+  }
+}
+
+export async function sendEmailVerificationMail(data: { email: string; otp: string }): Promise<boolean> {
+  if (!mailEnabled()) {
+    console.warn("[mail] SMTP belum dikonfigurasi, email verifikasi dilewati.");
+    return false;
+  }
+  const to = data.email.trim();
+  if (!to) return false;
+
+  const html = `<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body { font-family: Arial, Helvetica, sans-serif; background: #f1f5f9; margin: 0; padding: 24px; color: #0f172a; }
+  .sheet { max-width: 560px; margin: 0 auto; background: #fff; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; }
+  .head { background: linear-gradient(135deg, #0ea5e9, #0284c7); color: #fff; padding: 24px 32px; }
+  .head h1 { margin: 0; font-size: 18px; }
+  .head p { margin: 4px 0 0; font-size: 12px; opacity: .9; }
+  .body { padding: 32px; }
+  .muted { color: #64748b; font-size: 12px; }
+  .code { background: #111827; color: #fff; font-family: monospace; font-size: 28px; letter-spacing: 6px; text-align: center; padding: 16px; border-radius: 10px; margin: 16px 0; }
+  .note { margin-top: 20px; padding: 14px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px; font-size: 12px; color: #0c4a6e; }
+  .foot { margin-top: 24px; font-size: 11px; color: #94a3b8; }
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="head">
+      <h1>Verifikasi Email — YouTube Clipper</h1>
+      <p>MineClip Studio</p>
+    </div>
+    <div class="body">
+      <p>Gunakan kode di bawah untuk memverifikasi alamat email Anda saat pembelian:</p>
+      <div class="code">${data.otp}</div>
+      <p class="muted">Kode berlaku selama <strong>10 menit</strong>. 3 kali kode salah akan mengunci permintaan selama 15 menit.</p>
+      <div class="note">
+        <strong>Email tidak muncul?</strong> Periksa juga folder <strong>Promosi / Sosial / Pembaruan</strong> atau
+        <strong>Spam / Junk</strong> di penyedia email Anda (Gmail, Yahoo, Outlook, dll.).
+      </div>
+      <p class="foot">MineClip Studio &middot; YouTube Clipper<br>Email: mineclipstudios@gmail.com</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const text = `Verifikasi Email — YouTube Clipper (MineClip Studio)
+
+Gunakan kode berikut untuk memverifikasi alamat email Anda saat pembelian:
+KODE VERIFIKASI: ${data.otp}
+
+Kode berlaku selama 10 menit. 3 kali kode salah akan mengunci permintaan selama 15 menit.
+
+Email tidak muncul? Periksa juga folder Promosi/Sosial/Pembaruan atau Spam/Junk di penyedia email Anda.
+
+MineClip Studio - YouTube Clipper`;
+
+  try {
+    const transporter = getTransporter();
+    await transporter.sendMail({
+      from: process.env.MAIL_FROM,
+      to,
+      subject: "Kode Verifikasi Email - YouTube Clipper",
+      text,
+      html,
+    });
+    return true;
+  } catch (err: any) {
+    console.error("[mail] email verification error:", err?.code || "", err?.response || err?.message || err);
     return false;
   }
 }
@@ -373,6 +463,10 @@ export async function sendRefundSentEmail(data: {
         <p style="margin-top:6px;">Jika dalam 1x24 jam dana belum masuk, hubungi admin melalui WhatsApp atau balas email ini.</p>
       </div>
 
+      <div class="note">
+        <strong>Email tidak muncul?</strong> Periksa juga folder <strong>Promosi / Sosial / Pembaruan</strong> atau <strong>Spam / Junk</strong> di penyedia email Anda. Lampiran bukti transfer ada pada email ini.
+      </div>
+
       <p class="foot">MineClip Studio &middot; YouTube Clipper<br>Email: mineclipstudios@gmail.com</p>
     </div>
   </div>
@@ -388,6 +482,8 @@ ${data.adminNotes ? `Catatan admin     : ${data.adminNotes}` : ""}
 
 Bukti transfer dilampirkan pada email ini.
 Jika dalam 1x24 jam dana belum masuk, hubungi admin melalui WhatsApp atau balas email ini.
+
+Email tidak muncul? Periksa juga folder Promosi/Sosial/Pembaruan atau Spam/Junk di penyedia email Anda.
 
 MineClip Studio - YouTube Clipper`;
 
