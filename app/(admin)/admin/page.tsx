@@ -3,10 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { LogOut, ShoppingBag, Gift, Users, DollarSign, ExternalLink, Save, Download, FileText, Settings, Power, Search, Calendar, Filter, X, QrCode, Upload, RotateCcw, AlertTriangle, Paperclip, BellRing, Copy } from "lucide-react";
+import { LogOut, ShoppingBag, Gift, Users, DollarSign, ExternalLink, Save, Download, FileText, Settings, Power, Search, Calendar, Filter, X, QrCode, Upload, RotateCcw, AlertTriangle, Paperclip, BellRing, Copy, BarChart3 } from "lucide-react";
 import { useMemo } from "react";
+import dynamic from "next/dynamic";
 import { parseJsonSafe, isHeicFile, HEIC_ERROR } from "@/lib/fetchJson";
 import { waLink } from "@/lib/whatsapp";
+
+const Charts = dynamic(() => import("./charts"), { ssr: false });
+import type { DashboardBucket, DashboardSlice } from "./charts";
 
 type Order = {
   id: string;
@@ -65,6 +69,8 @@ type Claim = {
 };
 
 const ORDER_STATUSES = ["pending", "paid", "expired", "failed", "cancelled"];
+
+const MONTHS_ID = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 const CLAIM_STATUSES = ["pending", "approved", "paid", "rejected"];
 
 const STATUS_STYLES: Record<string, string> = {
@@ -91,7 +97,7 @@ function cn(...classes: (string | false | undefined | null)[]) {
 }
 
 export default function AdminPage() {
-  const [tab, setTab] = useState<"orders" | "claims" | "refunds" | "settings">("orders");
+  const [tab, setTab] = useState<"dashboard" | "orders" | "claims" | "refunds" | "settings">("dashboard");
   const router = useRouter();
 
   async function logout() {
@@ -115,6 +121,9 @@ export default function AdminPage() {
       </div>
 
       <div className="flex gap-2 mb-6 animate-fade-in">
+        <TabBtn active={tab === "dashboard"} onClick={() => setTab("dashboard")}>
+          <BarChart3 className="w-3.5 h-3.5" /> Dashboard
+        </TabBtn>
         <TabBtn active={tab === "orders"} onClick={() => setTab("orders")}>
           <ShoppingBag className="w-3.5 h-3.5" /> Pembelian
         </TabBtn>
@@ -130,7 +139,7 @@ export default function AdminPage() {
       </div>
 
       <div className="animate-slide-up" key={tab}>
-        {tab === "orders" ? <OrdersTab /> : tab === "claims" ? <ClaimsTab /> : tab === "refunds" ? <RefundsTab /> : <SettingsTab />}
+        {tab === "dashboard" ? <DashboardTab /> : tab === "orders" ? <OrdersTab /> : tab === "claims" ? <ClaimsTab /> : tab === "refunds" ? <RefundsTab /> : <SettingsTab />}
       </div>
     </div>
   );
@@ -332,6 +341,225 @@ function FilterBar({
   );
 }
 
+function DashboardTab() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [mode, setMode] = useState<"daily" | "monthly">("daily");
+  const [activeBucket, setActiveBucket] = useState<string | null>(null);
+  const [activeStatus, setActiveStatus] = useState<string | null>(null);
+
+  async function load() {
+    setLoading(true);
+    const res = await fetch("/api/admin/orders");
+    const data = await res.json();
+    setOrders(data.data || []);
+    setLoading(false);
+  }
+
+  useEffect(() => { load(); }, []);
+
+  const today = new Date();
+
+  function dateKey(d: Date) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  const dayKeys = useMemo(() => {
+    const keys: string[] = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      keys.push(dateKey(d));
+    }
+    return keys;
+  }, []);
+
+  const monthKeys = useMemo(() => {
+    const keys: string[] = [];
+    const base = new Date(today.getFullYear(), today.getMonth(), 1);
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(base.getFullYear(), base.getMonth() - i, 1);
+      keys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    }
+    return keys;
+  }, []);
+
+  const keys = mode === "daily" ? dayKeys : monthKeys;
+
+  const series: DashboardBucket[] = useMemo(() => {
+    const map: Record<string, DashboardBucket> = {};
+    keys.forEach((k, i) => {
+      const label = mode === "daily"
+        ? `${Number(k.slice(8, 10))} ${MONTHS_ID[Number(k.slice(5, 7)) - 1]}`
+        : `${MONTHS_ID[Number(k.slice(5, 7)) - 1]} ${k.slice(0, 4)}`;
+      map[k] = { key: k, label, total: 0, pending: 0, paid: 0, revenue: 0 };
+    });
+    orders.forEach((o) => {
+      const k = mode === "daily" ? o.created_at.slice(0, 10) : o.created_at.slice(0, 7);
+      const b = map[k];
+      if (!b) return;
+      b.total++;
+      if (o.status === "pending") b.pending++;
+      if (o.status === "paid") { b.paid++; b.revenue += o.amount; }
+    });
+    return keys.map((k) => map[k]);
+  }, [orders, keys, mode]);
+
+  const slices: DashboardSlice[] = useMemo(() =>
+    ORDER_STATUSES
+      .map((st) => ({
+        status: st,
+        count: orders.filter((o) => o.status === st).length,
+        revenue: orders.filter((o) => o.status === st && o.status === "paid").reduce((s, o) => s + o.amount, 0),
+      }))
+      .filter((s) => s.count > 0 || s.revenue > 0),
+    [orders]
+  );
+
+  const revenue = orders.filter((o) => o.status === "paid").reduce((s, o) => s + o.amount, 0);
+  const pending = orders.filter((o) => o.status === "pending").length;
+
+  const prevTotals = useMemo(() => {
+    let revenueP = 0, ordersP = 0, pendingP = 0;
+    const span = mode === "daily" ? 30 : 12;
+    for (let i = 0; i < span; i++) {
+      const d = new Date(today);
+      if (mode === "daily") d.setDate(d.getDate() - (span + i));
+      else d.setMonth(d.getMonth() - (span + i));
+      const key = mode === "daily" ? dateKey(d) : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      orders.forEach((o) => {
+        const ok = mode === "daily" ? o.created_at.slice(0, 10) : o.created_at.slice(0, 7);
+        if (ok !== key) return;
+        ordersP++;
+        if (o.status === "pending") pendingP++;
+        if (o.status === "paid") revenueP += o.amount;
+      });
+    }
+    return { revenue: revenueP, orders: ordersP, pending: pendingP };
+  }, [orders, mode]);
+
+  function deltaPct(cur: number, prev: number) {
+    if (prev === 0) return cur > 0 ? 100 : 0;
+    return Math.round(((cur - prev) / prev) * 100);
+  }
+
+  const drill = useMemo(() => {
+    let list = orders;
+    if (activeBucket) list = list.filter((o) => (mode === "daily" ? o.created_at.slice(0, 10) : o.created_at.slice(0, 7)) === activeBucket);
+    if (activeStatus) list = list.filter((o) => o.status === activeStatus);
+    return [...list].sort((a, b) => b.created_at.localeCompare(a.created_at));
+  }, [orders, activeBucket, activeStatus, mode]);
+
+  const activeLabel = series.find((s) => s.key === activeBucket)?.label || null;
+
+  function DeltaChip({ cur, prev, reverse }: { cur: number; prev: number; reverse?: boolean }) {
+    const pct = deltaPct(cur, prev);
+    const up = pct > 0;
+    const good = reverse ? !up : up;
+    if (pct === 0) return <span className="text-[11px] text-gray-400">±0%</span>;
+    return (
+      <span className={cn("text-[11px] font-semibold", good ? "text-emerald-600" : "text-red-500")}>
+        {up ? "↑" : "↓"} {Math.abs(pct)}%
+      </span>
+    );
+  }
+
+  if (loading) return <LoadingSkeleton />;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-1.5 bg-gray-100 p-1 rounded-xl">
+          {(["daily", "monthly"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => { setMode(m); setActiveBucket(null); }}
+              className={cn(
+                "px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200",
+                mode === m ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              {m === "daily" ? "Harian (30 hari)" : "Bulanan (12 bulan)"}
+            </button>
+          ))}
+        </div>
+        <span className="text-[11px] text-gray-400">Bandingkan vs periode sebelumnya · klik chart untuk detail</span>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <SummaryCard icon={DollarSign} label="Pendapatan" value={rupiah(revenue)} color="emerald" />
+        <SummaryCard icon={Users} label="Total Order" value={orders.length} color="blue" />
+        <SummaryCard icon={ShoppingBag} label="Pending" value={pending} color="amber" />
+      </div>
+
+      <div className="flex flex-wrap gap-x-5 gap-y-1.5 px-1 text-xs text-gray-500">
+        <span className="flex items-center gap-1.5">
+          Pendapatan <DeltaChip cur={revenue} prev={prevTotals.revenue} />
+        </span>
+        <span className="flex items-center gap-1.5">
+          Total Order <DeltaChip cur={orders.length} prev={prevTotals.orders} />
+        </span>
+        <span className="flex items-center gap-1.5">
+          Pending <DeltaChip reverse cur={pending} prev={prevTotals.pending} />
+        </span>
+        <span className="text-gray-400">
+          vs {prevTotals.orders} order periode sebelumnya {mode === "daily" ? "(30 hari)" : "(12 bulan)"}
+        </span>
+      </div>
+
+      <Charts
+        series={series}
+        slices={slices}
+        mode={mode}
+        activeBucket={activeBucket}
+        activeStatus={activeStatus}
+        onBucket={(b) => setActiveBucket((prev) => (prev === b.key ? null : b.key))}
+        onStatus={(s) => setActiveStatus((prev) => (prev === s.status ? null : s.status))}
+      />
+
+      {(activeBucket || activeStatus) && (
+        <div className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-gray-100">
+            <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+              Rincian Order
+              {activeStatus && <StatusBadge status={activeStatus} />}
+              {activeLabel && (
+                <span className="text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full">{activeLabel}</span>
+              )}
+            </h3>
+            <button
+              type="button"
+              onClick={() => { setActiveBucket(null); setActiveStatus(null); }}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-gray-800 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition-all duration-200"
+            >
+              <X className="w-3 h-3" /> Reset
+            </button>
+          </div>
+          {drill.length === 0 ? (
+            <div className="p-8 text-center text-sm text-gray-400">Tidak ada order pada kategori ini.</div>
+          ) : (
+            <div className="divide-y divide-gray-50 max-h-80 overflow-y-auto">
+              {drill.map((o) => (
+                <div key={o.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-gray-900 truncate">{o.full_name}</div>
+                    <div className="text-[11px] text-gray-400 truncate">
+                      {o.tier_label} · {new Date(o.created_at).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}
+                    </div>
+                  </div>
+                  <span className="text-xs font-bold text-gray-700">{rupiah(o.amount)}</span>
+                  <StatusBadge status={o.status} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function OrdersTab() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -416,10 +644,6 @@ function OrdersTab() {
     }
   }
 
-  const paid = orders.filter((o) => o.status === "paid").length;
-  const pending = orders.filter((o) => o.status === "pending").length;
-  const total = orders.reduce((s, o) => s + (o.status === "paid" ? o.amount : 0), 0);
-
   const tierOptions = Array.from(new Set(orders.map((o) => o.tier_label).filter(Boolean))).sort();
 
   const filtered = useMemo(() => {
@@ -443,12 +667,7 @@ function OrdersTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start gap-3">
-        <div className="grid grid-cols-3 gap-3 flex-1">
-          <SummaryCard icon={Users} label="Total Order" value={orders.length} color="blue" />
-          <SummaryCard icon={ShoppingBag} label="Pending" value={pending} color="amber" />
-          <SummaryCard icon={DollarSign} label="Pendapatan" value={rupiah(total)} color="emerald" />
-        </div>
+      <div className="flex justify-end">
         <a
           href="/api/admin/orders/export"
           className="shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-800 transition-all duration-200 shadow-sm"

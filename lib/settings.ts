@@ -33,14 +33,13 @@ const DEFAULT_CASHBACK_TIERS: Record<string, number> = {
 };
 
 const DEFAULT_QRIS_INSTRUCTIONS =
-  "1. Buka aplikasi bank / e-wallet (GoPay, OVO, DANA, ShopeePay, dst).\n" +
-  "2. Pilih menu Scan / Bayar QRIS.\n" +
-  "3. Scan kode QR di atas.\n" +
-  "4. Pastikan nominal sesuai, lalu masukkan PIN untuk menyelesaikan pembayaran.\n" +
-  "5. Setelah transfer berhasil, klik tombol \"Saya sudah bayar\".";
+  "Buka aplikasi bank / e-wallet (GoPay, OVO, DANA, ShopeePay, dst).\n" +
+  "Pilih menu Scan / Bayar QRIS.\n" +
+  "Scan kode QR di atas.\n" +
+  "Pastikan nominal sesuai, lalu masukkan PIN untuk menyelesaikan pembayaran.\n" +
+  "Setelah transfer berhasil, klik tombol \"Saya sudah bayar\".";
 
-const DEFAULT_QRIS_PAYMENT_NOTICE =
-  "Harap isi jumlah pembayaran yang sesuai. Pastikan jumlah bayar sesuai — jika tidak sesuai, dana akan dikembalikan ke rekening pengirim sesuai jumlah yang ditransfer. Apabila ada potongan transfer bank, potongan tersebut ditanggung pelanggan.";
+const DEFAULT_QRIS_PAYMENT_NOTICE = "";
 
 export const DEFAULT_SETTINGS: AppSettings = {
   promoEnabled: false,

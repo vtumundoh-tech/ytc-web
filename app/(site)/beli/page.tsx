@@ -39,6 +39,7 @@ function BeliForm() {
   const [otpTick, setOtpTick] = useState(0);
   const [qrisSeconds, setQrisSeconds] = useState(0);
   const [qrisExpired, setQrisExpired] = useState(false);
+  const [qrisTick, setQrisTick] = useState(0);
   const [tier, setTier] = useState(preselected);
   const [addon1080, setAddon1080] = useState(preselectedAddon);
   const [agree, setAgree] = useState(false);
@@ -207,7 +208,7 @@ function BeliForm() {
       });
     }, 1000);
     return () => clearInterval(t);
-  }, [qrisModal, qrisStep]);
+  }, [qrisModal, qrisStep, qrisTick]);
 
   function handleBatal() {
     setQrisModal(false);
@@ -440,51 +441,6 @@ function BeliForm() {
         onSubmit={handleSubmit}
         className="card-lg space-y-6"
       >
-        <div>
-          <div className="p-4 rounded-xl bg-amber-50/70 border border-amber-200 mb-3">
-            <p className="text-sm font-semibold text-amber-900 mb-2">
-              ⚠️ Baca sebelum melanjutkan — penting:
-            </p>
-            <ul className="text-xs text-amber-800 list-disc list-inside space-y-1">
-              <li>Pastikan jumlah QRIS yang Anda bayar <strong>sesuai nominal</strong>. Jika kurang, pesanan ditolak dan Anda harus memilih <strong>refund</strong> (dana kembali ≤1×24 jam, potongan transfer bank ditanggung pelanggan) atau <strong>bayar kekurangan</strong> (klausul 4.4).</li>
-              <li>Yang sudah <strong>disetujui / Lunas tidak dapat di-refund</strong> (klausul 5.5).</li>
-              <li>Key &amp; unduhan dikirim ke <strong>email</strong> — cek juga folder Promosi / Spam / Junk.</li>
-              <li>Nomor WhatsApp wajib lengkap (minimal 8 digit angka) untuk konfirmasi &amp; cashback.</li>
-            </ul>
-            <a
-              href="/syarat-ketentuan"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-block mt-2 text-xs font-semibold text-amber-700 underline underline-offset-2 hover:text-amber-900"
-            >
-              Baca Syarat &amp; Ketentuan lengkap →
-            </a>
-          </div>
-          <label className="flex items-start gap-3 p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-50/30 border border-emerald-100 cursor-pointer">
-            <input
-              type="checkbox"
-              className="mt-0.5 accent-emerald-600 w-4 h-4 rounded"
-              checked={agree}
-              onChange={(e) => setAgree(e.target.checked)}
-            />
-            <div>
-              <div className="text-sm font-semibold text-emerald-900">
-                Saya telah <u>membaca</u> dan menyetujui{" "}
-                <a
-                  href="/syarat-ketentuan"
-                  target="_blank"
-                  className="underline underline-offset-2 hover:text-emerald-700"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  Syarat & Ketentuan
-                  <ExternalLink className="w-3 h-3 inline ml-0.5" />
-                </a>{" "}
-                terlebih dahulu. Dengan menyetujui berarti saya menyetujui <strong>seluruh</strong> klausul Syarat &amp; Ketentuan di atas termasuk ketentuan pembayaran, refund, dan cashback tanpa konfirmasi tambahan.
-              </div>
-            </div>
-          </label>
-        </div>
-
         <div className="space-y-5">
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Data Diri</h2>
 
@@ -772,6 +728,51 @@ function BeliForm() {
           </div>
         )}
 
+        <div>
+          <div className="p-4 rounded-xl bg-amber-50/70 border border-amber-200 mb-3">
+            <p className="text-sm font-semibold text-amber-900 mb-2">
+              ⚠️ Baca sebelum melanjutkan — penting:
+            </p>
+            <ul className="text-xs text-amber-800 list-disc list-inside space-y-1">
+              <li>Pastikan jumlah QRIS yang Anda bayar <strong>sesuai nominal</strong>. Jika kurang, pesanan ditolak dan Anda harus memilih <strong>refund</strong> (dana kembali ≤1×24 jam, potongan transfer bank ditanggung pelanggan) atau <strong>bayar kekurangan</strong> (klausul 4.4).</li>
+              <li>Yang sudah <strong>disetujui / Lunas tidak dapat di-refund</strong> (klausul 5.5).</li>
+              <li>Key &amp; unduhan dikirim ke <strong>email</strong> — cek juga folder Promosi / Spam / Junk.</li>
+              <li>Nomor WhatsApp wajib lengkap (minimal 8 digit angka) untuk konfirmasi &amp; cashback.</li>
+            </ul>
+            <a
+              href="/syarat-ketentuan"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-block mt-2 text-xs font-semibold text-amber-700 underline underline-offset-2 hover:text-amber-900"
+            >
+              Baca Syarat &amp; Ketentuan lengkap →
+            </a>
+          </div>
+          <label className="flex items-start gap-3 p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-50/30 border border-emerald-100 cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-0.5 accent-emerald-600 w-4 h-4 rounded"
+              checked={agree}
+              onChange={(e) => setAgree(e.target.checked)}
+            />
+            <div>
+              <div className="text-sm font-semibold text-emerald-900">
+                Saya telah <u>membaca</u> dan menyetujui{" "}
+                <a
+                  href="/syarat-ketentuan"
+                  target="_blank"
+                  className="underline underline-offset-2 hover:text-emerald-700"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Syarat & Ketentuan
+                  <ExternalLink className="w-3 h-3 inline ml-0.5" />
+                </a>{" "}
+                terlebih dahulu. Dengan menyetujui berarti saya menyetujui <strong>seluruh</strong> klausul Syarat &amp; Ketentuan di atas termasuk ketentuan pembayaran, refund, dan cashback tanpa konfirmasi tambahan.
+              </div>
+            </div>
+          </label>
+        </div>
+
         <button
           type="submit"
           disabled={!canSubmit}
@@ -816,13 +817,10 @@ function BeliForm() {
                     <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3">
                       <X className="w-6 h-6 text-red-500" />
                     </div>
-                    <p className="text-sm font-semibold text-gray-700 mb-1">Kode QR sudah tidak tampil</p>
-                    <p className="text-xs text-gray-400 mb-4">
-                      QRIS ini statis — kamu tetap bisa membayar ke nomor QRIS yang sama. Tekan tombol di bawah untuk menampilkan kembali kode QR.
-                    </p>
+                    <p className="text-sm font-semibold text-gray-700 mb-4">Kode QR sudah tidak tampil</p>
                     <button
                       type="button"
-                      onClick={() => { setQrisSeconds(3 * 60); setQrisExpired(false); }}
+                      onClick={() => { setQrisSeconds(3 * 60); setQrisExpired(false); setQrisTick((t) => t + 1); }}
                       className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-all duration-200"
                     >
                       <RefreshCw className="w-4 h-4" /> Lihat Lagi
@@ -839,18 +837,14 @@ function BeliForm() {
                       )}
                     </div>
 
-                    {settings.qrisPaymentNotice && (
-                      <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-left text-xs text-amber-800 mb-4">
-                        <BellRing className="w-4 h-4 inline mr-1.5 text-amber-600" />
-                        {settings.qrisPaymentNotice}
-                      </div>
-                    )}
-
                     <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 text-left mb-4">
                       <h3 className="text-xs font-semibold text-blue-800 mb-2">Cara Pembayaran</h3>
-                      <ol className="text-xs text-blue-900 space-y-1 list-decimal list-inside">
+                      <ol className="text-xs text-blue-900 space-y-1">
                         {(settings.qrisInstructions || "").split("\n").filter(Boolean).map((line, i) => (
-                          <li key={i}>{line}</li>
+                          <li key={i} className="flex gap-2">
+                            <span className="font-bold text-blue-700 shrink-0">{i + 1}.</span>
+                            <span>{line.replace(/^\s*\d+[.)]\s*/, "")}</span>
+                          </li>
                         ))}
                       </ol>
                     </div>
