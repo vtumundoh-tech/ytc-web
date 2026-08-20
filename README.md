@@ -7,9 +7,6 @@ Web ini menggantikan Google Form manual dengan:
 
 Stack: **Next.js + Supabase (database & storage) + Midtrans (payment) + Vercel (hosting)**.
 
-> 📚 Dokumen teknis lengkap (upgrade Next.js, setup Docker, setup & penggunaan Strix):
-> [docs/README.md](./docs/README.md)
-
 ---
 
 ## 0. Yang perlu Anda siapkan
