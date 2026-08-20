@@ -388,7 +388,7 @@ export async function buildDashboardReply(): Promise<TelegramReply> {
   ]);
   const n = (i: number): number => (settled[i].status === "fulfilled" ? (settled[i] as any).value.count ?? 0 : 0);
   return {
-    text: "📊 <b>DASHBOARD — YouTube Clipper</b>\n\nPilih kategori untuk lihat daftar & status terkini.\n\n<i>Perintah lain: /listcb, /listo, /help</i>",
+    text: "📊 <b>DASHBOARD — MineClip Studios</b>\n\nPilih kategori untuk lihat daftar & status terkini.\n\n<i>Perintah lain: /listcb, /listo, /help</i>",
     replyMarkup: {
       inline_keyboard: [
         [btn(`📦 Pembelian (${n(0)})`, "cat:orders:all:1")],

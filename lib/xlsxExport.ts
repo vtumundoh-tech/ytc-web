@@ -13,7 +13,7 @@ export async function buildXlsxBuffer(
   rows: Record<string, unknown>[]
 ): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
-  wb.creator = "MineClip Studio";
+  wb.creator = "MineClip Studios";
   wb.created = new Date();
   const ws = wb.addWorksheet(sheetName);
 

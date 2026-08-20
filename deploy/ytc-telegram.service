@@ -1,4 +1,4 @@
-# Unit systemd untuk bot Telegram (long-polling) YouTube Clipper.
+# Unit systemd untuk bot Telegram (long-polling) MineClip Studios.
 # Alternatif pengganti PM2. Jangan jalankan bersamaan dengan PM2.
 #
 # Cara pakai (di VPS):
@@ -10,7 +10,7 @@
 # di folder aplikasi. Sesuaikan path bila lokasi berbeda.
 
 [Unit]
-Description=YouTube Clipper - Telegram Bot (long-polling)
+Description=MineClip Studios - Telegram Bot (long-polling)
 After=network.target
 Wants=ytc-web.service
 

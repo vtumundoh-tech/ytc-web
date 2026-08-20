@@ -63,7 +63,7 @@ export default function HomePage() {
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-emerald-50/60 to-transparent" />
         <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full border border-emerald-200/50 mb-6">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          YouTube Clipper v2.0 — Lisensi Permanen
+          MineClip Studios v2.0 — Lisensi Permanen
         </div>
         <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight leading-tight">
           Download, Transkrip, Potong, <br className="hidden sm:block" />
@@ -132,7 +132,7 @@ export default function HomePage() {
 
       {/* ─── FITUR ─── */}
       <motion.section {...fadeUp} className="max-w-5xl mx-auto px-4 py-12 sm:py-16">
-        <h2 className="text-lg sm:text-2xl font-bold text-gray-900 text-center">Kenapa YouTube Clipper?</h2>
+        <h2 className="text-lg sm:text-2xl font-bold text-gray-900 text-center">Kenapa MineClip Studios?</h2>
         <p className="text-sm text-gray-500 text-center mt-2 mb-10">Satu software untuk semua kebutuhan konten viral Anda.</p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {FEATURES.map((f, i) => {

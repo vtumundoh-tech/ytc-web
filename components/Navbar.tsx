@@ -34,7 +34,7 @@ export default function Navbar() {
             <Clapperboard className="w-4 h-4" />
           </div>
           <span className="font-bold text-gray-900 text-sm tracking-tight">
-            YouTube <span className="text-emerald-600">Clipper</span>
+            MineClip <span className="text-emerald-600">Studios</span>
           </span>
         </Link>
 

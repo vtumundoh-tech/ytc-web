@@ -19,6 +19,7 @@ const TOC_PART1: [string, string][] = [
   ["10", "Termination"],
   ["11", "Governing Law"],
   ["12", "Cashback Terms"],
+  ["13", "Copyright & IP Notice"],
 ];
 
 const TOC_PART2: [string, string][] = [
@@ -40,7 +41,7 @@ export default function TermsPage() {
           <FileText className="w-5 h-5 text-white" />
         </div>
         <h1 className="text-xl font-bold text-gray-900">Terms &amp; Conditions and Privacy Policy</h1>
-        <p className="text-sm text-gray-500 mt-1">YouTube Clipper — Terms of Service, License Agreement, and Privacy Policy</p>
+        <p className="text-sm text-gray-500 mt-1">MineClip Studios — Terms of Service, License Agreement, and Privacy Policy</p>
         <span className="inline-block mt-3 px-3 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-full border border-emerald-200/50 tracking-widest">
           VERSION 2.1 · EFFECTIVE AUGUST 18, 2026
         </span>
@@ -52,7 +53,7 @@ export default function TermsPage() {
         <Toc items={TOC_PART1} group="s1" />
 
         <Section num="1" title="One-Time Purchase Product" group="s1">
-          <p>1.1 YouTube Clipper is sold as a <strong className="text-gray-700">one-time, permanent purchase</strong>. Pay once, and the license lasts forever — it is not a subscription or a rental.</p>
+          <p>1.1 MineClip Studios is sold as a <strong className="text-gray-700">one-time, permanent purchase</strong>. Pay once, and the license lasts forever — it is not a subscription or a rental.</p>
           <p>1.2 The license is <strong className="text-gray-700">non-exclusive and non-transferable</strong>. It is bound to a single device (Machine ID) and cannot be moved to another device without written permission from the developer.</p>
           <p>1.3 The license key and application are delivered once payment is confirmed. Both are digital products delivered by email or WhatsApp.</p>
           <p>1.4 Prices already include VAT (if applicable) and may change at any time. Purchases are subject to the price in effect at the time of the transaction.</p>
@@ -137,7 +138,7 @@ export default function TermsPage() {
         </Section>
 
         <Section num="9" title="Intellectual Property Rights" group="s1">
-          <p>9.1 All copyright, ownership, and intellectual property rights in this software remain with the developer (MineClip Studio).</p>
+          <p>9.1 All copyright, ownership, and intellectual property rights in this software remain with the developer (MineClip Studios).</p>
           <p>9.2 This license does not grant ownership of the source code, algorithms, or technologies used.</p>
         </Section>
 
@@ -208,6 +209,17 @@ export default function TermsPage() {
           </ul>
         </Section>
 
+        <Section num="13" title="Copyright & IP Notice" group="s1">
+          <p>13.1 <strong className="text-gray-700">YouTube</strong> is a trademark owned by Google LLC. MineClip Studios is an independent software product and is <strong className="text-gray-700">not affiliated with, endorsed by, or sponsored by</strong> Google LLC or YouTube.</p>
+          <p>13.2 The software provides tools to download, transcribe, and edit video. The customer is solely responsible for ensuring that any video they download, transcribe, or edit is used in compliance with applicable copyright laws, YouTube's Terms of Service, and the rights of the original content owner.</p>
+          <p>13.3 The customer may only download, transcribe, or edit content that they own, have licensed, or are otherwise legally permitted to use. The developer is not responsible for how the customer uses the software.</p>
+          <p>13.4 This software is provided for personal and licensed use. Any other use — including unauthorized downloading, redistribution, or commercial misuse of third-party content — is the sole responsibility of the customer.</p>
+          <p>13.5 If you believe that content processed through this software infringes your copyright, you may submit a takedown notice to the Admin via{" "}
+            <a href="mailto:mineclipstudios@gmail.com" className="text-violet-600 font-medium underline underline-offset-2 hover:text-violet-700">mineclipstudios@gmail.com</a>{" "}
+            or WhatsApp <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="text-violet-600 font-medium underline underline-offset-2 hover:text-violet-700">+62 823-9591-2267</a>. Please include a description of the material, its location, and proof that you are the rights holder or are authorized to act on their behalf. We will review the request and respond within a reasonable time.</p>
+          <p>13.6 Trademarks, logos, and brand names used on this website and in the software that are not owned by the developer remain the property of their respective owners and are used for identification or description only.</p>
+        </Section>
+
         {/* ─── PART 2 ─── */}
         <div id="privacy-policy">
           <PartTitle num="PART 2" title="Privacy Policy" />
@@ -215,7 +227,7 @@ export default function TermsPage() {
         </div>
 
         <p>
-          This Privacy Policy explains how <strong className="text-gray-700">MineClip Studio</strong> ("we", "us", "our") collects, uses, stores, and protects your personal data when you use YouTube Clipper, purchase a license, or claim cashback. By using our software and services, you agree to the practices described in this policy. This Privacy Policy is an integral part of our <strong className="text-gray-700">Terms &amp; Conditions</strong>.
+          This Privacy Policy explains how <strong className="text-gray-700">MineClip Studios</strong> ("we", "us", "our") collects, uses, stores, and protects your personal data when you use MineClip Studios, purchase a license, or claim cashback. By using our software and services, you agree to the practices described in this policy. This Privacy Policy is an integral part of our <strong className="text-gray-700">Terms &amp; Conditions</strong>.
         </p>
 
         <Section num="1" title="Data We Collect" group="s2">
@@ -293,14 +305,14 @@ export default function TermsPage() {
         </Section>
 
         <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-sm text-emerald-800 leading-relaxed">
-          <strong>By using YouTube Clipper, you acknowledge that you have read, understood, and agree to all of these Terms &amp; Conditions and this Privacy Policy.</strong>
+          <strong>By using MineClip Studios, you acknowledge that you have read, understood, and agree to all of these Terms &amp; Conditions and this Privacy Policy.</strong>
         </div>
       </div>
 
       <div className="text-center mt-8 pt-6 border-t border-gray-100">
-        <p className="text-xs text-gray-400">YouTube Clipper — Terms &amp; Conditions and Privacy Policy</p>
+        <p className="text-xs text-gray-400">MineClip Studios — Terms &amp; Conditions and Privacy Policy</p>
         <p className="text-xs text-gray-500 mt-1">
-          <strong className="text-gray-600">MineClip Studio</strong> | Version 2.1 | Effective August 18, 2026
+          <strong className="text-gray-600">MineClip Studios</strong> | Version 2.1 | Effective August 18, 2026
         </p>
       </div>
 

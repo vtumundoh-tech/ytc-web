@@ -1,4 +1,4 @@
-# Unit systemd untuk aplikasi web YouTube Clipper (Next.js).
+# Unit systemd untuk aplikasi web MineClip Studios (Next.js).
 # Alternatif pengganti PM2. Jangan jalankan bersamaan dengan PM2.
 #
 # Cara pakai (di VPS):
@@ -11,7 +11,7 @@
 # dan juga oleh script bot Telegram).
 
 [Unit]
-Description=YouTube Clipper - Web App (Next.js)
+Description=MineClip Studios - Web App (Next.js)
 Documentation=https://github.com/anomalyco/opencode/issues
 After=network.target
 

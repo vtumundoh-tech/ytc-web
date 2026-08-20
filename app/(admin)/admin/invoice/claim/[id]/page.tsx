@@ -112,7 +112,7 @@ export default function InvoiceClaimPage() {
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs shadow-sm">
                 YC
               </div>
-              <span className="font-bold text-gray-900 text-sm">YouTube Clipper</span>
+              <span className="font-bold text-gray-900 text-sm">MineClip Studios</span>
             </div>
             <p className="text-xs text-gray-400 mt-0.5">Cashback Program</p>
           </div>

@@ -2,8 +2,8 @@ import "./globals.css";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "YouTube Clipper — Lisensi & Cashback",
-  description: "Beli lisensi atau klaim cashback YouTube Clipper",
+  title: "MineClip Studios — Lisensi & Cashback",
+  description: "Beli lisensi atau klaim cashback MineClip Studios",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

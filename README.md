@@ -1,4 +1,4 @@
-# YouTube Clipper — Web Pembayaran & Klaim Cashback
+# MineClip Studios — Web Pembayaran & Klaim Cashback
 
 Web ini menggantikan Google Form manual dengan:
 - **Halaman Beli** (`/beli`) → user isi data, bayar langsung via Midtrans (QRIS/VA/e-wallet), status otomatis update.

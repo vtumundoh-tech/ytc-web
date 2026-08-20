@@ -90,8 +90,8 @@ export async function sendInvoiceEmail(order: OrderMailData): Promise<boolean> {
 <body>
   <div class="sheet">
     <div class="head">
-      <h1>Invoice — YouTube Clipper</h1>
-      <p>MineClip Studio</p>
+      <h1>Invoice — MineClip Studios</h1>
+      <p>MineClip Studios</p>
     </div>
     <div class="body">
       <p>Halo <strong>${order.full_name}</strong>,</p>
@@ -99,7 +99,7 @@ export async function sendInvoiceEmail(order: OrderMailData): Promise<boolean> {
 
       <div class="row"><span>Order ID</span><span>${order.midtrans_order_id}</span></div>
       <div class="row"><span>Tanggal</span><span>${dateStr}</span></div>
-      <div class="row"><span>Item</span><span>Lisensi YouTube Clipper - ${order.tier_label}</span></div>
+      <div class="row"><span>Item</span><span>Lisensi MineClip Studios - ${order.tier_label}</span></div>
       <div class="row total"><span>Total</span><span>${rupiah(order.amount)}</span></div>
 
       ${downloadBlock}
@@ -120,7 +120,7 @@ export async function sendInvoiceEmail(order: OrderMailData): Promise<boolean> {
         <strong>Email tidak muncul?</strong> Periksa juga folder <strong>Promosi / Sosial / Pembaruan</strong> atau <strong>Spam / Junk</strong> di penyedia email Anda (Gmail, Yahoo, Outlook, dll.).
       </div>
 
-      <p class="foot">MineClip Studio &middot; YouTube Clipper<br>Email: mineclipstudios@gmail.com</p>
+      <p class="foot">MineClip Studios<br>Email: mineclipstudios@gmail.com</p>
     </div>
   </div>
 </body>
@@ -133,7 +133,7 @@ export async function sendInvoiceEmail(order: OrderMailData): Promise<boolean> {
 Terima kasih atas pembelian Anda. Berikut invoice pembelian:
 Order ID : ${order.midtrans_order_id}
 Tanggal  : ${dateStr}
-Item      : Lisensi YouTube Clipper - ${order.tier_label}
+Item      : Lisensi MineClip Studios - ${order.tier_label}
 Total     : ${rupiah(order.amount)}
 
 ${downloadLine}
@@ -143,7 +143,7 @@ Setelah install, salin Machine ID dari halaman aktivasi dan kirim ke admin via W
 
 Email tidak muncul? Periksa juga folder Promosi/Sosial/Pembaruan atau Spam/Junk di penyedia email Anda.
 
-MineClip Studio - YouTube Clipper`;
+MineClip Studios`;
 
   try {
     const transporter = getTransporter();
@@ -176,7 +176,7 @@ export async function sendCashbackConfirmationEmail(data: { full_name: string; e
   <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;">
     <div style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;padding:24px 32px;">
       <h1 style="margin:0;font-size:18px;">Permohonan Cashback Diterima</h1>
-      <p style="margin:4px 0 0;font-size:12px;opacity:.9;">MineClip Studio</p>
+      <p style="margin:4px 0 0;font-size:12px;opacity:.9;">MineClip Studios</p>
     </div>
     <div style="padding:32px;">
       <p>Halo <strong>${data.full_name}</strong>,</p>
@@ -185,7 +185,7 @@ export async function sendCashbackConfirmationEmail(data: { full_name: string; e
       <div style="margin-top:20px;padding:14px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;font-size:12px;color:#0c4a6e;">
         <strong>Email tidak muncul?</strong> Periksa juga folder <strong>Promosi / Sosial / Pembaruan</strong> atau <strong>Spam / Junk</strong> di penyedia email Anda.
       </div>
-      <p style="margin-top:24px;font-size:12px;color:#64748b;">MineClip Studio - YouTube Clipper</p>
+      <p style="margin-top:24px;font-size:12px;color:#64748b;">MineClip Studios</p>
     </div>
   </div>
 </body>
@@ -198,7 +198,7 @@ Hasil verifikasi akan diinformasikan melalui email / WhatsApp bila disetujui.
 
 Email tidak muncul? Periksa juga folder Promosi/Sosial/Pembaruan atau Spam/Junk di penyedia email Anda.
 
-MineClip Studio - YouTube Clipper`;
+MineClip Studios`;
 
   try {
     const transporter = getTransporter();
@@ -270,7 +270,7 @@ export async function sendOrderRejectedEmail(data: {
   <div class="sheet">
     <div class="head">
       <h1>Pesanan Tidak Sesuai Ketentuan</h1>
-      <p>MineClip Studio</p>
+      <p>MineClip Studios</p>
     </div>
     <div class="body">
       <p>Halo <strong>${data.full_name}</strong>,</p>
@@ -287,14 +287,14 @@ export async function sendOrderRejectedEmail(data: {
       </div>
 
       <div class="row" style="margin-top:20px;"><span>Order ID</span><span>${data.midtrans_order_id}</span></div>
-      <div class="row"><span>Item</span><span>Lisensi YouTube Clipper - ${data.tier_label}</span></div>
+      <div class="row"><span>Item</span><span>Lisensi MineClip Studios - ${data.tier_label}</span></div>
       <div class="row total"><span>Total</span><span>${rupiah(data.amount)}</span></div>
 
       <div class="note">
         <strong>Email tidak muncul?</strong> Periksa juga folder <strong>Promosi / Sosial / Pembaruan</strong> atau <strong>Spam / Junk</strong> di penyedia email Anda.
       </div>
 
-      <p class="foot">MineClip Studio &middot; YouTube Clipper<br>Email: mineclipstudios@gmail.com</p>
+      <p class="foot">MineClip Studios<br>Email: mineclipstudios@gmail.com</p>
     </div>
   </div>
 </body>
@@ -313,12 +313,12 @@ ${choiceLine}
 Refund: dana yang telah Anda bayarkan akan dikembalikan paling lambat 1x24 jam ke rekening pengirim sesuai jumlah yang ditransfer (potongan biaya transfer bank menjadi tanggungan pelanggan). Mohon menunggu.
 
 Order ID : ${data.midtrans_order_id}
-Item      : Lisensi YouTube Clipper - ${data.tier_label}
+Item      : Lisensi MineClip Studios - ${data.tier_label}
 Total     : ${rupiah(data.amount)}
 
 Email tidak muncul? Periksa juga folder Promosi/Sosial/Pembaruan atau Spam/Junk di penyedia email Anda.
 
-MineClip Studio - YouTube Clipper`;
+MineClip Studios`;
 
   try {
     const transporter = getTransporter();
@@ -365,8 +365,8 @@ export async function sendEmailVerificationMail(data: { email: string; otp: stri
 <body>
   <div class="sheet">
     <div class="head">
-      <h1>Verifikasi Email — YouTube Clipper</h1>
-      <p>MineClip Studio</p>
+      <h1>Verifikasi Email — MineClip Studios</h1>
+      <p>MineClip Studios</p>
     </div>
     <div class="body">
       <p>Gunakan kode di bawah untuk memverifikasi alamat email Anda saat pembelian:</p>
@@ -376,13 +376,13 @@ export async function sendEmailVerificationMail(data: { email: string; otp: stri
         <strong>Email tidak muncul?</strong> Periksa juga folder <strong>Promosi / Sosial / Pembaruan</strong> atau
         <strong>Spam / Junk</strong> di penyedia email Anda (Gmail, Yahoo, Outlook, dll.).
       </div>
-      <p class="foot">MineClip Studio &middot; YouTube Clipper<br>Email: mineclipstudios@gmail.com</p>
+      <p class="foot">MineClip Studios<br>Email: mineclipstudios@gmail.com</p>
     </div>
   </div>
 </body>
 </html>`;
 
-  const text = `Verifikasi Email — YouTube Clipper (MineClip Studio)
+  const text = `Verifikasi Email — MineClip Studios
 
 Gunakan kode berikut untuk memverifikasi alamat email Anda saat pembelian:
 KODE VERIFIKASI: ${data.otp}
@@ -391,14 +391,14 @@ Kode berlaku selama 5 menit. 3 kali kode salah akan mengunci permintaan selama 1
 
 Email tidak muncul? Periksa juga folder Promosi/Sosial/Pembaruan atau Spam/Junk di penyedia email Anda.
 
-MineClip Studio - YouTube Clipper`;
+MineClip Studios`;
 
   try {
     const transporter = getTransporter();
     await transporter.sendMail({
       from: process.env.MAIL_FROM,
       to,
-      subject: "Kode Verifikasi Email - YouTube Clipper",
+      subject: "Kode Verifikasi Email - MineClip Studios",
       text,
       html,
     });
@@ -447,13 +447,13 @@ export async function sendRefundSentEmail(data: {
   <div class="sheet">
     <div class="head">
       <h1>Refund Telah Dikirim</h1>
-      <p>MineClip Studio</p>
+      <p>MineClip Studios</p>
     </div>
     <div class="body">
       <p>Halo <strong>${data.full_name}</strong>,</p>
       <p class="muted">Terima kasih sudah bersabar. Dana refund untuk pembayaran Anda telah kami kirim.</p>
 
-      <div class="row" style="margin-top:14px;"><span>Item</span><span>Lisensi YouTube Clipper - ${data.tier_label}</span></div>
+      <div class="row" style="margin-top:14px;"><span>Item</span><span>Lisensi MineClip Studios - ${data.tier_label}</span></div>
       <div class="row total"><span>Nominal Refund</span><span>${rupiah(data.amount)}</span></div>
 
       ${data.adminNotes ? `<div class="note" style="margin-top:14px;"><strong>Catatan admin:</strong> ${data.adminNotes}</div>` : ""}
@@ -467,7 +467,7 @@ export async function sendRefundSentEmail(data: {
         <strong>Email tidak muncul?</strong> Periksa juga folder <strong>Promosi / Sosial / Pembaruan</strong> atau <strong>Spam / Junk</strong> di penyedia email Anda. Lampiran bukti transfer ada pada email ini.
       </div>
 
-      <p class="foot">MineClip Studio &middot; YouTube Clipper<br>Email: mineclipstudios@gmail.com</p>
+      <p class="foot">MineClip Studios<br>Email: mineclipstudios@gmail.com</p>
     </div>
   </div>
 </body>
@@ -476,7 +476,7 @@ export async function sendRefundSentEmail(data: {
   const text = `Halo ${data.full_name},
 
 Terima kasih sudah bersabar. Dana refund untuk pembayaran Anda telah kami kirim:
-Item              : Lisensi YouTube Clipper - ${data.tier_label}
+Item              : Lisensi MineClip Studios - ${data.tier_label}
 Nominal Refund    : ${rupiah(data.amount)}
 ${data.adminNotes ? `Catatan admin     : ${data.adminNotes}` : ""}
 
@@ -485,7 +485,7 @@ Jika dalam 1x24 jam dana belum masuk, hubungi admin melalui WhatsApp atau balas 
 
 Email tidak muncul? Periksa juga folder Promosi/Sosial/Pembaruan atau Spam/Junk di penyedia email Anda.
 
-MineClip Studio - YouTube Clipper`;
+MineClip Studios`;
 
   try {
     const transporter = getTransporter();

@@ -1,5 +1,5 @@
 # ============================================================
-#  docker-compose.yml — YouTube Clipper
+#  docker-compose.yml — MineClip Studios
 #  2 service: web (Next.js) + telegram (bot long-polling)
 #
 #  SEBELUM MENJALANKAN:

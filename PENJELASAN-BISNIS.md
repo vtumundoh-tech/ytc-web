@@ -1,4 +1,4 @@
-# Penjelasan Bisnis — MineClip Studio (YouTube Clipper)
+# Penjelasan Bisnis — MineClip Studios (MineClip Studios)
 
 > Dokumen ini menjelaskan apa yang dijual, paket & harga, cara membeli, metode pembayaran, alur aktivasi, hingga kontak. Data digabung dari website resmi (harga & alur beli terkini) dan panduan aplikasi `clipper-guide.html`.
 
@@ -17,7 +17,7 @@
 
 ## 1. Ringkasan Bisnis
 
-**MineClip Studio** menjual **YouTube Clipper**, sebuah aplikasi desktop **Windows** berbayar (lisensi) untuk para kreator konten. Aplikasi berupa *web server lokal* yang berfungsi **offline** setelah diunduh, untuk:
+**MineClip Studios** menjual **MineClip Studios**, sebuah aplikasi desktop **Windows** berbayar (lisensi) untuk para kreator konten. Aplikasi berupa *web server lokal* yang berfungsi **offline** setelah diunduh, untuk:
 
 - Mengunduh video dari YouTube.
 - Mengubah transkrip menjadi teks (transkripsi AI).
@@ -31,7 +31,7 @@ Lisensi dijual dalam bentuk **sewa berbatas waktu** (1/7/17/30 hari), dengan ops
 
 ## 2. Apa yang Kita Jual (Produk & Fitur)
 
-**YouTube Clipper** — aplikasi desktop Windows (64-bit), Windows 10/11, RAM min. 4 GB.
+**MineClip Studios** — aplikasi desktop Windows (64-bit), Windows 10/11, RAM min. 4 GB.
 
 Fitur utama:
 
@@ -121,12 +121,12 @@ Metode pembayaran **saat ini di situs**:
 Sumber: panduan aplikasi (`clipper-guide.html`).
 
 ### 6.1 Instalasi
-1. Download installer `ClipperSetup.exe` (link dari Admin/email).
+1. Download installer `MineClipSetup.exe` (link dari Admin/email).
 2. Klik kanan → **Run as Administrator**; tibia UAC klik **Yes**.
-3. Setujui EULA → pilih folder (**C:\Program Files\YouTube Clipper**).
-4. Selesai → buka **YouTube Clipper** dari shortcut.
+3. Setujui EULA → pilih folder (**C:\Program Files\MineClip Studios**).
+4. Selesai → buka **MineClip Studios** dari shortcut.
 
-Installer memerlukan izin Administrator karena menginstal **ClipperGuard Service** — layanan proteksi walau-yang menjaga keamanan lisensi. Tanpa service ini aplikasi tidak berjalan.
+Installer memerlukan izin Administrator karena menginstal **MineClipGuard Service** — layanan proteksi walau-yang menjaga keamanan lisensi. Tanpa service ini aplikasi tidak berjalan.
 
 > 💡 Jika antivijektor, pilih **Run Anyway** atau tambahkan folder instalasi ke pengecualian (aplikasi pakai PyInstaller — kadang *false positive*).
 
@@ -138,8 +138,8 @@ Installer memerlukan izin Administrator karena menginstal **ClipperGuard Service
 5. Masukkan key & klik **Aktivasi** → muncul pesan **"Aktivasi berhasil!"**.
 6. Cek status lisensi di footer aplikasi: **Lisensi Permanen** / **Sisa X hari** / **Proteksi waktu tidak aktif**.
 
-### 6.3 Proteksi Waktu (ClipperGuard)
-Layanan berjalan sebagai **System** yang mencegah perubahan tanggal/jam sistem agar tidak memanipulasi masa berlaku. Jika muncul **"Proteksi waktu tidak aktif"**: buka `services.msc` → mulai ulang **YouTube Clipper Guard Service**, atau `net start ClipperGuard` via Command Prompt (Admin).
+### 6.3 Proteksi Waktu (MineClipGuard)
+Layanan berjalan sebagai **System** yang mencegah perubahan tanggal/jam sistem agar tidak memanipulasi masa berlaku. Jika muncul **"Proteksi waktu tidak aktif"**: buka `services.msc` → mulai ulang **MineClip Studios Guard Service**, atau `net start MineClipGuard` via Command Prompt (Admin).
 
 ---
 
@@ -147,7 +147,7 @@ Layanan berjalan sebagai **System** yang mencegah perubahan tanggal/jam sistem a
 
 Pembeli sewa berhak mengajukan **klain cashback** setelah memenuhi syarat:
 
-1. **Done di sosmed**: follow TikTok **ATAU** subscribe YouTube MineClip Studio.
+1. **Done di sosmed**: follow TikTok **ATAU** subscribe YouTube MineClip Studios.
 2. **Like & comment** minimal **3 post** (post berbeda; bukti maks 6 gambar).
 3. **Share** ke 3 teman **ATAU** story.
 4. Pertahankan semua **7 hari** — bila berhenti, klain tidak dicairkan.
@@ -171,4 +171,4 @@ Pembeli sewa berhak mengajukan **klain cashback** setelah memenuhi syarat:
 
 ---
 
-*MineClip Studio | YouTube Clipper — Deskripsi Bisnis v1.0*
+*MineClip Studios | MineClip Studios — Deskripsi Bisnis v1.0*

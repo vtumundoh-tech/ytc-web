@@ -1,5 +1,5 @@
 # ============================================================
-#  Dockerfile — YouTube Clipper (Next.js)
+#  Dockerfile — MineClip Studios (Next.js)
 #  Multi-stage build: node:20-alpine
 #
 #  Variabel NEXT_PUBLIC_* di-inline oleh Next.js SAAT BUILD,

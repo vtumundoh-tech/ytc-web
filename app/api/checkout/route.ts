@@ -38,6 +38,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Anda harus setuju dengan Syarat & Ketentuan." }, { status: 400 });
     }
 
+    const supabase = supabaseServer();
+
+    const { data: verifiedRec } = await supabase
+      .from("email_verifications")
+      .select("verified_at")
+      .eq("email", emailStr.toLowerCase())
+      .gt("verified_at", new Date(Date.now() - 5 * 60 * 1000).toISOString())
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!verifiedRec?.verified_at) {
+      return NextResponse.json({ error: "Email belum diverifikasi. Masukkan kode verifikasi sebelum melanjutkan pembayaran." }, { status: 403 });
+    }
+
     const settings = await getSettings();
     const tierData = settings.tiers.find((t) => t.value === tier);
     if (!tierData) {
@@ -60,7 +75,6 @@ export async function POST(req: NextRequest) {
     const downloadToken = generateDownloadToken();
     const downloadExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
-    const supabase = supabaseServer();
     const now = new Date().toISOString();
     const { error: insertError } = await supabase.from("orders").insert({
       full_name: fullNameStr,

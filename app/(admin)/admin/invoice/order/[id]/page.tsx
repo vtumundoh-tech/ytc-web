@@ -95,7 +95,7 @@ export default function InvoiceOrderPage() {
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center text-white font-bold text-xs shadow-sm">
                 YC
               </div>
-              <span className="font-bold text-gray-900 text-sm">YouTube Clipper</span>
+              <span className="font-bold text-gray-900 text-sm">MineClip Studios</span>
             </div>
             <p className="text-xs text-gray-400 mt-0.5">Lisensi Software Desktop</p>
           </div>
@@ -139,7 +139,7 @@ export default function InvoiceOrderPage() {
           </thead>
           <tbody>
             <tr className="border-b border-gray-50">
-              <td className="py-3 text-sm text-gray-900">Lisensi YouTube Clipper - {order.tier_label}</td>
+              <td className="py-3 text-sm text-gray-900">Lisensi MineClip Studios - {order.tier_label}</td>
               <td className="py-3 text-sm font-semibold text-gray-900 text-right">{rupiah(order.amount)}</td>
             </tr>
           </tbody>

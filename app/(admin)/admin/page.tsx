@@ -758,7 +758,7 @@ function OrdersTab() {
       />
 
       {paidReminder && (() => {
-        const tpl = `Halo ${paidReminder.name}, terima kasih \u{1F64F} atas pembelian paket ${paidReminder.paket} di **MineClip Studio**! Pembayaran senilai Rp ${paidReminder.nominal.toLocaleString("id-ID")} sudah kami terima & di-verified \u2705.\n\nSupaya aplikasi bisa aktif, kami butuh **Machine ID** kamu: buka aplikasi YouTube Clipper (installer & link unduhan sudah kami kirim ke email ${paidReminder.email}), di halaman aktivasi copy angka 12 digit (contoh: BCBA523AF764) lalu kirim di chat ini.\n\nSetelah Machine ID kami terima, **key aktivasi** langsung kami kirim di chat ini maksimal 1x24 jam.`;
+        const tpl = `Halo ${paidReminder.name}, terima kasih \u{1F64F} atas pembelian paket ${paidReminder.paket} di **MineClip Studios**! Pembayaran senilai Rp ${paidReminder.nominal.toLocaleString("id-ID")} sudah kami terima & di-verified \u2705.\n\nSupaya aplikasi bisa aktif, kami butuh **Machine ID** kamu: buka aplikasi MineClip Studios (installer & link unduhan sudah kami kirim ke email ${paidReminder.email}), di halaman aktivasi copy angka 12 digit (contoh: BCBA523AF764) lalu kirim di chat ini.\n\nSetelah Machine ID kami terima, **key aktivasi** langsung kami kirim di chat ini maksimal 1x24 jam.`;
         return (
           <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 mb-4">
             <div className="flex items-start gap-3">
