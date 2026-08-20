@@ -59,9 +59,9 @@ export default function HomePage() {
   return (
     <div className="overflow-hidden">
       {/* ─── HERO ─── */}
-      <motion.section {...fadeUp} className="relative max-w-5xl mx-auto px-4 pt-16 sm:pt-24 pb-12 sm:pb-20 text-center">
+      <motion.section {...fadeUp} className="relative max-w-5xl mx-auto px-4 pt-8 sm:pt-12 pb-8 sm:pb-12 text-center">
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-emerald-50/60 to-transparent" />
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full border border-emerald-200/50 mb-6">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full border border-emerald-200/50 mb-4">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
           MineClip Studios v2.0 — Lisensi Permanen
         </div>
@@ -131,9 +131,9 @@ export default function HomePage() {
       </motion.section>
 
       {/* ─── FITUR ─── */}
-      <motion.section {...fadeUp} className="max-w-5xl mx-auto px-4 py-12 sm:py-16">
+      <motion.section {...fadeUp} className="max-w-5xl mx-auto px-4 py-8 sm:py-10">
         <h2 className="text-lg sm:text-2xl font-bold text-gray-900 text-center">Kenapa MineClip Studios?</h2>
-        <p className="text-sm text-gray-500 text-center mt-2 mb-10">Satu software untuk semua kebutuhan konten viral Anda.</p>
+        <p className="text-sm text-gray-500 text-center mt-1.5 mb-6">Satu software untuk semua kebutuhan konten viral Anda.</p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {FEATURES.map((f, i) => {
             const Icon = f.icon;
@@ -156,13 +156,13 @@ export default function HomePage() {
       </motion.section>
 
       {/* ─── HARGA ─── */}
-      <motion.section id="harga" {...fadeUp} className="relative max-w-4xl mx-auto px-4 py-12 sm:py-16">
+      <motion.section id="harga" {...fadeUp} className="relative max-w-4xl mx-auto px-4 py-8 sm:py-10">
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-gray-50/80 to-transparent" />
         <h2 className="text-lg sm:text-2xl font-bold text-gray-900 text-center">Pilih Paket</h2>
-        <p className="text-sm text-gray-500 text-center mt-2 mb-3">
+        <p className="text-sm text-gray-500 text-center mt-1.5 mb-2">
           Lisensi permanen — sekali bayar, dapat anda gunakan selamanya. Harga sewaktu-waktu bisa berubah.
         </p>
-        <p className="text-xs text-gray-400 text-center mb-10">
+        <p className="text-xs text-gray-400 text-center mb-6">
           <Coins className="w-4 h-4 inline text-amber-500 -mt-0.5" /> Setiap paket berhak klaim cashback!
         </p>
 
@@ -259,9 +259,9 @@ export default function HomePage() {
       </motion.section>
 
       {/* ─── CARA BELI ─── */}
-      <motion.section id="cara-beli" {...fadeUp} className="max-w-5xl mx-auto px-4 py-12 sm:py-16">
+      <motion.section id="cara-beli" {...fadeUp} className="max-w-5xl mx-auto px-4 py-8 sm:py-10">
         <h2 className="text-lg sm:text-2xl font-bold text-gray-900 text-center">Cara Pembelian</h2>
-        <p className="text-sm text-gray-500 text-center mt-2 mb-10">Cukup 3 langkah — dari beli sampai key siap pakai.</p>
+        <p className="text-sm text-gray-500 text-center mt-1.5 mb-6">Cukup 3 langkah — dari beli sampai key siap pakai.</p>
         <div className="grid sm:grid-cols-3 gap-4">
           {STEPS.map((step, i) => {
             const Icon = step.icon;
@@ -295,7 +295,7 @@ export default function HomePage() {
       </motion.section>
 
       {/* ─── PEMBAYARAN ─── */}
-      <motion.section {...fadeUp} className="relative max-w-5xl mx-auto px-4 py-12 sm:py-16">
+      <motion.section {...fadeUp} className="relative max-w-5xl mx-auto px-4 py-8 sm:py-10">
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-gray-50/80 to-transparent" />
         <div className="card-lg max-w-2xl mx-auto text-center">
           <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center mx-auto mb-4">
@@ -325,12 +325,12 @@ export default function HomePage() {
       </motion.section>
 
       {/* ─── CASHBACK ─── */}
-      <motion.section id="cashback" {...fadeUp} className="max-w-5xl mx-auto px-4 py-12 sm:py-16">
+      <motion.section id="cashback" {...fadeUp} className="max-w-5xl mx-auto px-4 py-8 sm:py-10">
         <h2 className="text-lg sm:text-2xl font-bold text-gray-900 text-center">Program Cashback</h2>
-        <p className="text-sm text-gray-500 text-center mt-2 mb-3">
+        <p className="text-sm text-gray-500 text-center mt-1.5 mb-2">
           Dapatkan uang kembali dengan cara support kami melalui follow, like & share konten TikTok/Youtube kami.
         </p>
-        <p className="text-xs text-gray-400 text-center mb-10">
+        <p className="text-xs text-gray-400 text-center mb-6">
           Syarat & Ketentuan berlaku
         </p>
 
@@ -381,7 +381,7 @@ export default function HomePage() {
       </motion.section>
 
       {/* ─── KONTAK ─── */}
-      <motion.section {...fadeUp} className="max-w-5xl mx-auto px-4 py-12 sm:py-16">
+      <motion.section {...fadeUp} className="max-w-5xl mx-auto px-4 py-8 sm:py-10">
         <div className="card-lg max-w-lg mx-auto text-center">
           <h2 className="text-lg font-bold text-gray-900">Hubungi Kami</h2>
           <p className="text-sm text-gray-500 mt-2 mb-6">Ada pertanyaan? Butuh bantuan? Hubungi:</p>

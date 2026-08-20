@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Image from "next/image";
 import { FileText, Printer, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
@@ -109,9 +110,13 @@ export default function InvoiceClaimPage() {
         <div className="flex items-start justify-between mb-8 pb-6 border-b border-gray-100">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs shadow-sm">
-                YC
-              </div>
+              <Image
+                src="/logo.png"
+                alt="MineClip Studios"
+                width={33}
+                height={24}
+                className="h-6 w-auto object-contain"
+              />
               <span className="font-bold text-gray-900 text-sm">MineClip Studios</span>
             </div>
             <p className="text-xs text-gray-400 mt-0.5">Cashback Program</p>
