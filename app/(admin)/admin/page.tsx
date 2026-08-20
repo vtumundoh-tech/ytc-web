@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { LogOut, ShoppingBag, Gift, Users, DollarSign, ExternalLink, Save, Download, FileText, Settings, Power, Search, Calendar, Filter, X, QrCode, Upload, RotateCcw, AlertTriangle, Paperclip, BellRing, Copy, BarChart3 } from "lucide-react";
+import { LogOut, ShoppingBag, Gift, Users, DollarSign, ExternalLink, Save, Download, FileText, Settings, Power, Search, Calendar, Filter, X, QrCode, Upload, RotateCcw, AlertTriangle, Paperclip, BellRing, Copy, BarChart3, RefreshCw } from "lucide-react";
 import { useMemo } from "react";
 import dynamic from "next/dynamic";
 import { parseJsonSafe, isHeicFile, HEIC_ERROR } from "@/lib/fetchJson";
@@ -416,12 +416,28 @@ function DashboardTab() {
     [orders]
   );
 
-  const revenue = orders.filter((o) => o.status === "paid").reduce((s, o) => s + o.amount, 0);
-  const pending = orders.filter((o) => o.status === "pending").length;
+  const span = mode === "daily" ? 30 : 12;
+
+  const currentTotals = useMemo(() => {
+    let revenueC = 0, ordersC = 0, pendingC = 0;
+    for (let i = 0; i < span; i++) {
+      const d = new Date(today);
+      if (mode === "daily") d.setDate(d.getDate() - i);
+      else d.setMonth(d.getMonth() - i);
+      const key = mode === "daily" ? dateKey(d) : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      orders.forEach((o) => {
+        const ok = mode === "daily" ? o.created_at.slice(0, 10) : o.created_at.slice(0, 7);
+        if (ok !== key) return;
+        ordersC++;
+        if (o.status === "pending") pendingC++;
+        if (o.status === "paid") revenueC += o.amount;
+      });
+    }
+    return { revenue: revenueC, orders: ordersC, pending: pendingC };
+  }, [orders, mode, span]);
 
   const prevTotals = useMemo(() => {
     let revenueP = 0, ordersP = 0, pendingP = 0;
-    const span = mode === "daily" ? 30 : 12;
     for (let i = 0; i < span; i++) {
       const d = new Date(today);
       if (mode === "daily") d.setDate(d.getDate() - (span + i));
@@ -436,12 +452,7 @@ function DashboardTab() {
       });
     }
     return { revenue: revenueP, orders: ordersP, pending: pendingP };
-  }, [orders, mode]);
-
-  function deltaPct(cur: number, prev: number) {
-    if (prev === 0) return cur > 0 ? 100 : 0;
-    return Math.round(((cur - prev) / prev) * 100);
-  }
+  }, [orders, mode, span]);
 
   const drill = useMemo(() => {
     let list = orders;
@@ -453,7 +464,11 @@ function DashboardTab() {
   const activeLabel = series.find((s) => s.key === activeBucket)?.label || null;
 
   function DeltaChip({ cur, prev, reverse }: { cur: number; prev: number; reverse?: boolean }) {
-    const pct = deltaPct(cur, prev);
+    if (prev === 0) {
+      if (cur > 0) return <span className="text-[11px] font-semibold text-emerald-600">Baru</span>;
+      return <span className="text-[11px] text-gray-400">—</span>;
+    }
+    const pct = Math.round(((cur - prev) / prev) * 100);
     const up = pct > 0;
     const good = reverse ? !up : up;
     if (pct === 0) return <span className="text-[11px] text-gray-400">±0%</span>;
@@ -484,27 +499,29 @@ function DashboardTab() {
             </button>
           ))}
         </div>
-        <span className="text-[11px] text-gray-400">Bandingkan vs periode sebelumnya · klik chart untuk detail</span>
+        <span className="text-[11px] text-gray-400">
+          KPI = jumlah {mode === "daily" ? "30 hari terakhir" : "12 bulan terakhir"}, dibandingkan periode sebelumnya · klik chart untuk detail
+        </span>
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        <SummaryCard icon={DollarSign} label="Pendapatan" value={rupiah(revenue)} color="emerald" />
-        <SummaryCard icon={Users} label="Total Order" value={orders.length} color="blue" />
-        <SummaryCard icon={ShoppingBag} label="Pending" value={pending} color="amber" />
+        <SummaryCard icon={DollarSign} label={`Pendapatan (${mode === "daily" ? "30 hari" : "12 bulan"})`} value={rupiah(currentTotals.revenue)} color="emerald" />
+        <SummaryCard icon={Users} label={`Total Order (${mode === "daily" ? "30 hari" : "12 bulan"})`} value={currentTotals.orders} color="blue" />
+        <SummaryCard icon={ShoppingBag} label={`Pending (${mode === "daily" ? "30 hari" : "12 bulan"})`} value={currentTotals.pending} color="amber" />
       </div>
 
       <div className="flex flex-wrap gap-x-5 gap-y-1.5 px-1 text-xs text-gray-500">
         <span className="flex items-center gap-1.5">
-          Pendapatan <DeltaChip cur={revenue} prev={prevTotals.revenue} />
+          Pendapatan <DeltaChip cur={currentTotals.revenue} prev={prevTotals.revenue} />
         </span>
         <span className="flex items-center gap-1.5">
-          Total Order <DeltaChip cur={orders.length} prev={prevTotals.orders} />
+          Total Order <DeltaChip cur={currentTotals.orders} prev={prevTotals.orders} />
         </span>
         <span className="flex items-center gap-1.5">
-          Pending <DeltaChip reverse cur={pending} prev={prevTotals.pending} />
+          Pending <DeltaChip reverse cur={currentTotals.pending} prev={prevTotals.pending} />
         </span>
         <span className="text-gray-400">
-          vs {prevTotals.orders} order periode sebelumnya {mode === "daily" ? "(30 hari)" : "(12 bulan)"}
+          {mode === "daily" ? "Periode berjalan 30 hari" : "Periode berjalan 12 bulan"} · sebelumnya {prevTotals.orders} order / {rupiah(prevTotals.revenue)}
         </span>
       </div>
 
@@ -570,6 +587,9 @@ function OrdersTab() {
   const [error, setError] = useState<string | null>(null);
   const [paidReminder, setPaidReminder] = useState<{ name: string; whatsapp: string; email: string; paket: string; nominal: number } | null>(null);
   const [filter, setFilter] = useState<FilterState>({ query: "", fromDate: "", toDate: "", tier: "", status: "" });
+  const [view, setView] = useState<"pending" | "processed" | "all">("pending");
+  const [resending, setResending] = useState<string | null>(null);
+  const [resendMsg, setResendMsg] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -644,13 +664,46 @@ function OrdersTab() {
     }
   }
 
+  async function resendLink(o: Order) {
+    if (resending) return;
+    setResending(o.id);
+    setError(null);
+    setResendMsg(null);
+    try {
+      const res = await fetch("/api/admin/orders", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: o.id, resend_link: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal mengirim ulang link.");
+      setResendMsg(
+        data.emailSent
+          ? `Link unduh baru terkirim ke ${o.email || "email pelanggan"}. Link lama otomatis nonaktif.`
+          : "Link baru dibuat, tapi email gagal terkirim. Periksa status email di kartu."
+      );
+      setTimeout(() => setResendMsg(null), 6000);
+    } catch (err: any) {
+      setError(err.message || "Gagal mengirim ulang link.");
+    } finally {
+      setResending(null);
+    }
+  }
+
   const tierOptions = Array.from(new Set(orders.map((o) => o.tier_label).filter(Boolean))).sort();
+
+  const viewCounts = useMemo(() => ({
+    pending: orders.filter((o) => o.status === "pending").length,
+    processed: orders.filter((o) => o.status !== "pending").length,
+  }), [orders]);
 
   const filtered = useMemo(() => {
     const q = filter.query.trim().toLowerCase();
     const from = filter.fromDate ? new Date(filter.fromDate + "T00:00:00").getTime() : null;
     const to = filter.toDate ? new Date(filter.toDate + "T23:59:59.999").getTime() : null;
     return orders.filter((o) => {
+      if (view === "pending" && o.status !== "pending") return false;
+      if (view === "processed" && o.status === "pending") return false;
       if (filter.tier && o.tier_label !== filter.tier) return false;
       if (filter.status && o.status !== filter.status) return false;
       if (q && !`${o.full_name} ${o.whatsapp} ${o.email || ""} ${o.midtrans_order_id} ${o.cashback_code || ""}`.toLowerCase().includes(q)) return false;
@@ -661,18 +714,37 @@ function OrdersTab() {
       }
       return true;
     });
-  }, [orders, filter]);
+  }, [orders, filter, view]);
 
   if (loading) return <LoadingSkeleton />;
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-1.5 bg-gray-100 p-1 rounded-xl">
+          {([
+            { key: "pending", label: `Menunggu (${viewCounts.pending})` },
+            { key: "processed", label: `Terproses (${viewCounts.processed})` },
+            { key: "all", label: "Semua" },
+          ] as const).map((v) => (
+            <button
+              key={v.key}
+              type="button"
+              onClick={() => setView(v.key)}
+              className={cn(
+                "px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200",
+                view === v.key ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              {v.label}
+            </button>
+          ))}
+        </div>
         <a
           href="/api/admin/orders/export"
           className="shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-800 transition-all duration-200 shadow-sm"
         >
-          <Download className="w-3.5 h-3.5" /> Export CSV
+          <Download className="w-3.5 h-3.5" /> Export Excel
         </a>
       </div>
 
@@ -723,9 +795,15 @@ function OrdersTab() {
                 </div>
               </div>
             </div>
-          </div>
-        );
-      })()}
+</div>
+          );
+        })()}
+
+      {resendMsg && (
+        <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-sm text-blue-700">
+          {resendMsg}
+        </div>
+      )}
 
       {error && (
         <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-sm text-red-700">
@@ -903,6 +981,18 @@ function OrdersTab() {
                     </span>
                   )}
                   {o.payment_proof_url && <ProofLink url={o.payment_proof_url} label="Bukti Bayar" />}
+                  {o.status === "paid" && (
+                    <button
+                      type="button"
+                      onClick={() => resendLink(o)}
+                      disabled={resending === o.id}
+                      title="Buat link unduh baru & kirim ulang invoice via email — link lama otomatis nonaktif"
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${resending === o.id ? "animate-spin" : ""}`} />
+                      {resending === o.id ? "Mengirim…" : "Kirim Ulang Link"}
+                    </button>
+                  )}
                   <Link
                     href={`/admin/invoice/order/${o.id}`}
                     className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition-all duration-200"
@@ -937,6 +1027,7 @@ function ClaimsTab() {
   const [savedId, setSavedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterState>({ query: "", fromDate: "", toDate: "", tier: "", status: "" });
+  const [view, setView] = useState<"pending" | "processed" | "all">("pending");
 
   async function load() {
     setLoading(true);
@@ -993,11 +1084,18 @@ function ClaimsTab() {
 
   const tierOptions = Array.from(new Set(claims.map((c) => c.tier.replace("_", " ")).filter(Boolean))).sort();
 
+  const viewCounts = useMemo(() => ({
+    pending: claims.filter((c) => c.status === "pending").length,
+    processed: claims.filter((c) => c.status !== "pending").length,
+  }), [claims]);
+
   const filtered = useMemo(() => {
     const q = filter.query.trim().toLowerCase();
     const from = filter.fromDate ? new Date(filter.fromDate + "T00:00:00").getTime() : null;
     const to = filter.toDate ? new Date(filter.toDate + "T23:59:59.999").getTime() : null;
     return claims.filter((c) => {
+      if (view === "pending" && c.status !== "pending") return false;
+      if (view === "processed" && c.status === "pending") return false;
       const readableTier = c.tier.replace("_", " ");
       if (filter.tier && readableTier !== filter.tier) return false;
       if (q && !`${c.full_name} ${c.whatsapp} ${c.email || ""} ${c.machine_id} ${c.license_key}`.toLowerCase().includes(q)) return false;
@@ -1008,12 +1106,32 @@ function ClaimsTab() {
       }
       return true;
     });
-  }, [claims, filter]);
+  }, [claims, filter, view]);
 
   if (loading) return <LoadingSkeleton />;
 
   return (
     <div className="space-y-4">
+      <div className="flex gap-1.5 bg-gray-100 p-1 rounded-xl w-fit">
+        {([
+          { key: "pending", label: `Menunggu (${viewCounts.pending})` },
+          { key: "processed", label: `Terproses (${viewCounts.processed})` },
+          { key: "all", label: "Semua" },
+        ] as const).map((v) => (
+          <button
+            key={v.key}
+            type="button"
+            onClick={() => setView(v.key)}
+            className={cn(
+              "px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200",
+              view === v.key ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+            )}
+          >
+            {v.label}
+          </button>
+        ))}
+      </div>
+
       <div className="flex items-start gap-3">
         <div className="grid grid-cols-3 gap-3 flex-1">
           <SummaryCard icon={Gift} label="Total Klaim" value={claims.length} color="purple" />
@@ -1024,7 +1142,7 @@ function ClaimsTab() {
           href="/api/admin/claims/export"
           className="shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-800 transition-all duration-200 shadow-sm"
         >
-          <Download className="w-3.5 h-3.5" /> Export CSV
+          <Download className="w-3.5 h-3.5" /> Export Excel
         </a>
       </div>
 
@@ -1557,11 +1675,11 @@ function SettingsTab() {
             Pengaturan berhasil disimpan.
           </div>
         )}
-        {error && (
-          <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-sm text-red-700">
-            {error}
-          </div>
-        )}
+{error && (
+        <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-sm text-red-700">
+          {error}
+        </div>
+      )}
       </div>
 
       <div className={cn("card-sm space-y-4", form.qris_enabled ? "border-blue-200" : "border-gray-200")}>

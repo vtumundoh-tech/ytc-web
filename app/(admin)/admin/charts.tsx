@@ -13,6 +13,7 @@ import {
   PieChart,
   Pie,
   Cell,
+  ReferenceLine,
 } from "recharts";
 
 export type DashboardBucket = {
@@ -59,6 +60,8 @@ export default function AdminCharts({
   onBucket: (b: DashboardBucket) => void;
   onStatus: (s: DashboardSlice) => void;
 }) {
+  const revenues = series.filter((s) => s.revenue > 0).map((s) => s.revenue);
+  const avgRevenue = revenues.length ? revenues.reduce((a, b) => a + b, 0) / revenues.length : 0;
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       <div className="lg:col-span-2 p-4 rounded-2xl bg-white border border-gray-100 shadow-sm">
@@ -70,7 +73,7 @@ export default function AdminCharts({
         </div>
         <ResponsiveContainer width="100%" height={260}>
           <ComposedChart data={series} onClick={(d: any) => d?.activePayload?.[0]?.payload && onBucket(d.activePayload[0].payload)}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+            <CartesianGrid strokeDasharray="4 4" stroke="#e5e7eb" vertical={false} />
             <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#9ca3af" }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
             <YAxis yAxisId="count" tick={{ fontSize: 10, fill: "#9ca3af" }} tickLine={false} axisLine={false} allowDecimals={false} width={30} />
             <YAxis yAxisId="rev" orientation="right" tick={{ fontSize: 10, fill: "#10b981" }} tickLine={false} axisLine={false} tickFormatter={(v: number) => (v >= 1_000_000 ? (v / 1_000_000).toFixed(1) + "jt" : v >= 1_000 ? Math.round(v / 1_000) + "rb" : String(v))} width={42} />
@@ -82,6 +85,9 @@ export default function AdminCharts({
             <Bar yAxisId="count" dataKey="total" name="Total Order" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={22} />
             <Bar yAxisId="count" dataKey="pending" name="Pending" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={22} />
             <Line yAxisId="rev" dataKey="revenue" name="Pendapatan" stroke="#059669" strokeWidth={2} dot={{ r: 2.5, fill: "#059669" }} />
+            {avgRevenue > 0 && (
+              <ReferenceLine yAxisId="rev" y={avgRevenue} stroke="#059669" strokeDasharray="4 4" opacity={0.55} label={{ value: "rata-rata", position: "right", fontSize: 9, fill: "#059669" }} />
+            )}
           </ComposedChart>
         </ResponsiveContainer>
       </div>
@@ -92,7 +98,10 @@ export default function AdminCharts({
           <span className="text-[11px] text-gray-400">Klik irisan</span>
         </div>
         <ResponsiveContainer width="100%" height={200}>
-          <PieChart onClick={(d: any) => d?.activePayload?.[0]?.payload && onStatus(d.activePayload[0].payload)}>
+          <PieChart onClick={(d: any) => {
+            const p = d?.payload ?? d?.activePayload?.[0]?.payload ?? d;
+            if (p && p.status) onStatus(p);
+          }}>
             <Pie
               data={slices}
               dataKey="count"

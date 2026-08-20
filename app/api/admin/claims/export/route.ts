@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
+import { buildXlsxBuffer, type XlsxColumn } from "@/lib/xlsxExport";
 
 export const dynamic = "force-dynamic";
 
@@ -18,14 +19,6 @@ function fmtDateTime(iso?: string | null): string {
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function escapeCsv(val: unknown): string {
-  const s = val === null || val === undefined ? "" : String(val);
-  if (s.includes(",") || s.includes('"') || s.includes("\n") || s.includes("\r")) {
-    return `"${s.replace(/"/g, '""')}"`;
-  }
-  return s;
-}
-
 function joinUrls(value: unknown): string {
   if (!value) return "";
   let urls: unknown[] = [];
@@ -38,48 +31,57 @@ function joinUrls(value: unknown): string {
   return urls.join(" | ");
 }
 
+const COLUMNS: XlsxColumn[] = [
+  { header: "No", key: "no", width: 5 },
+  { header: "Tanggal", key: "tanggal", width: 18 },
+  { header: "Nama", key: "nama", width: 24 },
+  { header: "WhatsApp", key: "wa", width: 16 },
+  { header: "Email", key: "email", width: 28 },
+  { header: "Paket", key: "paket", width: 16 },
+  { header: "Nominal Bayar (Rp)", key: "amountPaid", width: 18, numFmt: '"Rp" #,##0' },
+  { header: "Status", key: "status", width: 14 },
+  { header: "Bukti Bayar", key: "proofPayment", width: 30 },
+  { header: "Bukti Follow/Subscribe", key: "proofFollow", width: 30 },
+  { header: "Bukti Like & Comment", key: "proofLike", width: 34 },
+  { header: "Bukti Share", key: "proofShare", width: 30 },
+  { header: "Catatan", key: "catatan", width: 26 },
+  { header: "IP", key: "ip", width: 16 },
+  { header: "Browser", key: "browser", width: 18 },
+  { header: "OS", key: "os", width: 16 },
+  { header: "Device", key: "device", width: 14 },
+];
+
 export async function GET() {
   const supabase = supabaseServer() as any;
   const { data, error } = await supabase.from("cashback_claims").select("*").order("created_at", { ascending: true });
   if (error) return NextResponse.json({ error: "Gagal memuat data." }, { status: 500 });
 
-  const rows = data || [];
-  const headers = [
-    "No", "Tanggal", "Nama", "WhatsApp", "Email",
-    "Paket", "Nominal Bayar (Rp)", "Status",
-    "Bukti Bayar", "Bukti Follow/Subscribe", "Bukti Like & Comment", "Bukti Share",
-    "Catatan", "IP", "Browser", "OS", "Device",
-  ];
+  const rows = (data || []).map((c: any, i: number) => ({
+    no: i + 1,
+    tanggal: fmtDateTime(c.created_at),
+    nama: c.full_name ?? "",
+    wa: c.whatsapp ?? "",
+    email: c.email ?? "",
+    paket: c.tier ? c.tier.replace("_", " ") : "",
+    amountPaid: c.amount_paid ?? 0,
+    status: STATUS_LABEL[c.status] || c.status || "",
+    proofPayment: c.payment_proof_url ?? "",
+    proofFollow: c.screenshot_follow_url ?? "",
+    proofLike: joinUrls(c.screenshot_like_url),
+    proofShare: c.screenshot_share_url ?? "",
+    catatan: c.notes ?? "",
+    ip: c.ip_address ?? "",
+    browser: c.browser ?? "",
+    os: c.os ?? "",
+    device: c.device_type ?? "",
+  }));
 
-  const csvRows = rows.map((c: any, i: number) => [
-    i + 1,
-    fmtDateTime(c.created_at),
-    escapeCsv(c.full_name),
-    escapeCsv(c.whatsapp || ""),
-    escapeCsv(c.email || ""),
-    escapeCsv(c.tier || ""),
-    c.amount_paid ?? "",
-    STATUS_LABEL[c.status] || c.status,
-    escapeCsv(c.payment_proof_url || ""),
-    escapeCsv(c.screenshot_follow_url || ""),
-    escapeCsv(joinUrls(c.screenshot_like_url)),
-    escapeCsv(c.screenshot_share_url || ""),
-    escapeCsv(c.notes || ""),
-    escapeCsv(c.ip_address || ""),
-    escapeCsv(c.browser || ""),
-    escapeCsv(c.os || ""),
-    escapeCsv(c.device_type || ""),
-  ]);
+  const buf = await buildXlsxBuffer("Klaim Cashback", COLUMNS, rows);
 
-  const csv = [
-    headers.join(","),
-    ...csvRows.map((r: (string | number)[]) => r.map(escapeCsv).join(",")),
-  ].join("\n");
-
-  return new NextResponse("\uFEFF" + csv, {
+  return new NextResponse(new Uint8Array(buf), {
     headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="klaim-cashback-${Date.now()}.csv"`,
+      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Content-Disposition": `attachment; filename="klaim-cashback-${Date.now()}.xlsx"`,
     },
   });
 }

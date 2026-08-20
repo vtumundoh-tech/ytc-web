@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { fullName, whatsapp, email, tier, agreeSnk } = body || {};
+    const { fullName, whatsapp, email, tier, agreeSnk, addon1080 } = body || {};
 
     const fullNameStr = String(fullName || "").trim();
     const emailStr = String(email || "").trim();
@@ -44,9 +44,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Paket tidak valid." }, { status: 400 });
     }
 
-    const hasAddon = /1080p/i.test(tierData.label);
+    const addonWanted = addon1080 === true || addon1080 === "true" || addon1080 === 1 || addon1080 === "1";
+    const tierIs1080 = /1080/i.test(tier);
+    const hasAddon = tierIs1080 || addonWanted;
+    const addonPrice = addonWanted && !tierIs1080 ? settings.addonPrices[tier] || 0 : 0;
     const basePrice = settings.promoEnabled ? tierData.amount : tierData.originalAmount;
-    const totalAmount = basePrice;
+    const totalAmount = basePrice + addonPrice;
     const tierLabel = hasAddon ? `${tierData.label} (1080p)` : `${tierData.label} (720p)`;
 
     const qrisEnabled = settings.qrisEnabled === true;

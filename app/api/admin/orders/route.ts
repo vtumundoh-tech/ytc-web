@@ -52,7 +52,7 @@ export async function GET() {
 
 export async function PATCH(req: NextRequest) {
   const body = await req.json();
-  const { id, status, admin_notes, rejection_reason, rejection_type, amount_paid_by_customer, amount_remaining } = body || {};
+  const { id, status, admin_notes, rejection_reason, rejection_type, amount_paid_by_customer, amount_remaining, resend_link } = body || {};
   if (!id) return NextResponse.json({ error: "id wajib diisi" }, { status: 400 });
 
   const normalizedStatus = String(status || "").toLowerCase();
@@ -71,6 +71,39 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Pesanan tidak ditemukan." }, { status: 404 });
   }
   const order = existing as Order;
+
+  if (resend_link === true) {
+    if (order.status !== "paid") {
+      return NextResponse.json({ error: "Link unduh hanya bisa dikirim ulang untuk pesanan yang sudah lunas." }, { status: 400 });
+    }
+    const newToken = generateDownloadToken();
+    const newExpiry = new Date(Date.now() + DOWNLOAD_TOKEN_TTL_MS).toISOString();
+    const { error: rotateError } = await supabase
+      .from("orders")
+      .update({ download_token: newToken, download_expires_at: newExpiry })
+      .eq("id", order.id);
+    if (rotateError) return NextResponse.json({ error: "Gagal membuat link baru. Coba lagi." }, { status: 500 });
+
+    const sent = await sendInvoiceEmail({
+      full_name: order.full_name,
+      email: order.email,
+      tier_label: order.tier_label,
+      amount: order.amount,
+      midtrans_order_id: order.midtrans_order_id,
+      downloadToken: newToken,
+      cashbackCode: order.supplement_for ? null : order.cashback_code,
+    });
+    await supabase.from("orders").update({ email_status: sent ? "sent" : "failed" }).eq("id", order.id);
+
+    await writeAudit(supabase, {
+      action: "order_download_link_resend",
+      target_type: "order",
+      target_id: order.id,
+      detail: sent ? "Link unduh baru dikirim ulang ke email pelanggan" : "Kirim ulang link gagal (email tidak terkirim)",
+    });
+
+    return NextResponse.json({ ok: true, resent: true, emailSent: sent });
+  }
 
   const update: Record<string, unknown> = { status: normalizedStatus, admin_notes };
   if (typeof rejection_reason === "string") update.rejection_reason = rejection_reason;

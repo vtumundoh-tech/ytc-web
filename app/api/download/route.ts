@@ -3,6 +3,7 @@ import { supabaseServer } from "@/lib/supabaseServer";
 import { createInstallerUrl } from "@/lib/download";
 import { checkRateLimit, rateLimitKey } from "@/lib/rateLimit";
 import { getClientIp } from "@/lib/security";
+import { generateDownloadToken } from "@/lib/cashCode";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,16 @@ export async function GET(req: NextRequest) {
     if (!url) {
       return NextResponse.json({ error: "Unduhan belum disiapkan. Hubungi admin." }, { status: 503 });
     }
+
+    const newToken = generateDownloadToken();
+    const { error: rotateError } = await supabase
+      .from("orders")
+      .update({
+        download_token: newToken,
+        download_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      })
+      .eq("download_token", token);
+    if (rotateError) console.error("download rotate token:", rotateError);
 
     return NextResponse.json({ ok: true, url });
   } catch (err: any) {

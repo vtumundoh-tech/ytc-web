@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
+import { buildXlsxBuffer, type XlsxColumn } from "@/lib/xlsxExport";
 
 export const dynamic = "force-dynamic";
 
@@ -19,57 +20,59 @@ function fmtDateTime(iso?: string | null): string {
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function escapeCsv(val: unknown): string {
-  const s = val === null || val === undefined ? "" : String(val);
-  if (s.includes(",") || s.includes('"') || s.includes("\n") || s.includes("\r")) {
-    return `"${s.replace(/"/g, '""')}"`;
-  }
-  return s;
-}
+const COLUMNS: XlsxColumn[] = [
+  { header: "No", key: "no", width: 5 },
+  { header: "Tanggal", key: "tanggal", width: 18 },
+  { header: "Nama", key: "nama", width: 24 },
+  { header: "WhatsApp", key: "wa", width: 16 },
+  { header: "Email", key: "email", width: 28 },
+  { header: "Paket", key: "paket", width: 20 },
+  { header: "Total (Rp)", key: "total", width: 16, numFmt: '"Rp" #,##0' },
+  { header: "Status", key: "status", width: 14 },
+  { header: "Metode Bayar", key: "metode", width: 14 },
+  { header: "Order ID", key: "orderId", width: 24 },
+  { header: "Machine ID", key: "machineId", width: 15 },
+  { header: "Key Lisensi", key: "licenseKey", width: 18 },
+  { header: "Email Invoice", key: "emailInvoice", width: 14 },
+  { header: "Catatan", key: "catatan", width: 26 },
+  { header: "IP", key: "ip", width: 16 },
+  { header: "Browser", key: "browser", width: 18 },
+  { header: "OS", key: "os", width: 16 },
+  { header: "Device", key: "device", width: 14 },
+];
 
 export async function GET() {
   const supabase = supabaseServer() as any;
   const { data, error } = await supabase.from("orders").select("*").order("created_at", { ascending: true });
   if (error) return NextResponse.json({ error: "Gagal memuat data." }, { status: 500 });
 
-  const rows = data || [];
-  const headers = [
-    "No", "Tanggal", "Nama", "WhatsApp", "Email",
-    "Paket", "Total (Rp)", "Status", "Metode Bayar",
-    "Order ID", "Machine ID", "Key Lisensi", "Email Invoice",
-    "Catatan", "IP", "Browser", "OS", "Device",
-  ];
+  const rows = (data || []).map((o: any, i: number) => ({
+    no: i + 1,
+    tanggal: fmtDateTime(o.created_at),
+    nama: o.full_name ?? "",
+    wa: o.whatsapp ?? "",
+    email: o.email ?? "",
+    paket: o.tier_label ?? "",
+    total: o.amount ?? 0,
+    status: STATUS_LABEL[o.status] || o.status || "",
+    metode: o.payment_type ?? "",
+    orderId: o.midtrans_order_id ?? "",
+    machineId: o.machine_id ?? "",
+    licenseKey: o.license_key ?? "",
+    emailInvoice: o.email_status === "sent" ? "Terkirim" : o.email_status === "failed" ? "Gagal" : "",
+    catatan: o.admin_notes ?? "",
+    ip: o.ip_address ?? "",
+    browser: o.browser ?? "",
+    os: o.os ?? "",
+    device: o.device_type ?? "",
+  }));
 
-  const csvRows = rows.map((o: any, i: number) => [
-    i + 1,
-    fmtDateTime(o.created_at),
-    escapeCsv(o.full_name),
-    escapeCsv(o.whatsapp || ""),
-    escapeCsv(o.email || ""),
-    escapeCsv(o.tier_label || ""),
-    o.amount ?? "",
-    STATUS_LABEL[o.status] || o.status,
-    escapeCsv(o.payment_type || ""),
-    escapeCsv(o.midtrans_order_id || ""),
-    escapeCsv(o.machine_id || ""),
-    escapeCsv(o.license_key || ""),
-    o.email_status === "sent" ? "Terkirim" : o.email_status === "failed" ? "Gagal" : "",
-    escapeCsv(o.admin_notes || ""),
-    escapeCsv(o.ip_address || ""),
-    escapeCsv(o.browser || ""),
-    escapeCsv(o.os || ""),
-    escapeCsv(o.device_type || ""),
-  ]);
+  const buf = await buildXlsxBuffer("Pembelian", COLUMNS, rows);
 
-  const csv = [
-    headers.join(","),
-    ...csvRows.map((r: (string | number)[]) => r.map(escapeCsv).join(",")),
-  ].join("\n");
-
-  return new NextResponse("\uFEFF" + csv, {
+  return new NextResponse(new Uint8Array(buf), {
     headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="pembelian-${Date.now()}.csv"`,
+      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Content-Disposition": `attachment; filename="pembelian-${Date.now()}.xlsx"`,
     },
   });
 }
