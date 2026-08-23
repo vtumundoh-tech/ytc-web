@@ -11,6 +11,7 @@ import {
 } from "@/lib/gate";
 import { checkRateLimit, rateLimitKey } from "@/lib/rateLimit";
 import { getClientIp, safeEqual } from "@/lib/security";
+import { logSecurityEvent } from "@/lib/securityAlert";
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,6 +24,12 @@ export async function POST(req: NextRequest) {
 
     const rl = await checkRateLimit(rateLimitKey("gate", ip), GATE_MAX_FAILURES, GATE_BLOCK_MAX_AGE_SECONDS * 1000);
     if (!rl.allowed) {
+      await logSecurityEvent({
+        type: "gate_failed",
+        ip,
+        detail: "Diblokir 1 hari (melewati batas percobaan gate)",
+        userAgent: req.headers.get("user-agent"),
+      });
       const res = NextResponse.json({ error: "Terlalu banyak percobaan. Akses dibatasi 1 hari." }, { status: 429 });
       res.cookies.set(GATE_BLOCK_COOKIE_NAME, "1", {
         httpOnly: true,
@@ -42,6 +49,11 @@ export async function POST(req: NextRequest) {
 
     const ok = await safeEqual(String(password ?? ""), process.env.ADMIN_GATE_PASSWORD);
     if (!ok) {
+      await logSecurityEvent({
+        type: "gate_failed",
+        ip,
+        userAgent: req.headers.get("user-agent"),
+      });
       return NextResponse.json({ error: "Kode tidak valid." }, { status: 401 });
     }
 

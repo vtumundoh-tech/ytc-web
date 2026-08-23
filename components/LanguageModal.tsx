@@ -30,9 +30,9 @@ export default function LanguageModal({
     };
   }, [onClose]);
 
-  const options: { lang: Lang; label: string; sub: string; flagClass: string }[] = [
-    { lang: "id", label: "Bahasa Indonesia", sub: "Default", flagClass: "from-red-500 via-white to-red-500" },
-    { lang: "en", label: "English", sub: "EN", flagClass: "from-blue-700 via-white to-red-600" },
+  const options: { lang: Lang; label: string; sub: string }[] = [
+    { lang: "id", label: "Bahasa Indonesia", sub: "Default" },
+    { lang: "en", label: "English", sub: "EN" },
   ];
 
   return (
@@ -82,10 +82,22 @@ export default function LanguageModal({
                     : "border-blue-200 bg-blue-50/50 hover:border-blue-400 hover:bg-blue-50"
                 }`}
               >
-                <span
-                  aria-hidden="true"
-                  className={`shrink-0 w-9 h-9 rounded-full bg-gradient-to-b ${opt.flagClass} shadow-inner`}
-                />
+                {opt.lang === "id" ? (
+                  <span
+                    aria-hidden="true"
+                    className="shrink-0 w-9 h-9 rounded-full overflow-hidden flex flex-col ring-1 ring-black/10"
+                  >
+                    <span className="h-1/2 w-full bg-red-600" />
+                    <span className="h-1/2 w-full bg-white" />
+                  </span>
+                ) : (
+                  <span
+                    aria-hidden="true"
+                    className="shrink-0 w-9 h-9 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center"
+                  >
+                    <Globe className="w-4 h-4 text-blue-600" aria-hidden="true" />
+                  </span>
+                )}
                 <span className="flex-1 min-w-0">
                   <span className="block text-sm font-bold text-gray-900">{opt.label}</span>
                   <span className="block text-xs text-gray-400">{opt.sub}</span>

@@ -435,7 +435,10 @@ export default function HomePage() {
             {t(dict.home.payment.sub)}
           </p>
           <div className="flex flex-wrap justify-center gap-3 mt-6">
-            {["QRIS", t(dict.home.payment.methodBank), "E-Wallet"].map((m, i) => (
+            {/* SAAT INI KHUSUS QRIS.
+                TODO: buka lagi array di bawah saat metode lain (transfer bank, e-wallet langsung, dll.) sudah siap:
+                {["QRIS", t(dict.home.payment.methodBank), "E-Wallet"].map((m, i) => ( */}
+            {["QRIS"].map((m, i) => (
               <motion.span
                 key={m}
                 initial={reduce ? false : { opacity: 0, scale: 0.8 }}

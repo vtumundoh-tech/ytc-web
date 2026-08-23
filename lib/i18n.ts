@@ -104,8 +104,10 @@ export const dict = {
       ctaPricing: { id: "Lihat Harga", en: "See Pricing" } as T,
       ctaBuy: { id: "Beli Langsung", en: "Buy Now" } as T,
       note: {
-        id: "Windows 10/11 (64-bit) • Tanpa langganan • Pembayaran via QRIS / Transfer Bank",
-        en: "Windows 10/11 (64-bit) • No subscription • Pay via QRIS / Bank Transfer",
+        id: "Windows 10/11 (64-bit) • Tanpa langganan • Pembayaran via QRIS",
+        en: "Windows 10/11 (64-bit) • No subscription • Pay via QRIS",
+        // id: "Windows 10/11 (64-bit) • Tanpa langganan • Pembayaran via QRIS / Transfer Bank",
+        // en: "Windows 10/11 (64-bit) • No subscription • Pay via QRIS / Bank Transfer",
       } as T,
     },
     mock: {
@@ -263,10 +265,12 @@ export const dict = {
           } as T,
         },
         {
-          label: { id: "Pilih Metode Bayar", en: "Choose Payment Method" } as T,
+          label: { id: "Bayar via QRIS", en: "Pay via QRIS" } as T,
           desc: {
-            id: "Bayar via QRIS atau transfer bank sesuai metode yang Anda pilih.",
-            en: "Pay via QRIS or bank transfer using the method you prefer.",
+            id: "Scan kode QRIS dengan e-wallet atau m-banking — mudah dan aman.",
+            en: "Scan the QRIS code with your e-wallet or m-banking app — easy and secure.",
+            // id: "Bayar via QRIS atau transfer bank sesuai metode yang Anda pilih.",
+            // en: "Pay via QRIS or bank transfer using the method you prefer.",
           } as T,
         },
         {
@@ -280,13 +284,18 @@ export const dict = {
       cta: { id: "Beli Sekarang", en: "Buy Now" } as T,
     },
     payment: {
+      // SAAT INI KHUSUS QRIS — teks lama (QRIS / Transfer Bank) disimpan untuk dibuka lagi nanti.
       title: {
-        id: "Pembayaran via QRIS / Transfer Bank",
-        en: "Pay via QRIS / Bank Transfer",
+        id: "Pembayaran via QRIS",
+        en: "Pay via QRIS",
+        // id: "Pembayaran via QRIS / Transfer Bank",
+        // en: "Pay via QRIS / Bank Transfer",
       } as T,
       sub: {
-        id: "Pilih metode pembayaran yang tersedia — QRIS atau transfer bank. Data Anda terenkripsi & aman.",
-        en: "Choose an available payment method — QRIS or bank transfer. Your data is encrypted & secure.",
+        id: "Pembayaran dilakukan secara mudah dan aman via QRIS. Data Anda terenkripsi & terlindungi.",
+        en: "Payment is made easily and securely via QRIS. Your data is encrypted & protected.",
+        // id: "Pilih metode pembayaran yang tersedia — QRIS atau transfer bank. Data Anda terenkripsi & aman.",
+        // en: "Choose an available payment method — QRIS or bank transfer. Your data is encrypted & secure.",
       } as T,
       methodBank: { id: "Transfer Bank", en: "Bank Transfer" } as T,
       safeNote: {

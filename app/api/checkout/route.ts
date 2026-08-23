@@ -67,7 +67,10 @@ export async function POST(req: NextRequest) {
     const totalAmount = basePrice + addonPrice;
     const tierLabel = hasAddon ? `${tierData.label} (1080p)` : `${tierData.label} (720p)`;
 
-    const qrisEnabled = settings.qrisEnabled === true;
+    // SAAT INI KHUSUS QRIS — semua pesanan masuk alur QRIS (pending → bukti bayar → verifikasi admin).
+    // TODO: buka lagi baris asli di bawah saat metode pembayaran lain sudah siap.
+    const qrisEnabled = true;
+    // const qrisEnabled = settings.qrisEnabled === true;
     const isInstant = !qrisEnabled;
 
     const orderId = `YTC-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;

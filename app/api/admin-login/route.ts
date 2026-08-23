@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ADMIN_COOKIE_NAME, ADMIN_COOKIE_MAX_AGE, createSessionCookieValue } from "@/lib/adminSession";
 import { checkRateLimit, rateLimitKey } from "@/lib/rateLimit";
 import { getClientIp, safeEqual } from "@/lib/security";
+import { logSecurityEvent } from "@/lib/securityAlert";
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,16 +12,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Terlalu banyak percobaan. Coba lagi nanti." }, { status: 429 });
     }
 
-    const { password } = await req.json();
+    const { username, password } = await req.json();
 
-    if (!process.env.ADMIN_PASSWORD) {
+    const envUser = process.env.ADMIN_USERNAME;
+    const envPass = process.env.ADMIN_PASSWORD;
+    if (!envUser || !envPass) {
       return NextResponse.json({ error: "Terlalu banyak percobaan. Coba lagi nanti." }, { status: 500 });
     }
 
-    const ok = await safeEqual(String(password ?? ""), process.env.ADMIN_PASSWORD);
-    if (!ok) {
-      return NextResponse.json({ error: "Password salah." }, { status: 401 });
+    const userOk = await safeEqual(String(username ?? ""), envUser);
+    const passOk = await safeEqual(String(password ?? ""), envPass);
+    if (!userOk || !passOk) {
+      const triedUser = String(username ?? "").slice(0, 60);
+      await logSecurityEvent({
+        type: "login_failed",
+        ip,
+        detail: `Username dicoba: ${triedUser || "(kosong)"}`,
+        userAgent: req.headers.get("user-agent"),
+      });
+      return NextResponse.json({ error: "Username atau password salah." }, { status: 401 });
     }
+
+    await logSecurityEvent({
+      type: "login_ok",
+      ip,
+      detail: `Username: ${envUser}`,
+      userAgent: req.headers.get("user-agent"),
+    });
 
     const res = NextResponse.json({ ok: true });
     res.cookies.set(ADMIN_COOKIE_NAME, await createSessionCookieValue(), {

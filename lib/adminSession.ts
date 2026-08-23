@@ -1,5 +1,10 @@
 const COOKIE_NAME = "ytc_admin_session";
-const MAX_AGE_SECONDS = 60 * 60 * 12;
+// Sesi admin bersifat "sliding idle": diperpanjang otomatis selama admin aktif,
+// dan berakhir setelah sekian lama tanpa aktivitas.
+const IDLE_MAX_AGE_SECONDS = 4 * 60;
+// Batas umur absolut cookie di browser — mengikuti window idle karena middleware
+// selalu memperbarui cookie pada tiap request yang valid.
+const MAX_AGE_SECONDS = IDLE_MAX_AGE_SECONDS;
 
 function secret() {
   const s = process.env.ADMIN_SESSION_SECRET;
@@ -29,13 +34,26 @@ export async function createSessionCookieValue(): Promise<string> {
 }
 
 export async function isValidSessionCookieValue(value: string | undefined): Promise<boolean> {
-  if (!value) return false;
+  return (await getSessionCookieState(value)) === "ok";
+}
+
+/**
+ * Kondisi cookie sesi admin:
+ * - "ok"      : tanda tangan valid & belum melewati batas idle
+ * - "idle"    : tanda tangan valid tapi sudah lewat batas idle (admin tidak aktif)
+ * - "invalid" : tidak ada / rusak / tanda tangan salah (indikasi bypass)
+ */
+export async function getSessionCookieState(
+  value: string | undefined
+): Promise<"ok" | "idle" | "invalid"> {
+  if (!value) return "invalid";
   const [issuedAt, sig] = value.split(".");
-  if (!issuedAt || !sig) return false;
+  if (!issuedAt || !sig) return "invalid";
   const expectedSig = await hmac(issuedAt);
-  if (sig !== expectedSig) return false;
+  if (sig !== expectedSig) return "invalid";
   const age = (Date.now() - Number(issuedAt)) / 1000;
-  return age >= 0 && age <= MAX_AGE_SECONDS;
+  if (age < 0) return "invalid";
+  return age <= IDLE_MAX_AGE_SECONDS ? "ok" : "idle";
 }
 
 export const ADMIN_COOKIE_NAME = COOKIE_NAME;

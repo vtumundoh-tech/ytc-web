@@ -138,7 +138,10 @@ export default function Footer() {
               {t(dict.footer.paymentMethods)}
             </h3>
             <div className="flex flex-wrap gap-2">
-              {["QRIS", t(dict.home.payment.methodBank), "E-Wallet"].map((m) => (
+              {/* SAAT INI KHUSUS QRIS.
+                  TODO: buka lagi array di bawah saat metode lain sudah siap:
+                  {["QRIS", t(dict.home.payment.methodBank), "E-Wallet"].map((m) => ( */}
+              {["QRIS"].map((m) => (
                 <span
                   key={m}
                   className="px-2.5 py-1 bg-white border border-gray-200 rounded-lg text-[11px] font-semibold text-gray-600 shadow-sm"

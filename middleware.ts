@@ -1,11 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ADMIN_COOKIE_NAME, isValidSessionCookieValue, isValidGateCookieValue } from "@/lib/adminSession";
+import {
+  ADMIN_COOKIE_NAME,
+  ADMIN_COOKIE_MAX_AGE,
+  createSessionCookieValue,
+  getSessionCookieState,
+  isValidGateCookieValue,
+} from "@/lib/adminSession";
 import {
   GATE_PATH,
   GATE_COOKIE_NAME,
   GATE_COOKIE_MAX_AGE_SECONDS,
   GATE_BLOCK_COOKIE_NAME,
 } from "@/lib/gate";
+import { logSecurityEvent } from "@/lib/securityAlert";
+
+function clientIp(req: NextRequest): string {
+  const real = req.headers.get("x-real-ip")?.trim();
+  if (real) return real;
+  const fwd = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return fwd || "unknown";
+}
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -33,13 +47,37 @@ export async function middleware(req: NextRequest) {
 
   if (pathname.startsWith("/admin") || pathname.startsWith("/api/admin")) {
     const cookie = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
-    if (!(await isValidSessionCookieValue(cookie))) {
+    const state = await getSessionCookieState(cookie);
+    if (state !== "ok") {
+      // Alert bypass HANYA untuk cookie yang tidak ada/rusak. Sesi yang habis
+      // karena idle adalah admin sah — cukup arahkan ke login tanpa notif.
+      if (state === "invalid") {
+        await logSecurityEvent({
+          type: "unauthorized_access",
+          ip: clientIp(req),
+          detail: `Path: ${pathname}`,
+          userAgent: req.headers.get("user-agent"),
+        });
+      }
       if (pathname.startsWith("/api/")) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
-      const loginUrl = new URL("/admin/login", req.url);
+      const loginUrl = new URL(
+        state === "idle" ? "/admin/login?reason=idle" : "/admin/login",
+        req.url
+      );
       return NextResponse.redirect(loginUrl);
     }
+    // Sliding session: perpanjang masa idle pada tiap aktivitas.
+    const res = NextResponse.next();
+    res.cookies.set(ADMIN_COOKIE_NAME, await createSessionCookieValue(), {
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: ADMIN_COOKIE_MAX_AGE,
+    });
+    return res;
   }
 
   return NextResponse.next();

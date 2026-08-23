@@ -242,8 +242,12 @@ export async function handleTelegramCommand(text: string, chatId: string | numbe
 
   if (cmd === "/help") {
     return {
-      text: "<b>Perintah bot:</b>\n\n/status — Dashboard interaktif (pembelian, klaim, refund)\n/listcb — daftar klaim cashback + status\n/listo — daftar pembelian + status",
+      text: "<b>Perintah bot:</b>\n\n/status — Dashboard interaktif (pembelian, klaim, refund)\n/listcb — daftar klaim cashback + status\n/listo — daftar pembelian + status\n/logs — logs keamanan & penghapusan data admin",
     };
+  }
+
+  if (cmd === "/logs") {
+    return buildLogsReply(1);
   }
 
   if (cmd === "/status" || cmd === "/dashboard") {
@@ -375,6 +379,22 @@ const REFUND_FILTERS: Array<[string, string]> = [
   ["processed", "Diproses"],
 ];
 
+const FILTER_EMOJI: Record<string, string> = {
+  all: "📋",
+  paid: "✅",
+  pending: "⏳",
+  bad: "🚫",
+  approved: "📤",
+  rejected: "❌",
+  processed: "✅",
+};
+
+function filtersFor(type: string): Array<[string, string]> {
+  if (type === "orders") return ORDER_FILTERS;
+  if (type === "claims") return CLAIM_FILTERS;
+  return REFUND_FILTERS;
+}
+
 export function btn(text: string, callback_data: string): InlineKeyboardBtn {
   return { text, callback_data };
 }
@@ -388,15 +408,70 @@ export async function buildDashboardReply(): Promise<TelegramReply> {
   ]);
   const n = (i: number): number => (settled[i].status === "fulfilled" ? (settled[i] as any).value.count ?? 0 : 0);
   return {
-    text: "📊 <b>DASHBOARD — MineClip Studios</b>\n\nPilih kategori untuk lihat daftar & status terkini.\n\n<i>Perintah lain: /listcb, /listo, /help</i>",
+    text: "📊 <b>DASHBOARD — MineClip Studios</b>\n\nPilih kategori untuk lihat daftar & status terkini.\n\n<i>Perintah lain: /listcb, /listo, /logs, /help</i>",
     replyMarkup: {
       inline_keyboard: [
         [btn(`📦 Pembelian (${n(0)})`, "cat:orders:all:1")],
         [btn(`🎁 Klaim Cashback (${n(1)})`, "cat:claims:all:1")],
         [btn(`💸 Refund (${n(2)})`, "cat:refunds:all:1")],
+        [btn(`📜 Logs Admin`, "log:1")],
       ],
     },
   };
+}
+
+const LOG_PAGE_SIZE = 10;
+
+const LOG_ACTION_META: Record<string, { label: string; emoji: string }> = {
+  gate_failed: { label: "Kode Gate Salah", emoji: "⛔" },
+  login_failed: { label: "Login Gagal", emoji: "❌" },
+  login_ok: { label: "Login Berhasil", emoji: "✅" },
+  unauthorized_access: { label: "Bypass Terdeteksi", emoji: "🚨" },
+  delete_password_failed: { label: "Password Hapus Salah", emoji: "🔑" },
+};
+
+async function buildLogsReply(page: number): Promise<TelegramReply> {
+  const supabase = supabaseServer();
+  const PAGE = LOG_PAGE_SIZE;
+  const { data, error, count } = await supabase
+    .from("audit_logs")
+    .select("*", { count: "exact" })
+    .order("created_at", { ascending: false })
+    .range((page - 1) * PAGE, page * PAGE - 1);
+
+  if (error) return { text: `Gagal memuat logs: ${error.message}` };
+
+  const logs = (data || []) as any[];
+  const total = count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE));
+  const p = Math.min(Math.max(1, page), totalPages);
+
+  const lines: string[] = [`📜 <b>LOGS ADMIN</b> (${total} total)`, ""];
+  if (logs.length === 0) {
+    lines.push("<i>Belum ada log.</i>");
+  } else {
+    logs.forEach((log) => {
+      const meta = LOG_ACTION_META[log.action] || {
+        label: String(log.action || "?").replace(/_/g, " "),
+        emoji: "•",
+      };
+      const who =
+        log.target_type === "security" && log.target_id
+          ? `IP <code>${escapeHtml(String(log.target_id))}</code>`
+          : escapeHtml(String(log.target_id || ""));
+      lines.push(`${meta.emoji} <b>${escapeHtml(meta.label)}</b>${who ? ` — ${who}` : ""}\n   ${fmtDate(log.created_at)}${log.detail ? ` · ${escapeHtml(String(log.detail).slice(0, 80))}` : ""}`);
+    });
+  }
+
+  const keyboard: InlineKeyboardBtn[][] = [];
+  const nav: InlineKeyboardBtn[] = [];
+  if (p > 1) nav.push(btn("‹ Sebelumnya", `log:${p - 1}`));
+  nav.push(btn(`Hal ${p}/${totalPages}`, "menu"));
+  if (p < totalPages) nav.push(btn("Berikutnya ›", `log:${p + 1}`));
+  keyboard.push(nav);
+  keyboard.push([btn("🏠 Menu", "menu")]);
+
+  return { text: lines.join("\n"), replyMarkup: { inline_keyboard: keyboard } };
 }
 
 async function buildCategoryReply(type: string, filter: string, page: number): Promise<TelegramReply> {
@@ -474,6 +549,15 @@ function buildListReply(
   }
 
   const keyboard: InlineKeyboardBtn[][] = [];
+  const filterBtns = filtersFor(type).map(([key, label]) =>
+    btn(
+      `${FILTER_EMOJI[key] || "•"} ${label}${key === filter ? " ✓" : ""}`,
+      `cat:${type}:${key}:1`
+    )
+  );
+  for (let i = 0; i < filterBtns.length; i += 3) {
+    keyboard.push(filterBtns.slice(i, i + 3));
+  }
   slice.forEach((item) => {
     const r = row(item);
     keyboard.push([btn(`#${(p - 1) * PAGE_SIZE + keyboard.length + 1} ${r.name}`, `det:${type}:${item.id}:${filter}:${p}`)]);
@@ -572,6 +656,10 @@ export async function handleTelegramCallback(data: string): Promise<TelegramRepl
   const [head, ...rest] = data.split(":");
 
   if (head === "menu") return "menu";
+  if (head === "log") {
+    const page = parseInt(rest[0] || "1", 10) || 1;
+    return buildLogsReply(page);
+  }
   if (head === "cat") {
     const type = rest[0];
     const filter = rest[1] || "all";

@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { LogOut, ShoppingBag, Gift, Users, DollarSign, ExternalLink, Save, Download, FileText, Settings, Power, Search, Calendar, Filter, X, QrCode, Upload, RotateCcw, AlertTriangle, Paperclip, BellRing, Copy, BarChart3, RefreshCw } from "lucide-react";
+import { LogOut, ShoppingBag, Gift, Users, DollarSign, ExternalLink, Save, Download, FileText, Settings, Power, Search, Calendar, Filter, X, QrCode, Upload, RotateCcw, AlertTriangle, Paperclip, BellRing, Copy, BarChart3, RefreshCw, Trash2, ScrollText } from "lucide-react";
 import { useMemo } from "react";
 import dynamic from "next/dynamic";
 import { parseJsonSafe, isHeicFile, HEIC_ERROR } from "@/lib/fetchJson";
 import { waLink } from "@/lib/whatsapp";
+import AdminIdleLogout from "@/components/AdminIdleLogout";
 
 const Charts = dynamic(() => import("./charts"), { ssr: false });
 import type { DashboardBucket, DashboardSlice } from "./charts";
@@ -106,18 +107,34 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 sm:py-10">
+    <>
+      <AdminIdleLogout />
+      <div className="max-w-6xl mx-auto px-4 py-8 sm:py-10">
       <div className="flex items-center justify-between mb-8 animate-fade-in">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Admin Dashboard</h1>
           <p className="text-sm text-gray-500 mt-0.5">Kelola pembelian & klaim cashback</p>
         </div>
-        <button
-          onClick={logout}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-all duration-200"
-        >
-          <LogOut className="w-3.5 h-3.5" /> Keluar
-        </button>
+        <div className="flex items-center gap-1">
+          <Link
+            href="/admin/data"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-all duration-200"
+          >
+            <Trash2 className="w-3.5 h-3.5" /> Data
+          </Link>
+          <Link
+            href="/admin/logs"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-all duration-200"
+          >
+            <ScrollText className="w-3.5 h-3.5" /> Logs
+          </Link>
+          <button
+            onClick={logout}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-all duration-200"
+          >
+            <LogOut className="w-3.5 h-3.5" /> Keluar
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-2 mb-6 animate-fade-in">
@@ -141,7 +158,8 @@ export default function AdminPage() {
       <div className="animate-slide-up" key={tab}>
         {tab === "dashboard" ? <DashboardTab /> : tab === "orders" ? <OrdersTab /> : tab === "claims" ? <ClaimsTab /> : tab === "refunds" ? <RefundsTab /> : <SettingsTab />}
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 

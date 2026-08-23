@@ -97,7 +97,8 @@ export default function TermsPage() {
         </Section>
 
         <Section num="4" title="Payment Methods" group="s1">
-          <p>4.1 Payment is processed via QRIS or bank transfer, according to the method chosen by the customer.</p>
+          {/* SAAT INI KHUSUS QRIS — TODO: sesuaikan lagi saat ada metode pembayaran lain. */}
+          <p>4.1 Payment is processed via QRIS.</p>
           <p>4.2 After a successful payment, the system automatically generates the license key and the unique cashback code (if the package is eligible).</p>
           <p>4.3 The key, the application, and the unique cashback code are delivered by email or WhatsApp.</p>
           <p>4.4 If the payment received is <strong className="text-gray-700">less than the requested amount</strong>, the customer must choose one of the following options within the applicable period: <strong className="text-gray-700">(a)</strong> submit a refund request and have the transferred amount returned to the sender's account within a maximum of 1x24 hours (bank transfer fees are the customer's responsibility), or <strong className="text-gray-700">(b)</strong> pay the remaining balance through a supplementary payment (QRIS). A supplementary payment that is settled is automatically applied to the original order and is only processed once the full amount has been paid.</p>

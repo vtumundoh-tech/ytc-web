@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, LogIn } from "lucide-react";
+import { ShieldCheck, LogIn, User } from "lucide-react";
 
 export default function AdminLoginPage() {
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,9 +19,9 @@ export default function AdminLoginPage() {
       const res = await fetch("/api/admin-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ username, password }),
       });
-      if (!res.ok) throw new Error("Password salah.");
+      if (!res.ok) throw new Error("Username atau password salah.");
       router.push("/admin");
       router.refresh();
     } catch (err: any) {
@@ -38,19 +39,35 @@ export default function AdminLoginPage() {
             <ShieldCheck className="w-5 h-5 text-white" />
           </div>
           <h1 className="text-lg font-bold text-gray-900">Login Admin</h1>
-          <p className="text-xs text-gray-500 mt-1">Masukkan password untuk mengakses dashboard</p>
+          <p className="text-xs text-gray-500 mt-1">Masukkan username & password untuk mengakses dashboard</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
+            <label className="field-label">Username</label>
+            <div className="relative">
+              <User className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                autoComplete="username"
+                className="input-field pl-10"
+                placeholder="Masukkan username admin"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                autoFocus
+              />
+            </div>
+          </div>
+
+          <div>
             <label className="field-label">Password</label>
             <input
               type="password"
+              autoComplete="current-password"
               className="input-field"
               placeholder="Masukkan password admin"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              autoFocus
             />
           </div>
 
@@ -62,7 +79,7 @@ export default function AdminLoginPage() {
 
           <button
             type="submit"
-            disabled={loading || !password}
+            disabled={loading || !username || !password}
             className="btn-primary w-full flex items-center justify-center gap-2 bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black shadow-md"
           >
             {loading ? "..." : <><LogIn className="w-4 h-4" /> Masuk</>}
