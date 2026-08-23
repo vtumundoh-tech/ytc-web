@@ -1,4 +1,10 @@
+"use client";
+
+import { useLang } from "@/components/LanguageProvider";
+import { dict } from "@/lib/i18n";
+
 export default function SuccessPage() {
+  const { t } = useLang();
   return (
     <div className="max-w-lg mx-auto px-4 py-16 sm:py-24">
       <div className="card-lg text-center animate-scale-in">
@@ -13,10 +19,8 @@ export default function SuccessPage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h1 className="text-xl font-bold text-gray-900 mb-3">Pembayaran Berhasil!</h1>
-        <p className="text-gray-500 text-sm leading-relaxed">
-          Key lisensi dan aplikasi akan dikirim ke email atau WhatsApp yang Anda daftarkan begitu pembayaran terkonfirmasi (biasanya beberapa menit).
-        </p>
+        <h1 className="text-xl font-bold text-gray-900 mb-3">{t(dict.success.title)}</h1>
+        <p className="text-gray-500 text-sm leading-relaxed">{t(dict.success.sub)}</p>
       </div>
     </div>
   );

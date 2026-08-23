@@ -96,7 +96,7 @@ export default function InvoiceOrderPage() {
               <Image
                 src="/logo.png"
                 alt="MineClip Studios"
-                width={33}
+                width={44}
                 height={24}
                 className="h-6 w-auto object-contain"
               />

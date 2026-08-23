@@ -6,8 +6,10 @@ import { motion } from "framer-motion";
 import { formatPrice, formatRupiah } from "@/lib/tiers";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { validateFileSignature, validateFileSize, isAllowedMimeType } from "@/lib/fileValidation";
-import { parseJsonSafe, isHeicFile, HEIC_ERROR } from "@/lib/fetchJson";
+import { parseJsonSafe, isHeicFile } from "@/lib/fetchJson";
 import { COUNTRY_CODES, OTHER_COUNTRY_VALUE, normalizeWhatsapp } from "@/lib/whatsapp";
+import { dict, tf } from "@/lib/i18n";
+import { useLang } from "@/components/LanguageProvider";
 import { CreditCard, User, Phone, Mail, CheckCircle, ArrowRight, ExternalLink, Gift, TrendingUp, Download, Loader2, QrCode, Home, BellRing, Upload, FileImage, X, AlertTriangle, Timer, RefreshCw } from "lucide-react";
 
 function cn(...classes: (string | false | undefined | null)[]) {
@@ -17,6 +19,7 @@ function cn(...classes: (string | false | undefined | null)[]) {
 function BeliForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useLang();
   const preselected = searchParams.get("tier") || "";
   const preselectedAddon = searchParams.get("addon1080") === "1";
   const supplementToken = searchParams.get("supplement") || "";
@@ -83,7 +86,7 @@ function BeliForm() {
       try {
         const res = await fetch(`/api/download?token=${encodeURIComponent(downloadToken)}`);
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Gagal membuat tautan unduh.");
+        if (!res.ok) throw new Error(data.error || t(dict.buy.qris.errDlLink));
         setDownloadUrl(data.url);
         setDlState("countdown");
         const timer = setInterval(() => {
@@ -105,16 +108,18 @@ function BeliForm() {
         }, 1000);
       } catch (err: any) {
         setDlState("error");
-        setError(err.message || "Gagal menyiapkan unduhan.");
+        setError(err.message || t(dict.buy.qris.dlFail));
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paidModal, downloadToken]);
 
   useEffect(() => {
-    if (preselected && tiers.some((t) => t.value === preselected)) {
+    if (preselected && tiers.some((x) => x.value === preselected)) {
       setTier(preselected);
       setAddon1080(preselectedAddon);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preselected, preselectedAddon]);
 
   useEffect(() => {
@@ -146,6 +151,7 @@ function BeliForm() {
       cancelled = true;
       clearInterval(timer);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qrisModal, downloadToken]);
 
   useEffect(() => {
@@ -163,10 +169,10 @@ function BeliForm() {
           setQrisStep("pay");
           setQrisModal(true);
         } else {
-          setError("Tautan pembayaran pelengkap tidak valid. Gunakan tautan dari email atau halaman status pesanan.");
+          setError(t(dict.buy.qris.errSupplementLink));
         }
       } catch {
-        if (!cancelled) setError("Terjadi kesalahan saat memuat pembayaran pelengkap.");
+        if (!cancelled) setError(t(dict.buy.qris.errSupplementLoad));
       } finally {
         if (!cancelled) setSupplementLoading(false);
       }
@@ -174,40 +180,41 @@ function BeliForm() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supplementToken]);
 
   useEffect(() => {
     if (verifyScreen !== "otp" || emailVerified) return;
     setOtpExpired(false);
     setOtpSeconds(5 * 60);
-    const t = setInterval(() => {
+    const iv = setInterval(() => {
       setOtpSeconds((s) => {
         if (s <= 1) {
-          clearInterval(t);
+          clearInterval(iv);
           setOtpExpired(true);
           return 0;
         }
         return s - 1;
       });
     }, 1000);
-    return () => clearInterval(t);
+    return () => clearInterval(iv);
   }, [verifyScreen, emailVerified, otpTick]);
 
   useEffect(() => {
     if (!qrisModal || qrisStep !== "pay") return;
     setQrisSeconds(3 * 60);
     setQrisExpired(false);
-    const t = setInterval(() => {
+    const iv = setInterval(() => {
       setQrisSeconds((s) => {
         if (s <= 1) {
-          clearInterval(t);
+          clearInterval(iv);
           setQrisExpired(true);
           return 0;
         }
         return s - 1;
       });
     }, 1000);
-    return () => clearInterval(t);
+    return () => clearInterval(iv);
   }, [qrisModal, qrisStep, qrisTick]);
 
   function handleBatal() {
@@ -226,24 +233,24 @@ function BeliForm() {
   async function handleProofSubmit() {
     setProofError("");
     if (!proofFile) {
-      setProofError("Pilih dulu screenshot bukti bayar Anda.");
+      setProofError(t(dict.buy.qris.errProofFile));
       return;
     }
     if (isHeicFile(proofFile)) {
-      setProofError(HEIC_ERROR);
+      setProofError(t(dict.common.heic));
       return;
     }
     if (!isAllowedMimeType(proofFile.type)) {
-      setProofError("Format file harus JPEG/PNG/WebP.");
+      setProofError(t(dict.buy.qris.errProofFormat));
       return;
     }
     if (!validateFileSize(proofFile.size)) {
-      setProofError("Ukuran file maksimal 5MB.");
+      setProofError(t(dict.buy.qris.errProofSize));
       return;
     }
     const buffer = await proofFile.arrayBuffer();
     if (!validateFileSignature(buffer, proofFile.type)) {
-      setProofError("File tidak valid. Pastikan itu gambar screenshot yang asli.");
+      setProofError(t(dict.buy.qris.errProofInvalid));
       return;
     }
     setProofLoading(true);
@@ -256,10 +263,10 @@ function BeliForm() {
         body: fd,
       });
       const data = await parseJsonSafe<{ error?: string }>(res);
-      if (!data.ok) throw new Error(data.error || "Gagal mengirim bukti bayar.");
+      if (!data.ok) throw new Error(data.error || t(dict.buy.qris.errProofSubmit));
       setQrisStep("thanks");
     } catch (err: any) {
-      setProofError(err.message || "Gagal mengirim bukti bayar. Coba lagi.");
+      setProofError(err.message || t(dict.buy.qris.errProofSubmitRetry));
     } finally {
       setProofLoading(false);
     }
@@ -276,10 +283,10 @@ function BeliForm() {
         body: JSON.stringify({ token: downloadToken }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Gagal mengajukan refund.");
+      if (!res.ok) throw new Error(data.error || t(dict.buy.qris.errRefund));
       setRefundOk(true);
     } catch (err: any) {
-      setError(err.message || "Gagal mengajukan refund. Coba lagi.");
+      setError(err.message || t(dict.buy.qris.errRefundRetry));
     } finally {
       setBusy("");
     }
@@ -296,10 +303,10 @@ function BeliForm() {
         body: JSON.stringify({ token: downloadToken }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Gagal membuat pembayaran pelengkap.");
+      if (!res.ok) throw new Error(data.error || t(dict.buy.qris.errSupplement));
       router.push(`/beli?supplement=${encodeURIComponent(data.downloadToken)}`);
     } catch (err: any) {
-      setError(err.message || "Gagal membuat pembayaran pelengkap. Coba lagi.");
+      setError(err.message || t(dict.buy.qris.errSupplementRetry));
       setBusy("");
     }
   }
@@ -307,7 +314,7 @@ function BeliForm() {
   async function handleSendVerifyCode() {
     setVerifyError("");
     if (!emailValid) {
-      setVerifyError("Alamat email tidak valid, cek kembali.");
+      setVerifyError(t(dict.buy.errEmailInvalid));
       return;
     }
     setVerifying(true);
@@ -318,15 +325,15 @@ function BeliForm() {
         body: JSON.stringify({ action: "send", email: email.trim() }),
       });
       const data = await parseJsonSafe<{ error?: string; lockedMinutes?: number }>(res);
-      if (!data.ok) throw new Error(data.error || "Gagal mengirim kode.");
+      if (!data.ok) throw new Error(data.error || t(dict.buy.errSendCode));
       setVerifyScreen("otp");
       setOtpCode("");
       setVerifyError("");
       setOtpSeconds(5 * 60);
       setOtpExpired(false);
-      setOtpTick((t) => t + 1);
+      setOtpTick((x) => x + 1);
     } catch (err: any) {
-      setVerifyError(err.message || "Gagal mengirim kode verifikasi.");
+      setVerifyError(err.message || t(dict.buy.errSendCode));
     } finally {
       setVerifying(false);
     }
@@ -335,7 +342,7 @@ function BeliForm() {
   async function handleVerifyCode() {
     setVerifyError("");
     if (!/^\d{6}$/.test(otpCode.trim())) {
-      setVerifyError("Masukkan 6 digit kode yang dikirim ke email.");
+      setVerifyError(t(dict.buy.errOtpFormat));
       return;
     }
     setVerifying(true);
@@ -346,11 +353,11 @@ function BeliForm() {
         body: JSON.stringify({ action: "verify", email: email.trim(), otp: otpCode.trim() }),
       });
       const data = await parseJsonSafe<{ error?: string; remaining?: number; lockedMinutes?: number }>(res);
-      if (!data.ok) throw new Error(data.error || "Verifikasi gagal.");
+      if (!data.ok) throw new Error(data.error || t(dict.buy.errVerifyFail));
       setEmailVerified(true);
       setOtpCode("");
     } catch (err: any) {
-      setVerifyError(err.message || "Verifikasi gagal, coba lagi.");
+      setVerifyError(err.message || t(dict.buy.errVerifyRetry));
     } finally {
       setVerifying(false);
     }
@@ -361,12 +368,12 @@ function BeliForm() {
     setError("");
     if (!fullName || !whatsapp || !email || !tier || !agree) return;
     if (!waValid) {
-      setError("Nomor WhatsApp belum lengkap — isi minimal 8 digit angka (contoh: 8123456789).");
+      setError(t(dict.buy.errWaIncomplete));
       setLoading(false);
       return;
     }
     if (!emailVerified) {
-      setError("Verifikasi email dulu: masukkan email, klik \"Kirim Kode Verifikasi\", lalu masukkan kode 6 digit yang dikirim.");
+      setError(t(dict.buy.errNeedVerify));
       setLoading(false);
       return;
     }
@@ -379,7 +386,7 @@ function BeliForm() {
         body: JSON.stringify({ fullName, whatsapp: waNumber, email, tier, addon1080, agreeSnk: true, countryDial: countryDial === OTHER_COUNTRY_VALUE ? customDial : countryDial }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Gagal membuat transaksi");
+      if (!res.ok) throw new Error(data.error || t(dict.buy.errTransaction));
 
       setCashbackCode(data.cashbackCode || "");
       if (data.paid) {
@@ -394,16 +401,16 @@ function BeliForm() {
         setQrisStep("pay");
         setQrisModal(true);
       } else {
-        setError("Mode pembayaran belum aktif. Silakan hubungi admin.");
+        setError(t(dict.buy.errPaymentMode));
         setLoading(false);
       }
     } catch (err: any) {
-      setError(err.message || "Terjadi kesalahan, coba lagi.");
+      setError(err.message || t(dict.buy.errGeneric));
       setLoading(false);
     }
   }
 
-  const selected = tiers.find((t) => t.value === tier);
+  const selected = tiers.find((x) => x.value === tier);
   const cashback = tier ? settings.cashbackTiers[tier] || 0 : 0;
   const addonPrice = tier ? settings.addonPrices[tier] || 0 : 0;
   const basePrice = selected ? (promoEnabled ? selected.amount : selected.originalAmount) : 0;
@@ -421,6 +428,11 @@ function BeliForm() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 sm:py-12">
+      {supplementLoading && (
+        <div className="fixed inset-0 z-[60] bg-white/70 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+        </div>
+      )}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -430,8 +442,8 @@ function BeliForm() {
         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-200/50">
           <CreditCard className="w-5 h-5 text-white" />
         </div>
-        <h1 className="text-xl font-bold text-gray-900">Beli Lisensi</h1>
-        <p className="text-sm text-gray-500 mt-1">Isi data, pilih paket, lalu bayar — key dikirim setelah dikonfirmasi.</p>
+        <h1 className="text-xl font-bold text-gray-900">{t(dict.buy.title)}</h1>
+        <p className="text-sm text-gray-500 mt-1">{t(dict.buy.sub)}</p>
       </motion.div>
 
       <motion.form
@@ -442,16 +454,16 @@ function BeliForm() {
         className="card-lg space-y-6"
       >
         <div className="space-y-5">
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Data Diri</h2>
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">{t(dict.buy.sectionPersonal)}</h2>
 
           <div>
             <label className="field-label">
               <User className="w-3.5 h-3.5 inline mr-1.5 text-emerald-500" />
-              Nama Lengkap <span className="text-red-400">*</span>
+              {t(dict.buy.fullName)} <span className="text-red-400">*</span>
             </label>
             <input
               className="input-field"
-              placeholder="Contoh: Budi Santoso"
+              placeholder={t(dict.buy.fullNamePh)}
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required
@@ -461,7 +473,7 @@ function BeliForm() {
           <div>
             <label className="field-label">
               <Phone className="w-3.5 h-3.5 inline mr-1.5 text-emerald-500" />
-              Nomor WhatsApp <span className="text-red-400">*</span>
+              {t(dict.buy.whatsapp)} <span className="text-red-400">*</span>
             </label>
             <div className="flex gap-2">
               <select
@@ -472,7 +484,7 @@ function BeliForm() {
                 {COUNTRY_CODES.map((c) => (
                   <option key={c.code} value={c.dial}>{c.flag} {c.label} +{c.dial}</option>
                 ))}
-                <option value={OTHER_COUNTRY_VALUE}>🌐 Lainnya (input sendiri)</option>
+                <option value={OTHER_COUNTRY_VALUE}>{t(dict.buy.otherCountry)}</option>
               </select>
               <div className="flex-1 min-w-0">
                 <input
@@ -481,7 +493,7 @@ function BeliForm() {
                     waInvalid ? "border-red-400 focus:ring-red-300 focus:border-red-400" : ""
                   )}
                   type="tel"
-                  placeholder="Contoh: 8123456789"
+                  placeholder={t(dict.buy.whatsappPh)}
                   value={whatsapp}
                   onChange={(e) => setWhatsapp(e.target.value)}
                   required
@@ -490,7 +502,7 @@ function BeliForm() {
                   <input
                     className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 placeholder:text-gray-300"
                     type="tel"
-                    placeholder="Kode negara, mis. 852 (Hong Kong)"
+                    placeholder={t(dict.buy.customDialPh)}
                     value={customDial}
                     onChange={(e) => setCustomDial(e.target.value.replace(/[^\d]/g, ""))}
                   />
@@ -500,28 +512,28 @@ function BeliForm() {
             {waInvalid && (
               <p className="text-xs font-medium text-red-600 mt-1.5 flex items-start gap-1.5">
                 <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                Nomor WhatsApp belum lengkap — isi minimal 8 digit angka tanpa awalan 0 (contoh: 8123456789).
+                {t(dict.buy.waInvalid)}
               </p>
             )}
             {countryDial === OTHER_COUNTRY_VALUE && !/^\d{1,4}$/.test(customDial) && waValue !== "" && (
               <p className="text-xs font-medium text-red-600 mt-1.5 flex items-start gap-1.5">
                 <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                Lengkapi kode negara (1–4 digit) pada kolom di bawah.
+                {t(dict.buy.dialInvalid)}
               </p>
             )}
-            <p className="field-hint">Kami akan menghubungi Anda melalui nomor ini untuk konfirmasi dan informasi lebih lanjut  .</p>
-            <p className="field-hint">Harap gunakan nomor yang sama jika anda ingin mengklaim cashback</p>
+            <p className="field-hint">{t(dict.buy.waHint1)}</p>
+            <p className="field-hint">{t(dict.buy.waHint2)}</p>
           </div>
 
           <div>
             <label className="field-label">
               <Mail className="w-3.5 h-3.5 inline mr-1.5 text-emerald-500" />
-              Alamat Email <span className="text-red-400">*</span>
+              {t(dict.buy.email)} <span className="text-red-400">*</span>
             </label>
             <input
               className="input-field"
               type="email"
-              placeholder="contoh@email.com"
+              placeholder={t(dict.buy.emailPh)}
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
@@ -532,17 +544,17 @@ function BeliForm() {
               }}
               required
             />
-            <p className="field-hint">Untuk pengiriman invoice & konfirmasi — wajib diverifikasi via kode yang dikirim ke email.</p>
+            <p className="field-hint">{t(dict.buy.emailHint)}</p>
 
             {emailVerified ? (
               <div className="mt-2 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-start gap-2">
                 <CheckCircle className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
-                <span>Email <strong>{email}</strong> terverifikasi. Verifikasi email berlaku selama halaman ini terbuka; jika email diganti, verifikasi ulang.</span>
+                <span><strong>{email}</strong> {t(dict.buy.verifiedNote)}</span>
               </div>
             ) : verifyScreen === "otp" ? (
               <div className="mt-2 p-3 rounded-xl bg-blue-50 border border-blue-200">
                 <p className="text-xs text-blue-800 mb-2">
-                  Kode verifikasi 6 digit dikirim ke <strong>{email}</strong>. 📬 Kalau tidak muncul, cek juga folder <strong>Promosi / Spam / Junk</strong>.
+                  {tf(t(dict.buy.otpSent), { email })}
                 </p>
                 <div className="flex items-center gap-2 mb-2">
                   <span className={cn(
@@ -550,9 +562,9 @@ function BeliForm() {
                     otpExpired ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-800"
                   )}>
                     <Timer className="w-3 h-3" />
-                    {otpExpired ? "Kode kedaluwarsa" : `Berlaku ${otpClock}`}
+                    {otpExpired ? t(dict.buy.otpExpired) : tf(t(dict.buy.otpValid), { time: otpClock })}
                   </span>
-                  {!otpExpired && <span className="text-[11px] text-blue-600">masukkan kode sebelum waktu habis</span>}
+                  {!otpExpired && <span className="text-[11px] text-blue-600">{t(dict.buy.otpEnterBefore)}</span>}
                 </div>
                 <div className="flex gap-2">
                   <input
@@ -571,7 +583,7 @@ function BeliForm() {
                     className="shrink-0 inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg font-semibold text-xs text-white bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 disabled:opacity-50"
                   >
                     {verifying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
-                    Verifikasi
+                    {t(dict.buy.verifyBtn)}
                   </button>
                 </div>
                 {otpExpired ? (
@@ -582,7 +594,7 @@ function BeliForm() {
                     className="mt-2 w-full inline-flex items-center justify-center gap-1.5 rounded-lg font-semibold text-xs text-white bg-blue-600 hover:bg-blue-700 px-4 py-2.5 disabled:opacity-50"
                   >
                     {verifying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                    Kirim Ulang Kode
+                    {t(dict.buy.resendCode)}
                   </button>
                 ) : (
                   <button
@@ -591,7 +603,7 @@ function BeliForm() {
                     disabled={verifying}
                     className="mt-2 text-[11px] font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-900"
                   >
-                    Kirim ulang kode
+                    {t(dict.buy.resendLink)}
                   </button>
                 )}
                 {verifyError && (
@@ -609,9 +621,9 @@ function BeliForm() {
                   className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
                 >
                   {verifying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
-                  {verifying ? "Mengirim kode…" : "Kirim Kode Verifikasi"}
+                  {verifying ? t(dict.buy.sendingCode) : t(dict.buy.sendCode)}
                 </button>
-                <p className="text-[11px] text-gray-400 mt-1">Kode berlaku 5 menit &amp; hanya untuk satu sesi pembelian ini.</p>
+                <p className="text-[11px] text-gray-400 mt-1">{t(dict.buy.codeValidityNote)}</p>
                 {verifyError && (
                   <p className="text-xs font-medium text-red-600 mt-1.5 flex items-start gap-1.5">
                     <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" /> {verifyError}
@@ -625,22 +637,22 @@ function BeliForm() {
         <hr className="border-gray-100" />
 
         <div>
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Pilih Paket</h2>
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">{t(dict.buy.sectionPlan)}</h2>
           <div className="grid sm:grid-cols-2 gap-3">
-            {tiers.map((t, i) => {
-              const aPrice = settings.addonPrices[t.value] || 0;
-              const isSelected = tier === t.value;
-              const cardPrice = isSelected ? basePrice : (promoEnabled ? t.amount : t.originalAmount);
+            {tiers.map((tr, i) => {
+              const aPrice = settings.addonPrices[tr.value] || 0;
+              const isSelected = tier === tr.value;
+              const cardPrice = isSelected ? basePrice : (promoEnabled ? tr.amount : tr.originalAmount);
               return (
                 <motion.div
-                  key={t.value}
+                  key={tr.value}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.07 }}
                 >
                   <button
                     type="button"
-                    onClick={() => { setTier(t.value); if (addon1080 && !aPrice) setAddon1080(false); }}
+                    onClick={() => { setTier(tr.value); if (addon1080 && !aPrice) setAddon1080(false); }}
                     className={`relative text-left p-4 rounded-xl border-2 transition-all duration-200 w-full ${
                       isSelected
                         ? "border-emerald-400 bg-emerald-50/50 shadow-sm"
@@ -650,7 +662,7 @@ function BeliForm() {
                     {isSelected && (
                       <CheckCircle className="absolute top-3 right-3 w-4 h-4 text-emerald-500" />
                     )}
-                    <div className="font-semibold text-sm text-gray-900">{t.label}</div>
+                    <div className="font-semibold text-sm text-gray-900">{tr.label}</div>
                     <div className="text-base font-bold text-emerald-600 mt-1">
                       {formatPrice(addon1080 && isSelected ? totalPrice : cardPrice)}
                     </div>
@@ -680,7 +692,7 @@ function BeliForm() {
                               )}
                             </div>
                             <span className={`text-xs font-medium ${addon1080 ? "text-blue-700" : "text-gray-500"}`}>
-                              +1080p Upgrade
+                              {t(dict.buy.addon1080)}
                             </span>
                           </div>
                           <span className={`text-xs font-bold ${addon1080 ? "text-blue-700" : "text-gray-400"}`}>
@@ -694,7 +706,7 @@ function BeliForm() {
                             animate={{ opacity: 1, height: "auto" }}
                             className="mt-2 text-xs text-blue-600 font-medium flex items-center gap-1"
                           >
-                            <TrendingUp className="w-3 h-3" /> Total: {formatRupiah(totalPrice)}
+                            <TrendingUp className="w-3 h-3" /> {tf(t(dict.buy.total), { amount: formatRupiah(totalPrice) })}
                           </motion.div>
                         )}
                       </div>
@@ -722,8 +734,8 @@ function BeliForm() {
           <div className="p-4 rounded-xl bg-amber-50 border border-amber-100 flex items-center gap-3 text-sm">
             <Gift className="w-5 h-5 text-amber-600 shrink-0" />
             <div>
-              <div className="font-semibold text-amber-800">Paket ini eligible cashback!</div>
-              <div className="text-xs text-amber-700">Dapatkan {formatRupiah(cashback)} setelah klaim cashback.</div>
+              <div className="font-semibold text-amber-800">{t(dict.buy.eligibleTitle)}</div>
+              <div className="text-xs text-amber-700">{tf(t(dict.buy.eligibleDesc), { amount: formatRupiah(cashback) })}</div>
             </div>
           </div>
         )}
@@ -731,13 +743,13 @@ function BeliForm() {
         <div>
           <div className="p-4 rounded-xl bg-amber-50/70 border border-amber-200 mb-3">
             <p className="text-sm font-semibold text-amber-900 mb-2">
-              ⚠️ Baca sebelum melanjutkan — penting:
+              {t(dict.buy.warningTitle)}
             </p>
             <ul className="text-xs text-amber-800 list-disc list-inside space-y-1">
-              <li>Pastikan jumlah QRIS yang Anda bayar <strong>sesuai nominal</strong>. Jika kurang, pesanan ditolak dan Anda harus memilih <strong>refund</strong> (dana kembali ≤1×24 jam, potongan transfer bank ditanggung pelanggan) atau <strong>bayar kekurangan</strong> (klausul 4.4).</li>
-              <li>Yang sudah <strong>disetujui / Lunas tidak dapat di-refund</strong> (klausul 5.5).</li>
-              <li>Key &amp; unduhan dikirim ke <strong>email</strong> — cek juga folder Promosi / Spam / Junk.</li>
-              <li>Nomor WhatsApp wajib lengkap (minimal 8 digit angka) untuk konfirmasi &amp; cashback.</li>
+              <li>{t(dict.buy.warn1)}</li>
+              <li>{t(dict.buy.warn2)}</li>
+              <li>{t(dict.buy.warn3)}</li>
+              <li>{t(dict.buy.warn4)}</li>
             </ul>
             <a
               href="/syarat-ketentuan"
@@ -745,7 +757,7 @@ function BeliForm() {
               rel="noreferrer"
               className="inline-block mt-2 text-xs font-semibold text-amber-700 underline underline-offset-2 hover:text-amber-900"
             >
-              Baca Syarat &amp; Ketentuan lengkap →
+              {t(dict.buy.readTnc)}
             </a>
           </div>
           <label className="flex items-start gap-3 p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-50/30 border border-emerald-100 cursor-pointer">
@@ -757,17 +769,17 @@ function BeliForm() {
             />
             <div>
               <div className="text-sm font-semibold text-emerald-900">
-                Saya telah <u>membaca</u> dan menyetujui{" "}
+                {t(dict.buy.agreePart1)}{" "}
                 <a
                   href="/syarat-ketentuan"
                   target="_blank"
                   className="underline underline-offset-2 hover:text-emerald-700"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  Syarat & Ketentuan
+                  {t(dict.buy.agreeLink)}
                   <ExternalLink className="w-3 h-3 inline ml-0.5" />
                 </a>{" "}
-                terlebih dahulu. Dengan menyetujui berarti saya menyetujui <strong>seluruh</strong> klausul Syarat &amp; Ketentuan di atas termasuk ketentuan pembayaran, refund, dan cashback tanpa konfirmasi tambahan.
+                {t(dict.buy.agreePart2)}
               </div>
             </div>
           </label>
@@ -782,13 +794,13 @@ function BeliForm() {
               : "bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 shadow-emerald-200/50"
           }`}
         >
-          {loading ? "Memproses..." : (
-            <>Submit Pembelian — {formatRupiah(totalPrice)} <ArrowRight className="w-4 h-4" /></>
+          {loading ? t(dict.buy.processing) : (
+            <>{tf(t(dict.buy.submit), { amount: formatRupiah(totalPrice) })} <ArrowRight className="w-4 h-4" /></>
           )}
         </button>
 
         <p className="text-xs text-gray-400 text-center">
-          Pembayaran Anda diproses dengan aman.
+          {t(dict.buy.secureNote)}
         </p>
       </motion.form>
 {qrisModal && (
@@ -799,9 +811,9 @@ function BeliForm() {
             {qrisStep === "pay" && (
               <>
                 <QrCode className="w-10 h-10 text-blue-600 mx-auto mb-3" />
-                <h2 className="text-lg font-bold text-gray-900 mb-1">Bayar via QRIS</h2>
+                <h2 className="text-lg font-bold text-gray-900 mb-1">{t(dict.buy.qris.title)}</h2>
                 <p className="text-sm text-gray-500 mb-4">
-                  Scan kode QR di bawah menggunakan GoPay atau aplikasi e-wallet / m-banking Anda.
+                  {t(dict.buy.qris.sub)}
                 </p>
 
                 <div className={cn(
@@ -809,7 +821,7 @@ function BeliForm() {
                   qrisExpired ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-800"
                 )}>
                   <Timer className="w-3 h-3" />
-                  {qrisExpired ? "Kode QR kedaluwarsa" : `QR berlaku ${qrisClock}`}
+                  {qrisExpired ? t(dict.buy.qris.qrExpiredBadge) : tf(t(dict.buy.qris.qrValidBadge), { time: qrisClock })}
                 </div>
 
                 {qrisExpired ? (
@@ -817,13 +829,13 @@ function BeliForm() {
                     <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3">
                       <X className="w-6 h-6 text-red-500" />
                     </div>
-                    <p className="text-sm font-semibold text-gray-700 mb-4">Kode QR sudah tidak tampil</p>
+                    <p className="text-sm font-semibold text-gray-700 mb-4">{t(dict.buy.qris.qrExpiredTitle)}</p>
                     <button
                       type="button"
-                      onClick={() => { setQrisSeconds(3 * 60); setQrisExpired(false); setQrisTick((t) => t + 1); }}
+                      onClick={() => { setQrisSeconds(3 * 60); setQrisExpired(false); setQrisTick((x) => x + 1); }}
                       className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-all duration-200"
                     >
-                      <RefreshCw className="w-4 h-4" /> Lihat Lagi
+                      <RefreshCw className="w-4 h-4" /> {t(dict.buy.qris.viewAgain)}
                     </button>
                   </div>
                 ) : (
@@ -833,12 +845,12 @@ function BeliForm() {
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={settings.qrisImageUrl} alt="QRIS" className="mx-auto w-52 h-52 object-contain" />
                       ) : (
-                        <p className="text-sm text-gray-400 py-10">QRIS belum dikonfigurasi admin.</p>
+                        <p className="text-sm text-gray-400 py-10">{t(dict.buy.qris.notConfigured)}</p>
                       )}
                     </div>
 
                     <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 text-left mb-4">
-                      <h3 className="text-xs font-semibold text-blue-800 mb-2">Cara Pembayaran</h3>
+                      <h3 className="text-xs font-semibold text-blue-800 mb-2">{t(dict.buy.qris.howToPay)}</h3>
                       <ol className="text-xs text-blue-900 space-y-1">
                         {(settings.qrisInstructions || "").split("\n").filter(Boolean).map((line, i) => (
                           <li key={i} className="flex gap-2">
@@ -852,7 +864,7 @@ function BeliForm() {
                 )}
 
                 <div className="flex justify-between items-center text-sm mb-4">
-                  <span className="text-gray-500">Total yang dibayar</span>
+                  <span className="text-gray-500">{t(dict.buy.qris.totalToPay)}</span>
                   <span className="font-bold text-gray-900">{formatRupiah(qrisAmount)}</span>
                 </div>
 
@@ -861,16 +873,16 @@ function BeliForm() {
                   className="w-full flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 shadow-md"
                 >
                   <CheckCircle className="w-4 h-4" />
-                  Saya sudah bayar
+                  {t(dict.buy.qris.alreadyPaid)}
                 </button>
 
                 <div className="mt-3 flex items-center justify-center gap-2 text-xs">
                   <button onClick={handleBatal} className="inline-flex items-center gap-1.5 font-semibold text-gray-500 hover:text-gray-700 underline underline-offset-2">
-                    <X className="w-3.5 h-3.5" /> Batal
+                    <X className="w-3.5 h-3.5" /> {t(dict.buy.qris.cancel)}
                   </button>
                   <span className="text-gray-300">·</span>
                   <button onClick={() => router.push("/")} className="inline-flex items-center gap-1.5 font-semibold text-gray-500 hover:text-gray-700 underline underline-offset-2">
-                    <Home className="w-3.5 h-3.5" /> Kembali ke Beranda
+                    <Home className="w-3.5 h-3.5" /> {t(dict.buy.qris.backHome)}
                   </button>
                 </div>
               </>
@@ -879,9 +891,9 @@ function BeliForm() {
             {qrisStep === "proof" && (
               <>
                 <FileImage className="w-10 h-10 text-blue-600 mx-auto mb-3" />
-                <h2 className="text-lg font-bold text-gray-900 mb-1">Lampirkan Bukti Bayar</h2>
+                <h2 className="text-lg font-bold text-gray-900 mb-1">{t(dict.buy.qris.proofTitle)}</h2>
                 <p className="text-sm text-gray-500 mb-4">
-                  Upload screenshot bukti pembayaran QRIS Anda (JPEG/PNG/WebP, maks 5MB) agar admin bisa memverifikasi dengan cepat.
+                  {t(dict.buy.qris.proofSub)}
                 </p>
 
                 <label className="flex flex-col items-center justify-center gap-2 w-full p-6 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/70 cursor-pointer hover:border-emerald-300 hover:bg-emerald-50/30 transition-colors duration-200 mb-3">
@@ -890,8 +902,8 @@ function BeliForm() {
                     <span className="text-sm font-medium text-emerald-700 break-all">{proofFile.name}</span>
                   ) : (
                     <>
-                      <span className="text-sm font-semibold text-gray-600">Pilih screenshot bukti bayar</span>
-                      <span className="text-xs text-gray-400">Klik untuk memilih file</span>
+                      <span className="text-sm font-semibold text-gray-600">{t(dict.buy.qris.chooseFile)}</span>
+                      <span className="text-xs text-gray-400">{t(dict.buy.qris.clickToChoose)}</span>
                     </>
                   )}
                   <input
@@ -915,22 +927,22 @@ function BeliForm() {
                 >
                   {proofLoading ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" /> Mengirim…
+                      <Loader2 className="w-4 h-4 animate-spin" /> {t(dict.buy.qris.submitting)}
                     </>
                   ) : (
                     <>
-                      <CheckCircle className="w-4 h-4" /> Submit Bukti Bayar
+                      <CheckCircle className="w-4 h-4" /> {t(dict.buy.qris.submitProof)}
                     </>
                   )}
                 </button>
 
                 <div className="mt-3 flex items-center justify-center gap-2 text-xs">
                   <button onClick={() => setQrisStep("pay")} className="inline-flex items-center gap-1.5 font-semibold text-gray-500 hover:text-gray-700 underline underline-offset-2">
-                    <ArrowRight className="w-3.5 h-3.5 rotate-180" /> Kembali
+                    <ArrowRight className="w-3.5 h-3.5 rotate-180" /> {t(dict.buy.qris.back)}
                   </button>
                   <span className="text-gray-300">·</span>
                   <button onClick={handleBatal} className="inline-flex items-center gap-1.5 font-semibold text-gray-500 hover:text-gray-700 underline underline-offset-2">
-                    <X className="w-3.5 h-3.5" /> Batal
+                    <X className="w-3.5 h-3.5" /> {t(dict.buy.qris.cancel)}
                   </button>
                 </div>
               </>
@@ -941,35 +953,36 @@ function BeliForm() {
                 <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
                   <BellRing className="w-7 h-7 text-emerald-600" />
                 </div>
-                <h2 className="text-lg font-bold text-gray-900 mb-2">Terima kasih!</h2>
+                <h2 className="text-lg font-bold text-gray-900 mb-2">{t(dict.buy.qris.thanksTitle)}</h2>
                 <p className="text-sm text-gray-500 mb-4">
-                  Bukti bayar Anda sudah kami terima. Silakan menunggu sampai admin memverifikasi data Anda.
+                  {t(dict.buy.qris.thanksSub)}
                 </p>
 
                 <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-left text-xs text-emerald-800 space-y-2 mb-4">
                   <p>
-                    Download aplikasi dan kode cashback{isCashbackEligible ? " (jika Anda eligible)" : ""} akan dikirim
-                    otomatis ke email <strong>{email}</strong> saat status pembayaran Anda menjadi{" "}
-                    <strong>Lunas</strong>.
+                    {tf(t(dict.buy.qris.thanksBox1), {
+                      eligible: isCashbackEligible ? t(dict.buy.qris.thanksEligible) : "",
+                      email,
+                    })}
                   </p>
                   <p className="text-emerald-700">
-                    Jika ada kendala, kami akan menghubungi Anda melalui email/WhatsApp yang terdaftar.
+                    {t(dict.buy.qris.thanksBox2)}
                   </p>
                   <p className="text-emerald-700">
-                    📬 Email terkadang masuk ke folder <strong>Promosi / Spam / Junk</strong> — cek juga folder-folder tersebut di penyedia email Anda.
+                    {t(dict.buy.qris.thanksBox3)}
                   </p>
                 </div>
 
                 <div className="p-3 rounded-xl bg-blue-50 border border-blue-100 text-xs text-blue-700 mb-4 flex items-start gap-2">
                   <Loader2 className="w-4 h-4 shrink-0 mt-0.5 animate-spin" />
-                  <span>Status Anda diperiksa otomatis tiap 5 detik — halaman ini akan berubah otomatis begitu admin menyetujui.</span>
+                  <span>{t(dict.buy.qris.autoCheckNote)}</span>
                 </div>
 
                 <button
                   onClick={() => router.push("/")}
                   className="w-full inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 shadow-md"
                 >
-                  <Home className="w-4 h-4" /> Kembali ke Beranda
+                  <Home className="w-4 h-4" /> {t(dict.buy.qris.backHome)}
                 </button>
               </>
             )}
@@ -981,16 +994,15 @@ function BeliForm() {
                     <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
                       <CheckCircle className="w-7 h-7 text-emerald-600" />
                     </div>
-                    <h2 className="text-lg font-bold text-gray-900 mb-2">Permintaan Refund Dikirim</h2>
+                    <h2 className="text-lg font-bold text-gray-900 mb-2">{t(dict.buy.qris.refundSentTitle)}</h2>
                     <p className="text-sm text-gray-500 mb-4">
-                      Permintaan refund Anda sudah terkirim ke admin. Kami akan memprosesnya paling lambat{" "}
-                      <strong>1x24 jam</strong> — bukti transfer refund akan dikirim ke email <strong>{email}</strong>.
+                      {tf(t(dict.buy.qris.refundSentSub), { email })}
                     </p>
                     <button
                       onClick={() => router.push("/")}
                       className="w-full inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 shadow-md"
                     >
-                      <Home className="w-4 h-4" /> Kembali ke Beranda
+                      <Home className="w-4 h-4" /> {t(dict.buy.qris.backHome)}
                     </button>
                   </>
                 ) : (
@@ -999,43 +1011,39 @@ function BeliForm() {
                       <X className="w-7 h-7 text-red-600" />
                     </div>
                     <h2 className="text-lg font-bold text-gray-900 mb-2">
-                      {rejectionType === "insufficient" ? "Jumlah Pembayaran Tidak Sesuai" : "Pesanan Tidak Sesuai Ketentuan"}
+                      {rejectionType === "insufficient" ? t(dict.buy.qris.mismatchTitle) : t(dict.buy.qris.rejectedTitle)}
                     </h2>
                     <p className="text-sm text-gray-500 mb-4">
-                      {rejectionType === "insufficient"
-                        ? "Pembayaran yang kami terima kurang dari nominal yang diminta."
-                        : "Kami mohon maaf, pesanan Anda tidak dapat kami proses."}
+                      {rejectionType === "insufficient" ? t(dict.buy.qris.mismatchSub) : t(dict.buy.qris.rejectedSub)}
                     </p>
 
                     {rejectionType === "insufficient" && (
                       <div className="p-4 rounded-xl bg-gray-50 border border-gray-100 text-left text-xs text-gray-600 space-y-1.5 mb-4">
                         <div className="flex justify-between">
-                          <span>Harga Produk</span>
+                          <span>{t(dict.buy.qris.productPrice)}</span>
                           <span className="font-bold text-gray-900">{formatRupiah((amountPaidByCustomer || 0) + (amountRemaining || 0))}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span>Yang Telah Dibayar</span>
+                          <span>{t(dict.buy.qris.paidSoFar)}</span>
                           <span className="font-semibold">{formatRupiah(amountPaidByCustomer || 0)}</span>
                         </div>
                         <div className="flex justify-between border-t border-gray-200 pt-1.5">
-                          <span>Sisa yang Harus Dibayar</span>
+                          <span>{t(dict.buy.qris.remaining)}</span>
                           <span className="font-bold text-red-600">{formatRupiah(amountRemaining || 0)}</span>
                         </div>
                       </div>
                     )}
 
                     <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-left text-xs text-red-800 mb-4">
-                      <strong>Alasan:</strong> {rejectionReason || "Pesanan Anda tidak sesuai dengan ketentuan yang berlaku."}
+                      <strong>{t(dict.buy.qris.reason)}</strong> {rejectionReason || t(dict.buy.qris.defaultReason)}
                     </div>
 
                     <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-left text-xs text-amber-800 mb-4">
                       <BellRing className="w-4 h-4 inline mr-1.5 text-amber-600" />
                       {rejectionType === "insufficient" ? (
-                        <>Pilih salah satu opsi: <strong>1)</strong> Ajukan refund — dana dikembalikan ≤1x24 jam ke rekening pengirim (potongan transfer bank ditanggung pelanggan); <strong>2)</strong> Bayar kekurangan — lengkapi nominal kurang via QRIS lalu pesanan langsung diproses.</>
+                        t(dict.buy.qris.optionInsufficient)
                       ) : (
-                        <>Dana yang telah Anda bayarkan akan dikembalikan ke rekening pengirim paling lambat{" "}
-                        <strong>1x24 jam</strong>, sesuai jumlah yang ditransfer (potongan transfer bank menjadi tanggungan
-                        pelanggan). Mohon menunggu — detail dikirim juga ke email <strong>{email}</strong>.</>
+                        tf(t(dict.buy.qris.optionRejected), { email })
                       )}
                     </div>
 
@@ -1051,7 +1059,7 @@ function BeliForm() {
                           className="w-full flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 disabled:opacity-50 shadow-md"
                         >
                           {busy === "refund" ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
-                          Ajukan Refund
+                          {t(dict.buy.qris.requestRefund)}
                         </button>
                         <button
                           onClick={handleBayarKekurangan}
@@ -1059,7 +1067,7 @@ function BeliForm() {
                           className="mt-3 w-full flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 disabled:opacity-50 shadow-md"
                         >
                           {busy === "supplement" ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                          Bayar Kekurangan ({formatRupiah(amountRemaining || 0)})
+                          {tf(t(dict.buy.qris.payDifference), { amount: formatRupiah(amountRemaining || 0) })}
                         </button>
                       </>
                     ) : (
@@ -1067,7 +1075,7 @@ function BeliForm() {
                         onClick={() => router.push("/")}
                         className="w-full inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 shadow-md"
                       >
-                        <Home className="w-4 h-4" /> Kembali ke Beranda
+                        <Home className="w-4 h-4" /> {t(dict.buy.qris.backHome)}
                       </button>
                     )}
                   </>
@@ -1086,29 +1094,29 @@ function BeliForm() {
             <div className="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="w-7 h-7 text-amber-600" />
             </div>
-            <h2 className="text-lg font-bold text-gray-900 mb-1">Pembayaran Berhasil!</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-1">{t(dict.buy.qris.paidTitle)}</h2>
             <p className="text-sm text-gray-500 mb-4">
-              Terima kasih, {fullName}. Pembayaran Anda telah berhasil diproses.
+              {tf(t(dict.buy.qris.paidSub), { name: fullName })}
             </p>
 
             {/* Download aplikasi */}
             <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-left mb-4">
               <div className="flex items-center gap-2 mb-1">
                 <Download className="w-4 h-4 text-emerald-600" />
-                <h3 className="text-sm font-semibold text-emerald-800">Download Aplikasi</h3>
+                <h3 className="text-sm font-semibold text-emerald-800">{t(dict.buy.qris.downloadApp)}</h3>
               </div>
               {dlState === "prep" && (
                 <p className="text-xs text-emerald-700 flex items-center gap-2">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Menyiapkan unduhan…
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> {t(dict.buy.qris.preparing)}
                 </p>
               )}
               {dlState === "countdown" && (
                 <p className="text-xs text-emerald-700">
-                  Mengunduh otomatis dalam <strong className="text-emerald-800">{countdown} detik</strong>…
+                  {tf(t(dict.buy.qris.autoDownloadIn), { n: countdown })}
                 </p>
               )}
               {dlState === "error" && (
-                <p className="text-xs text-red-600">{error || "Gagal menyiapkan unduhan."}</p>
+                <p className="text-xs text-red-600">{error || t(dict.buy.qris.dlFail)}</p>
               )}
               {downloadUrl && (
                 <>
@@ -1116,14 +1124,13 @@ function BeliForm() {
                     href={downloadUrl}
                     className="mt-3 inline-flex items-center justify-center gap-2 w-full px-6 py-2.5 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 shadow-md"
                   >
-                    <Download className="w-4 h-4" /> Unduh Aplikasi
+                    <Download className="w-4 h-4" /> {t(dict.buy.qris.downloadBtn)}
                   </a>
                   <p className="text-[11px] text-emerald-700 mt-2">
-                    Harap unduh di <strong>Komputer</strong>, bukan di HP. Tautan juga dikirim ke email{" "}
-                    <strong>{email}</strong> bila perlu mengunduh kembali dalam 24 jam.
+                    {tf(t(dict.buy.qris.dlNote1), { email })}
                   </p>
                   <p className="text-[11px] text-emerald-700 mt-1">
-                    📬 Email terkadang masuk folder <strong>Promosi / Spam / Junk</strong> — periksa juga folder-folder tersebut jika email belum masuk.
+                    {t(dict.buy.qris.dlNote2)}
                   </p>
                 </>
               )}
@@ -1133,15 +1140,13 @@ function BeliForm() {
             {isCashbackEligible && (
               <div className="text-left mb-4">
                 <p className="text-xs text-amber-800 font-semibold mb-2 flex items-center gap-1">
-                  <Gift className="w-3.5 h-3.5" /> Paket ini dapat cashback
+                  <Gift className="w-3.5 h-3.5" /> {t(dict.buy.qris.cbEligible)}
                 </p>
                 <div className="p-4 rounded-xl bg-gray-900 text-white font-mono text-xl tracking-widest mb-2 select-all text-center">
                   {cashbackCode}
                 </div>
                 <p className="text-xs text-gray-500 leading-relaxed">
-                  Demi alasan keamanan, kode ini <strong>hanya dibuat sekali</strong> dan{" "}
-                  <strong>tidak akan ditampilkan lagi</strong>. Harap simpan baik-baik — akan dibutuhkan saat{" "}
-                  <strong>klaim cashback</strong>.
+                  {t(dict.buy.qris.cbCodeWarning)}
                 </p>
               </div>
             )}
@@ -1150,9 +1155,9 @@ function BeliForm() {
               onClick={() => router.push("/")}
               className="w-full inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 shadow-md"
             >
-              OK <ArrowRight className="w-4 h-4" />
+              {t(dict.buy.qris.ok)} <ArrowRight className="w-4 h-4" />
             </button>
-            <p className="text-xs text-gray-400 mt-3">Klik OK untuk kembali ke beranda.</p>
+            <p className="text-xs text-gray-400 mt-3">{t(dict.buy.qris.okHint)}</p>
           </div>
           </div>
         </div>

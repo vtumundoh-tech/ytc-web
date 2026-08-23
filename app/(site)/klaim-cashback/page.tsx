@@ -1,17 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { formatRupiah } from "@/lib/tiers";
-import { parseJsonSafe, isHeicFile, HEIC_ERROR } from "@/lib/fetchJson";
+import { parseJsonSafe, isHeicFile } from "@/lib/fetchJson";
 import { useAppSettings } from "@/hooks/useAppSettings";
+import { dict, tf } from "@/lib/i18n";
+import type { T } from "@/lib/i18n";
+import { useLang } from "@/components/LanguageProvider";
 import { Gift, User, Phone, Mail, Hash, Tag, Image, FileText, CheckCircle, AlertTriangle, ExternalLink, Search, X } from "lucide-react";
 
-const TIKTOK_URL = "https://www.tiktok.com/@mineclipstudio";
+const TIKTOK_URL = "https://www.tiktok.com/@mineclipstudios";
 const YOUTUBE_URL = "https://www.youtube.com/@Mineclips_collection";
 
 export default function KlaimCashbackPage() {
   const { settings } = useAppSettings();
   const tiers = settings.tiers;
+  const { t } = useLang();
 
   const [cashbackCode, setCashbackCode] = useState("");
   const [checking, setChecking] = useState(false);
@@ -56,7 +59,7 @@ export default function KlaimCashbackPage() {
     try {
       const res = await fetch(`/api/cashback/check?q=${encodeURIComponent(cashbackCode.trim())}`);
       const data = await parseJsonSafe<{ found?: boolean; data?: any }>(res);
-      if (!data.ok) throw new Error(data.error || "Gagal memeriksa data.");
+      if (!data.ok) throw new Error(data.error || t(dict.claim.errCheck));
       if (!data.data.found) {
         setCheckState("notfound");
         setUnlocked(false);
@@ -71,7 +74,7 @@ export default function KlaimCashbackPage() {
       setUnlocked(true);
       setCheckState("ok");
     } catch (err: any) {
-      setError(err.message || "Terjadi kesalahan, coba lagi.");
+      setError(err.message || t(dict.claim.errGeneric));
     } finally {
       setChecking(false);
     }
@@ -83,7 +86,7 @@ export default function KlaimCashbackPage() {
     if (!requiredFilled) return;
     const allFiles = [...fPayment, ...fFollow, ...fLike, ...fShare];
     if (allFiles.some(isHeicFile)) {
-      setError(HEIC_ERROR);
+      setError(t(dict.common.heic));
       return;
     }
     setLoading(true);
@@ -104,10 +107,10 @@ export default function KlaimCashbackPage() {
 
       const res = await fetch("/api/cashback", { method: "POST", body: fd });
       const data = await parseJsonSafe<{ error?: string }>(res);
-      if (!data.ok) throw new Error(data.error || "Gagal mengirim klaim");
+      if (!data.ok) throw new Error(data.error || t(dict.claim.errSubmit));
       setDone(true);
     } catch (err: any) {
-      setError(err.message || "Terjadi kesalahan, coba lagi.");
+      setError(err.message || t(dict.claim.errGeneric));
     } finally {
       setLoading(false);
     }
@@ -122,13 +125,9 @@ export default function KlaimCashbackPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h1 className="text-xl font-bold text-gray-900 mb-3">Klaim terkirim!</h1>
-          <p className="text-gray-500 text-sm leading-relaxed">
-            Admin akan memverifikasi bukti Anda maksimal 1x24 jam. Cashback akan ditransfer ke nomor WhatsApp yang Anda daftarkan.
-          </p>
-          <p className="text-gray-400 text-xs leading-relaxed mt-3">
-            📬 Email konfirmasi mungkin masuk ke folder <strong>Promosi / Spam / Junk</strong> — periksa juga folder-folder tersebut jika email belum muncul.
-          </p>
+          <h1 className="text-xl font-bold text-gray-900 mb-3">{t(dict.claim.doneTitle)}</h1>
+          <p className="text-gray-500 text-sm leading-relaxed">{t(dict.claim.doneSub)}</p>
+          <p className="text-gray-400 text-xs leading-relaxed mt-3">{t(dict.claim.doneSpamNote)}</p>
         </div>
       </div>
     );
@@ -140,42 +139,42 @@ export default function KlaimCashbackPage() {
         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-violet-200/50">
           <Gift className="w-5 h-5 text-white" />
         </div>
-        <h1 className="text-xl font-bold text-gray-900">Klaim Cashback</h1>
-        <p className="text-sm text-gray-500 mt-1">Lampirkan bukti bayar & bukti follow/subscribe, like &amp; comment, dan share untuk klaim cashback Anda.</p>
+        <h1 className="text-xl font-bold text-gray-900">{t(dict.claim.title)}</h1>
+        <p className="text-sm text-gray-500 mt-1">{t(dict.claim.sub)}</p>
       </div>
 
       <div className="card-sm mb-6 flex items-start gap-3 animate-fade-in">
         <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
         <div className="text-xs text-gray-500 leading-relaxed">
-          <strong className="text-gray-700">Syarat Ringkas:</strong>{" "}
-          Follow{" "}
+          <strong className="text-gray-700">{t(dict.claim.summaryTitle)}</strong>{" "}
+          {t(dict.claim.sumPreTiktok)}
           <a href={TIKTOK_URL} target="_blank" rel="noopener noreferrer" className="text-violet-600 font-semibold underline underline-offset-2 hover:text-violet-700">
-            TikTok @mineclipstudio
+            TikTok @mineclipstudios
             <ExternalLink className="w-3 h-3 inline ml-0.5" />
           </a>{" "}
-          atau subscribe{" "}
+          {t(dict.claim.sumMidYoutube)}
           <a href={YOUTUBE_URL} target="_blank" rel="noopener noreferrer" className="text-violet-600 font-semibold underline underline-offset-2 hover:text-violet-700">
             YouTube @Mineclips_collection
             <ExternalLink className="w-3 h-3 inline ml-0.5" />
           </a>{" "}
-          &middot; Like &amp; comment minimal 3 post kami &middot; Share ke minimal 3 teman atau unggah ke Story &middot; Semua wajib dipertahankan minimal 7 hari — jika kedapatan berhenti lebih awal, cashback tidak dapat dicairkan &middot; Lampirkan screenshot bukti setiap langkah. Pencairan dilakukan minimal 7 hari setelah key diaktifkan. Harap diisi data yang sebenar-benarnya seperti yang di submit saat pembelian agar mudah untuk kami melakukan tracking untuk pengembalian dana. Jika data yang ditemukan berbeda bukan tanggung jawab kami karena tidak dapat meneruskan cashback.
+          {t(dict.claim.sumRest)}
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="card-lg space-y-6 animate-slide-up">
         <div className="space-y-5">
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Cek Data Pembelian</h2>
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">{t(dict.claim.sectionCheck)}</h2>
 
           <div>
             <label className="field-label">
               <Hash className="w-3.5 h-3.5 inline mr-1.5 text-violet-500" />
-              Kode Unik <span className="text-red-400">*</span>
+              {t(dict.claim.uniqueCode)} <span className="text-red-400">*</span>
             </label>
             <div className="flex gap-2">
               <input
                 className="input-field flex-1 font-mono uppercase disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50"
                 maxLength={12}
-                placeholder="Contoh: YTC-XXXXXXX"
+                placeholder={t(dict.claim.codePh)}
                 value={cashbackCode}
                 onChange={(e) => setCashbackCode(e.target.value)}
                 disabled={checking}
@@ -188,20 +187,20 @@ export default function KlaimCashbackPage() {
                 className="inline-flex items-center gap-1.5 px-4 py-3 rounded-xl text-sm font-semibold bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shrink-0"
               >
                 <Search className="w-4 h-4" />
-                {checking ? "Mengecek..." : "Check Data"}
+                {checking ? t(dict.claim.checking) : t(dict.claim.checkData)}
               </button>
             </div>
-            <p className="field-hint">Isi kode unik yang muncul saat pembayaran berhasil (hanya muncul sekalik).</p>
+            <p className="field-hint">{t(dict.claim.codeHint)}</p>
             {checkState === "ok" && (
               <div className="mt-3 p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-sm text-emerald-700 flex items-start gap-2 animate-fade-in">
                 <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>Data ditemukan! Field data di bawah sudah terisi otomatis dan terkunci — Anda hanya perlu mengunggah bukti.</span>
+                <span>{t(dict.claim.foundMsg)}</span>
               </div>
             )}
             {checkState === "notfound" && (
               <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-100 text-sm text-amber-700 flex items-start gap-2 animate-fade-in">
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>Kode tidak ditemukan. Pastikan kode unik sesuai saat pembelian.</span>
+                <span>{t(dict.claim.notFoundMsg)}</span>
               </div>
             )}
           </div>
@@ -210,9 +209,9 @@ export default function KlaimCashbackPage() {
         <hr className="border-gray-100" />
 
         <div className="space-y-5">
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Informasi Pengguna</h2>
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">{t(dict.claim.sectionUser)}</h2>
 
-          <Field icon={User} label="Nama Lengkap" required>
+          <Field icon={User} label={t(dict.claim.fullName)} required>
             <input
               className="input-field readOnly:bg-gray-50 readOnly:opacity-80 readOnly:cursor-not-allowed"
               value={fullName}
@@ -221,7 +220,7 @@ export default function KlaimCashbackPage() {
             />
           </Field>
 
-          <Field icon={Mail} label="Alamat Email" required hint="Untuk konfirmasi pengajuan cashback">
+          <Field icon={Mail} label={t(dict.claim.email)} required hint={t(dict.claim.emailHint)}>
             <input
               className="input-field readOnly:bg-gray-50 readOnly:opacity-80 readOnly:cursor-not-allowed"
               type="email"
@@ -231,7 +230,7 @@ export default function KlaimCashbackPage() {
             />
           </Field>
 
-          <Field icon={Phone} label="Nomor WhatsApp" hint="Aktif — untuk transfer cashback">
+          <Field icon={Phone} label={t(dict.claim.whatsapp)} hint={t(dict.claim.whatsappHint)}>
             <input
               className="input-field readOnly:bg-gray-50 readOnly:opacity-80 readOnly:cursor-not-allowed"
               type="tel"
@@ -244,18 +243,18 @@ export default function KlaimCashbackPage() {
         <hr className="border-gray-100" />
 
         <div className="space-y-5">
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Informasi Pembelian</h2>
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">{t(dict.claim.sectionPurchase)}</h2>
 
-          <Field icon={Tag} label="Tier yang Dibeli" required>
+          <Field icon={Tag} label={t(dict.claim.tierBought)} required>
             <select
               className="input-field disabled:opacity-70 disabled:cursor-not-allowed disabled:bg-gray-50"
               value={tier}
               disabled
               required
             >
-              <option value="">— Pilih —</option>
-              {tiers.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
+              <option value="">{t(dict.claim.selectPlaceholder)}</option>
+              {tiers.map((tr) => (
+                <option key={tr.value} value={tr.value}>{tr.label}</option>
               ))}
             </select>
           </Field>
@@ -265,43 +264,46 @@ export default function KlaimCashbackPage() {
         <hr className="border-gray-100" />
 
         <div className="space-y-5">
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Upload Bukti</h2>
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">{t(dict.claim.sectionUpload)}</h2>
 
-          <FileUpload label="Bukti Bayar" files={fPayment} onChange={setFPayment} required />
+          <FileUpload label={t(dict.claim.proofPayment)} files={fPayment} onChange={setFPayment} required t={t} />
           <FileUpload
-            label="Screenshot — Bukti Follow / Subscribe"
+            label={t(dict.claim.proofFollow)}
             files={fFollow}
             onChange={setFFollow}
             required
-            hint="Screenshot akun yang sudah follow TikTok atau subscribe YouTube."
+            hint={t(dict.claim.proofFollowHint)}
+            t={t}
           />
           <FileUpload
-            label="Screenshot — Like & Comment (wajib 6 foto)"
+            label={t(dict.claim.proofLike)}
             files={fLike}
             onChange={setFLike}
             required
             maxFiles={6}
-            hint="Wajib 6 foto: 3 postingan × 1 like + 1 komentar (masing-masing). Post di TikTok maupun YouTube — tidak boleh mengulang postingan yang sama."
+            hint={t(dict.claim.proofLikeHint)}
+            t={t}
           />
           <FileUpload
-            label="Screenshot — Share ke Teman / Story"
+            label={t(dict.claim.proofShare)}
             files={fShare}
             onChange={setFShare}
             required
-            hint="Bukti share ke minimal 3 teman (screenshot isi dm yang menunjukkan postingan yang di-share), atau screenshot Story saat sudah tayang."
+            hint={t(dict.claim.proofShareHint)}
+            t={t}
           />
         </div>
 
         <hr className="border-gray-100" />
 
-        <Field icon={FileText} label="Catatan Tambahan" hint="Opsional">
+        <Field icon={FileText} label={t(dict.claim.notes)} hint={t(dict.claim.optional)}>
           <textarea className="input-field" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </Field>
 
         <div>
           <label className="field-label">
             <CheckCircle className="w-3.5 h-3.5 inline mr-1.5 text-violet-500" />
-            Verifikasi <span className="text-red-400">*</span>
+            {t(dict.claim.captcha)} <span className="text-red-400">*</span>
           </label>
           <input
             className="input-field max-w-[160px]"
@@ -311,7 +313,7 @@ export default function KlaimCashbackPage() {
             onChange={(e) => setCaptcha(e.target.value)}
             required
           />
-          <p className="field-hint">Berapa hasil dari {vA} + {vB}? (angka acak setiap kali)</p>
+          <p className="field-hint">{tf(t(dict.claim.captchaHint), { a: vA ?? "", b: vB ?? "" })}</p>
         </div>
 
         <hr className="border-gray-100" />
@@ -319,12 +321,12 @@ export default function KlaimCashbackPage() {
         <div>
           {snkOpen && (
             <div className="mt-3 p-4 rounded-xl bg-gray-50 text-xs text-gray-500 leading-relaxed space-y-2 animate-fade-in">
-              <p>Cashback hanya berlaku 1 kali per key, non-tunai, ditransfer ke WhatsApp terdaftar.</p>
-              <p>Follow, like, comment, dan subscribe wajib dipertahankan minimal 7 hari — jika kedapatan berhenti lebih awal, cashback tidak dapat dicairkan.</p>
-              <p>Like &amp; comment wajib minimal 3 post yang berbeda setiap klaim — mengulang post yang sama dianggap tidak sah.</p>
-              <p>Pencairan dilakukan minimal 7 hari setelah key diaktifkan.</p>
-              <p>Kecurangan mengakibatkan blacklist permanen &amp; key dapat dicabut tanpa refund.</p>
-              <p>Keputusan Admin bersifat mutlak.</p>
+              <p>{t(dict.claim.snk1)}</p>
+              <p>{t(dict.claim.snk2)}</p>
+              <p>{t(dict.claim.snk3)}</p>
+              <p>{t(dict.claim.snk4)}</p>
+              <p>{t(dict.claim.snk5)}</p>
+              <p>{t(dict.claim.snk6)}</p>
             </div>
           )}
         </div>
@@ -333,14 +335,14 @@ export default function KlaimCashbackPage() {
           <input type="checkbox" className="mt-0.5 accent-violet-600 w-4 h-4 rounded" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
           <div>
             <div className="text-sm font-semibold text-violet-900">
-              Saya setuju dengan{" "}
+              {t(dict.claim.agreePre)}
               <a
                 href="/syarat-ketentuan"
                 target="_blank"
                 className="underline underline-offset-2 hover:text-violet-800"
                 onClick={(e) => e.stopPropagation()}
               >
-                Syarat & Ketentuan
+                {t(dict.claim.agreeLink)}
                 <ExternalLink className="w-3 h-3 inline ml-0.5" />
               </a>
             </div>
@@ -354,7 +356,7 @@ export default function KlaimCashbackPage() {
         )}
 
         <button type="submit" disabled={!requiredFilled || loading} className="btn-purple w-full flex items-center justify-center gap-2">
-          {loading ? "Mengirim..." : <><Gift className="w-4 h-4" /> Kirim Klaim Cashback</>}
+          {loading ? t(dict.claim.sending) : <><Gift className="w-4 h-4" /> {t(dict.claim.submit)}</>}
         </button>
       </form>
     </div>
@@ -380,15 +382,20 @@ function Field({ icon: Icon, label, required, hint, children }: {
   );
 }
 
-function FileUpload({ label, files, onChange, maxFiles = 1, required, hint }: {
+function FileUpload({ label, files, onChange, maxFiles = 1, required, hint, t }: {
   label: string;
   files: File[];
   onChange: (f: File[]) => void;
   maxFiles?: number;
   required?: boolean;
   hint?: string;
+  t: (s: T) => string;
 }) {
   const canAdd = files.length < maxFiles;
+  const typesLine = tf(
+    t(dict.claim.fileTypes),
+    { max: maxFiles > 1 ? tf(t(dict.claim.fileTypesMax), { n: maxFiles }) : "" }
+  );
 
   function handleSelect(list: FileList | null) {
     if (!list) return;
@@ -423,7 +430,7 @@ function FileUpload({ label, files, onChange, maxFiles = 1, required, hint }: {
                 type="button"
                 onClick={() => onChange(files.filter((_, idx) => idx !== i))}
                 className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
-                aria-label="Hapus file"
+                aria-label={t(dict.claim.deleteFile)}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -438,13 +445,13 @@ function FileUpload({ label, files, onChange, maxFiles = 1, required, hint }: {
         }`}>
           <div className="text-center">
             <Image className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-            <p className="text-sm text-gray-500">{files.length > 0 ? "Tap untuk tambah gambar" : "Tap untuk pilih gambar"}</p>
-            <p className="text-xs text-gray-400 mt-0.5">JPEG, PNG, atau WebP (maks 5MB){maxFiles > 1 ? `, maksimal ${maxFiles} gambar` : ""}</p>
+            <p className="text-sm text-gray-500">{files.length > 0 ? t(dict.claim.addImage) : t(dict.claim.pickImage)}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{typesLine}</p>
           </div>
           <input type="file" accept="image/*" multiple={maxFiles > 1} className="hidden" onChange={(e) => handleSelect(e.target.files)} />
         </label>
       ) : (
-        <p className="text-xs text-emerald-600 font-medium">Sudah mencapai maksimal {maxFiles} gambar.</p>
+        <p className="text-xs text-emerald-600 font-medium">{tf(t(dict.claim.maxReached), { n: maxFiles })}</p>
       )}
       {hint && <p className="field-hint">{hint}</p>}
     </div>

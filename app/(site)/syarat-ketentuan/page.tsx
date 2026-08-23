@@ -2,7 +2,7 @@ import { FileText } from "lucide-react";
 import Link from "next/link";
 import { TIERS, formatRupiah } from "@/lib/tiers";
 
-const TIKTOK_URL = "https://www.tiktok.com/@mineclipstudio";
+const TIKTOK_URL = "https://www.tiktok.com/@mineclipstudios";
 const YOUTUBE_URL = "https://www.youtube.com/@Mineclips_collection";
 const WHATSAPP_URL = "https://wa.me/6282395912267";
 
@@ -169,7 +169,7 @@ export default function TermsPage() {
             <li>
               Support us by following{" "}
               <a href={TIKTOK_URL} target="_blank" rel="noopener noreferrer" className="text-violet-600 font-semibold underline underline-offset-2 hover:text-violet-700">
-                TikTok @mineclipstudio
+                TikTok @mineclipstudios
               </a>{" "}
               or subscribing to{" "}
               <a href={YOUTUBE_URL} target="_blank" rel="noopener noreferrer" className="text-violet-600 font-semibold underline underline-offset-2 hover:text-violet-700">

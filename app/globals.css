@@ -2,13 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+  --brand-emerald: 16 185 129;
+  --brand-violet: 139 92 246;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
 
 body {
-  @apply bg-gradient-to-br from-slate-50 to-gray-100 text-gray-900 antialiased;
+  @apply bg-gradient-to-br from-slate-50 via-white to-gray-100 text-gray-900 antialiased;
+}
+
+h1, h2, h3 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+::selection {
+  @apply bg-emerald-200/70 text-emerald-950;
+}
+
+button, a, [role="button"] {
+  touch-action: manipulation;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @layer components {
+  /* ── Surfaces ── */
   .card {
     @apply bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-100/80;
   }
@@ -18,31 +56,98 @@ body {
   .card-sm {
     @apply card p-6;
   }
+
+  /* ── Inputs ── */
   .input-field {
     @apply w-full px-4 py-3 rounded-xl border border-gray-200 bg-white/70
-           text-sm transition-all duration-200
-           focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400
+           text-sm transition-[border-color,box-shadow] duration-200
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30 focus-visible:border-emerald-400
            placeholder:text-gray-400;
-  }
-  .btn-primary {
-    @apply px-8 py-3 rounded-xl font-semibold text-sm text-white
-           transition-all duration-200
-           disabled:opacity-40 disabled:cursor-not-allowed;
-  }
-  .btn-emerald {
-    @apply btn-primary bg-gradient-to-r from-emerald-600 to-emerald-500
-           hover:from-emerald-700 hover:to-emerald-600
-           shadow-md shadow-emerald-200/50;
-  }
-  .btn-purple {
-    @apply btn-primary bg-gradient-to-r from-violet-600 to-purple-500
-           hover:from-violet-700 hover:to-purple-600
-           shadow-md shadow-violet-200/50;
   }
   .field-label {
     @apply block text-sm font-semibold text-gray-700 mb-2;
   }
   .field-hint {
     @apply text-xs text-gray-400 mt-1;
+  }
+
+  /* ── Buttons ── */
+  .btn-primary {
+    @apply px-8 py-3 rounded-xl font-semibold text-sm text-white
+           transition-[background-color,box-shadow,transform] duration-200
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-500
+           active:scale-[0.98]
+           disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100;
+  }
+  .btn-emerald {
+    @apply btn-primary bg-gradient-to-r from-emerald-600 to-emerald-500
+           hover:from-emerald-700 hover:to-emerald-600 hover:shadow-lg
+           shadow-md shadow-emerald-200/50;
+  }
+  .btn-purple {
+    @apply btn-primary bg-gradient-to-r from-violet-600 to-purple-500
+           hover:from-violet-700 hover:to-purple-600 hover:shadow-lg
+           shadow-md shadow-violet-200/50
+           focus-visible:ring-violet-500;
+  }
+  .btn-dark {
+    @apply btn-primary bg-gradient-to-r from-gray-800 to-gray-900
+           hover:from-gray-900 hover:to-black hover:shadow-lg
+           shadow-md shadow-gray-300/50
+           focus-visible:ring-gray-700;
+  }
+  .btn-outline {
+    @apply btn-primary bg-white text-gray-700 border border-gray-200
+           hover:border-gray-300 hover:bg-gray-50 shadow-sm
+           focus-visible:ring-gray-400;
+  }
+  .btn-ghost {
+    @apply px-4 py-2 rounded-xl font-semibold text-sm text-gray-600
+           hover:text-gray-900 hover:bg-gray-100
+           transition-colors duration-200
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300;
+  }
+
+  /* ── Badges ── */
+  .badge {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-full border;
+  }
+  .badge-emerald {
+    @apply badge bg-emerald-50 text-emerald-700 border-emerald-200/60;
+  }
+  .badge-amber {
+    @apply badge bg-amber-50 text-amber-700 border-amber-200/60;
+  }
+  .badge-violet {
+    @apply badge bg-violet-50 text-violet-700 border-violet-200/60;
+  }
+  .badge-gray {
+    @apply badge bg-gray-50 text-gray-600 border-gray-200;
+  }
+
+  /* ── Section headings ── */
+  .section-title {
+    @apply text-xl sm:text-3xl font-extrabold text-gray-900 tracking-tight text-center;
+  }
+  .section-sub {
+    @apply text-sm sm:text-base text-gray-500 text-center mt-2 mb-8 max-w-2xl mx-auto leading-relaxed;
+  }
+
+  /* ── Links ── */
+  .link-accent {
+    @apply font-semibold underline underline-offset-2 transition-colors;
+  }
+
+  /* ── Numeric alignment ── */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer utilities {
+  .no-print {
+    @media print {
+      display: none !important;
+    }
   }
 }
