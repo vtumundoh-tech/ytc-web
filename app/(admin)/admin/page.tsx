@@ -9,6 +9,7 @@ import dynamic from "next/dynamic";
 import { parseJsonSafe, isHeicFile, HEIC_ERROR } from "@/lib/fetchJson";
 import { waLink } from "@/lib/whatsapp";
 import AdminIdleLogout from "@/components/AdminIdleLogout";
+import DateRangeBar, { defaultRange, rangeDays, shiftRangeBack, fmtRangeID, type DateRange } from "@/components/DateRangeBar";
 
 const Charts = dynamic(() => import("./charts"), { ssr: false });
 import type { DashboardBucket, DashboardSlice } from "./charts";
@@ -363,6 +364,7 @@ function DashboardTab() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<"daily" | "monthly">("daily");
+  const [range, setRange] = useState<DateRange>(() => defaultRange(7));
   const [activeBucket, setActiveBucket] = useState<string | null>(null);
   const [activeStatus, setActiveStatus] = useState<string | null>(null);
 
@@ -376,44 +378,62 @@ function DashboardTab() {
 
   useEffect(() => { load(); }, []);
 
-  const today = new Date();
-
   function dateKey(d: Date) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }
 
-  const dayKeys = useMemo(() => {
-    const keys: string[] = [];
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(d.getDate() - i);
-      keys.push(dateKey(d));
-    }
-    return keys;
-  }, []);
+  // Granularitas otomatis: rentang panjang (>62 hari) dipaksa per bulan agar chart terbaca.
+  const rDays = rangeDays(range) || 7;
+  const effMode: "daily" | "monthly" = rDays > 62 ? "monthly" : mode;
 
-  const monthKeys = useMemo(() => {
-    const keys: string[] = [];
-    const base = new Date(today.getFullYear(), today.getMonth(), 1);
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(base.getFullYear(), base.getMonth() - i, 1);
-      keys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
-    }
-    return keys;
-  }, []);
+  function changeRange(r: DateRange) {
+    setRange(r);
+    setActiveBucket(null);
+    setActiveStatus(null);
+  }
 
-  const keys = mode === "daily" ? dayKeys : monthKeys;
+  const keys = useMemo(() => {
+    const ks: string[] = [];
+    if (effMode === "daily") {
+      const d = new Date(range.from + "T00:00:00");
+      const end = new Date(range.to + "T00:00:00");
+      while (d <= end && ks.length < 400) {
+        ks.push(dateKey(d));
+        d.setDate(d.getDate() + 1);
+      }
+    } else {
+      let y = Number(range.from.slice(0, 4));
+      let m = Number(range.from.slice(5, 7));
+      const endY = Number(range.to.slice(0, 4));
+      const endM = Number(range.to.slice(5, 7));
+      while ((y < endY || (y === endY && m <= endM)) && ks.length < 200) {
+        ks.push(`${y}-${String(m).padStart(2, "0")}`);
+        m++;
+        if (m > 12) { m = 1; y++; }
+      }
+    }
+    return ks;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effMode, range]);
+
+  const inRange = useMemo(() =>
+    orders.filter((o) => {
+      const k = o.created_at.slice(0, 10);
+      return (!range.from || k >= range.from) && (!range.to || k <= range.to);
+    }),
+    [orders, range]
+  );
 
   const series: DashboardBucket[] = useMemo(() => {
     const map: Record<string, DashboardBucket> = {};
-    keys.forEach((k, i) => {
-      const label = mode === "daily"
+    keys.forEach((k) => {
+      const label = effMode === "daily"
         ? `${Number(k.slice(8, 10))} ${MONTHS_ID[Number(k.slice(5, 7)) - 1]}`
         : `${MONTHS_ID[Number(k.slice(5, 7)) - 1]} ${k.slice(0, 4)}`;
       map[k] = { key: k, label, total: 0, pending: 0, paid: 0, revenue: 0 };
     });
-    orders.forEach((o) => {
-      const k = mode === "daily" ? o.created_at.slice(0, 10) : o.created_at.slice(0, 7);
+    inRange.forEach((o) => {
+      const k = effMode === "daily" ? o.created_at.slice(0, 10) : o.created_at.slice(0, 7);
       const b = map[k];
       if (!b) return;
       b.total++;
@@ -421,65 +441,48 @@ function DashboardTab() {
       if (o.status === "paid") { b.paid++; b.revenue += o.amount; }
     });
     return keys.map((k) => map[k]);
-  }, [orders, keys, mode]);
+  }, [inRange, keys, effMode]);
 
   const slices: DashboardSlice[] = useMemo(() =>
     ORDER_STATUSES
       .map((st) => ({
         status: st,
-        count: orders.filter((o) => o.status === st).length,
-        revenue: orders.filter((o) => o.status === st && o.status === "paid").reduce((s, o) => s + o.amount, 0),
+        count: inRange.filter((o) => o.status === st).length,
+        revenue: inRange.filter((o) => o.status === st && o.status === "paid").reduce((s, o) => s + o.amount, 0),
       }))
       .filter((s) => s.count > 0 || s.revenue > 0),
-    [orders]
+    [inRange]
   );
 
-  const span = mode === "daily" ? 30 : 12;
+  function totalsOf(list: Order[]) {
+    return {
+      revenue: list.filter((o) => o.status === "paid").reduce((s, o) => s + o.amount, 0),
+      orders: list.length,
+      pending: list.filter((o) => o.status === "pending").length,
+    };
+  }
 
-  const currentTotals = useMemo(() => {
-    let revenueC = 0, ordersC = 0, pendingC = 0;
-    for (let i = 0; i < span; i++) {
-      const d = new Date(today);
-      if (mode === "daily") d.setDate(d.getDate() - i);
-      else d.setMonth(d.getMonth() - i);
-      const key = mode === "daily" ? dateKey(d) : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      orders.forEach((o) => {
-        const ok = mode === "daily" ? o.created_at.slice(0, 10) : o.created_at.slice(0, 7);
-        if (ok !== key) return;
-        ordersC++;
-        if (o.status === "pending") pendingC++;
-        if (o.status === "paid") revenueC += o.amount;
-      });
-    }
-    return { revenue: revenueC, orders: ordersC, pending: pendingC };
-  }, [orders, mode, span]);
+  const currentTotals = useMemo(() => totalsOf(inRange), [inRange]);
 
   const prevTotals = useMemo(() => {
-    let revenueP = 0, ordersP = 0, pendingP = 0;
-    for (let i = 0; i < span; i++) {
-      const d = new Date(today);
-      if (mode === "daily") d.setDate(d.getDate() - (span + i));
-      else d.setMonth(d.getMonth() - (span + i));
-      const key = mode === "daily" ? dateKey(d) : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      orders.forEach((o) => {
-        const ok = mode === "daily" ? o.created_at.slice(0, 10) : o.created_at.slice(0, 7);
-        if (ok !== key) return;
-        ordersP++;
-        if (o.status === "pending") pendingP++;
-        if (o.status === "paid") revenueP += o.amount;
-      });
-    }
-    return { revenue: revenueP, orders: ordersP, pending: pendingP };
-  }, [orders, mode, span]);
+    const pr = shiftRangeBack(range);
+    const prevList = orders.filter((o) => {
+      const k = o.created_at.slice(0, 10);
+      return k >= pr.from && k <= pr.to;
+    });
+    return totalsOf(prevList);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders, range]);
 
   const drill = useMemo(() => {
-    let list = orders;
-    if (activeBucket) list = list.filter((o) => (mode === "daily" ? o.created_at.slice(0, 10) : o.created_at.slice(0, 7)) === activeBucket);
+    let list = inRange;
+    if (activeBucket) list = list.filter((o) => (effMode === "daily" ? o.created_at.slice(0, 10) : o.created_at.slice(0, 7)) === activeBucket);
     if (activeStatus) list = list.filter((o) => o.status === activeStatus);
     return [...list].sort((a, b) => b.created_at.localeCompare(a.created_at));
-  }, [orders, activeBucket, activeStatus, mode]);
+  }, [inRange, activeBucket, activeStatus, effMode]);
 
   const activeLabel = series.find((s) => s.key === activeBucket)?.label || null;
+  const spanLabel = effMode === "daily" ? `${rDays} hari` : `${keys.length} bulan`;
 
   function DeltaChip({ cur, prev, reverse }: { cur: number; prev: number; reverse?: boolean }) {
     if (prev === 0) {
@@ -501,31 +504,39 @@ function DashboardTab() {
 
   return (
     <div className="space-y-4">
+      <DateRangeBar value={range} onChange={changeRange} />
+
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-1.5 bg-gray-100 p-1 rounded-xl">
-          {(["daily", "monthly"] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => { setMode(m); setActiveBucket(null); }}
-              className={cn(
-                "px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200",
-                mode === m ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
-              )}
-            >
-              {m === "daily" ? "Harian (30 hari)" : "Bulanan (12 bulan)"}
-            </button>
-          ))}
-        </div>
+        {rDays <= 62 ? (
+          <div className="flex gap-1.5 bg-gray-100 p-1 rounded-xl">
+            {(["daily", "monthly"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => { setMode(m); setActiveBucket(null); }}
+                className={cn(
+                  "px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200",
+                  effMode === m ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                )}
+              >
+                {m === "daily" ? "Harian" : "Bulanan"}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-xl">
+            Rentang &gt; 62 hari — chart otomatis tampil per bulan
+          </span>
+        )}
         <span className="text-[11px] text-gray-400">
-          KPI = jumlah {mode === "daily" ? "30 hari terakhir" : "12 bulan terakhir"}, dibandingkan periode sebelumnya · klik chart untuk detail
+          KPI = rentang terpilih ({fmtRangeID(range)}), dibandingkan periode {rDays} hari sebelumnya · klik chart untuk detail
         </span>
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        <SummaryCard icon={DollarSign} label={`Pendapatan (${mode === "daily" ? "30 hari" : "12 bulan"})`} value={rupiah(currentTotals.revenue)} color="emerald" />
-        <SummaryCard icon={Users} label={`Total Order (${mode === "daily" ? "30 hari" : "12 bulan"})`} value={currentTotals.orders} color="blue" />
-        <SummaryCard icon={ShoppingBag} label={`Pending (${mode === "daily" ? "30 hari" : "12 bulan"})`} value={currentTotals.pending} color="amber" />
+        <SummaryCard icon={DollarSign} label={`Pendapatan (${spanLabel})`} value={rupiah(currentTotals.revenue)} color="emerald" />
+        <SummaryCard icon={Users} label={`Total Order (${spanLabel})`} value={currentTotals.orders} color="blue" />
+        <SummaryCard icon={ShoppingBag} label={`Pending (${spanLabel})`} value={currentTotals.pending} color="amber" />
       </div>
 
       <div className="flex flex-wrap gap-x-5 gap-y-1.5 px-1 text-xs text-gray-500">
@@ -539,14 +550,14 @@ function DashboardTab() {
           Pending <DeltaChip reverse cur={currentTotals.pending} prev={prevTotals.pending} />
         </span>
         <span className="text-gray-400">
-          {mode === "daily" ? "Periode berjalan 30 hari" : "Periode berjalan 12 bulan"} · sebelumnya {prevTotals.orders} order / {rupiah(prevTotals.revenue)}
+          Periode berjalan: {fmtRangeID(range)} · sebelumnya {prevTotals.orders} order / {rupiah(prevTotals.revenue)}
         </span>
       </div>
 
       <Charts
         series={series}
         slices={slices}
-        mode={mode}
+        mode={effMode}
         activeBucket={activeBucket}
         activeStatus={activeStatus}
         onBucket={(b) => setActiveBucket((prev) => (prev === b.key ? null : b.key))}

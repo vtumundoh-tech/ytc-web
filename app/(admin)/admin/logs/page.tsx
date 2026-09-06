@@ -1,9 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowLeft, ScrollText, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import AdminIdleLogout from "@/components/AdminIdleLogout";
+import DateRangeBar, { defaultRange, fmtRangeID, type DateRange } from "@/components/DateRangeBar";
+import type { LogsStats } from "./logs-charts";
+
+const Charts = dynamic(() => import("./logs-charts"), { ssr: false });
 
 type LogEntry = {
   id: number;
@@ -44,31 +49,53 @@ function fmtTime(iso: string): string {
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
+function LogsChartsSection({ stats, range }: { stats: LogsStats; range: DateRange }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+        Aktivitas {fmtRangeID(range)} · per {stats.granularity === "monthly" ? "bulan" : "hari"}
+      </p>
+      <Charts stats={stats} />
+    </div>
+  );
+}
+
 export default function AdminLogsPage() {
   const [filter, setFilter] = useState("all");
   const [page, setPage] = useState(1);
+  const [range, setRange] = useState<DateRange>(() => defaultRange(7));
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [total, setTotal] = useState(0);
+  const [stats, setStats] = useState<LogsStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/logs?filter=${filter}&page=${page}`);
+      const res = await fetch(
+        `/api/admin/logs?filter=${filter}&page=${page}&from=${range.from}&to=${range.to}&stats=1`
+      );
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Gagal memuat logs.");
       setLogs(json.logs || []);
       setTotal(json.total || 0);
+      setStats(json.stats || null);
     } catch {
       setLogs([]);
+      setStats(null);
     } finally {
       setLoading(false);
     }
-  }, [filter, page]);
+  }, [filter, page, range]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  function changeRange(r: DateRange) {
+    setRange(r);
+    setPage(1);
+  }
 
   const totalPages = Math.max(1, Math.ceil(total / 50));
 
@@ -88,6 +115,11 @@ export default function AdminLogsPage() {
         >
           <ArrowLeft className="w-3.5 h-3.5" /> Dashboard
         </Link>
+      </div>
+
+      <div className="space-y-4 mb-4 animate-fade-in">
+        <DateRangeBar value={range} onChange={changeRange} />
+        {stats && stats.perDay.length > 0 && <LogsChartsSection stats={stats} range={range} />}
       </div>
 
       <div className="flex items-center justify-between mb-4 animate-fade-in">
