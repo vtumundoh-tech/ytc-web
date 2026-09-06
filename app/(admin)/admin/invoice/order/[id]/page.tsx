@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Image from "next/image";
 import { FileText, Printer, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { useAdminFetch } from "@/lib/useAdminFetch";
 
 type Order = {
   id: string;
@@ -27,12 +28,13 @@ function rupiah(n: number) {
 }
 
 export default function InvoiceOrderPage() {
+  const af = useAdminFetch();
   const params = useParams();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/admin/orders")
+    af("/api/admin/orders")
       .then((r) => r.json())
       .then((d) => {
         const found = (d.data || []).find((o: Order) => o.id === params.id);

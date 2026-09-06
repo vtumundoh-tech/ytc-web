@@ -6,6 +6,12 @@ const IDLE_MAX_AGE_SECONDS = 4 * 60;
 // selalu memperbarui cookie pada tiap request yang valid.
 const MAX_AGE_SECONDS = IDLE_MAX_AGE_SECONDS;
 
+// Cookie bertanda "secure" hanya dipakai di produksi/HTTPS; di localhost/LAN
+// (http) atribut secure malah membuat cookie tak tersimpan sehingga sesi gagal.
+export function isSecureCookieEnv(): boolean {
+  return process.env.NODE_ENV === "production" || process.env.FORCE_SECURE_COOKIES === "true";
+}
+
 function secret() {
   const s = process.env.ADMIN_SESSION_SECRET;
   if (!s) throw new Error("ADMIN_SESSION_SECRET belum diset");
@@ -37,6 +43,22 @@ export async function isValidSessionCookieValue(value: string | undefined): Prom
   return (await getSessionCookieState(value)) === "ok";
 }
 
+export type SessionIssue =
+  | { kind: "ok" }
+  | { kind: "idle" }
+  | { kind: "invalid"; reason: string };
+
+export async function inspectSessionCookie(value: string | undefined): Promise<SessionIssue> {
+  if (!value) return { kind: "invalid", reason: "cookie sesi tidak ditemukan" };
+  const [issuedAt, sig] = value.split(".");
+  if (!issuedAt || !sig) return { kind: "invalid", reason: "format cookie tidak valid" };
+  const expectedSig = await hmac(issuedAt);
+  if (sig !== expectedSig) return { kind: "invalid", reason: "tanda tangan tidak sama (potensi pemalsuan)" };
+  const age = (Date.now() - Number(issuedAt)) / 1000;
+  if (age < 0) return { kind: "invalid", reason: "usia cookie negatif (klien curang)" };
+  return age <= IDLE_MAX_AGE_SECONDS ? { kind: "ok" } : { kind: "idle" };
+}
+
 /**
  * Kondisi cookie sesi admin:
  * - "ok"      : tanda tangan valid & belum melewati batas idle
@@ -46,14 +68,8 @@ export async function isValidSessionCookieValue(value: string | undefined): Prom
 export async function getSessionCookieState(
   value: string | undefined
 ): Promise<"ok" | "idle" | "invalid"> {
-  if (!value) return "invalid";
-  const [issuedAt, sig] = value.split(".");
-  if (!issuedAt || !sig) return "invalid";
-  const expectedSig = await hmac(issuedAt);
-  if (sig !== expectedSig) return "invalid";
-  const age = (Date.now() - Number(issuedAt)) / 1000;
-  if (age < 0) return "invalid";
-  return age <= IDLE_MAX_AGE_SECONDS ? "ok" : "idle";
+  const issue = await inspectSessionCookie(value);
+  return issue.kind === "invalid" ? "invalid" : issue.kind;
 }
 
 export const ADMIN_COOKIE_NAME = COOKIE_NAME;

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   createGateCookieValue,
+  isSecureCookieEnv,
 } from "@/lib/adminSession";
 import {
   GATE_COOKIE_NAME,
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
       const res = NextResponse.json({ error: "Terlalu banyak percobaan. Akses dibatasi 1 hari." }, { status: 429 });
       res.cookies.set(GATE_BLOCK_COOKIE_NAME, "1", {
         httpOnly: true,
-        secure: true,
+        secure: isSecureCookieEnv(),
         sameSite: "lax",
         path: "/",
         maxAge: GATE_BLOCK_MAX_AGE_SECONDS,
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest) {
     const res = NextResponse.json({ ok: true });
     res.cookies.set(GATE_COOKIE_NAME, await createGateCookieValue(), {
       httpOnly: true,
-      secure: true,
+      secure: isSecureCookieEnv(),
       sameSite: "lax",
       path: "/",
       maxAge: GATE_COOKIE_MAX_AGE_SECONDS,

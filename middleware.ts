@@ -3,7 +3,8 @@ import {
   ADMIN_COOKIE_NAME,
   ADMIN_COOKIE_MAX_AGE,
   createSessionCookieValue,
-  getSessionCookieState,
+  inspectSessionCookie,
+  isSecureCookieEnv,
   isValidGateCookieValue,
 } from "@/lib/adminSession";
 import {
@@ -47,15 +48,15 @@ export async function middleware(req: NextRequest) {
 
   if (pathname.startsWith("/admin") || pathname.startsWith("/api/admin")) {
     const cookie = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
-    const state = await getSessionCookieState(cookie);
-    if (state !== "ok") {
+    const issue = await inspectSessionCookie(cookie);
+    if (issue.kind !== "ok") {
       // Alert bypass HANYA untuk cookie yang tidak ada/rusak. Sesi yang habis
       // karena idle adalah admin sah — cukup arahkan ke login tanpa notif.
-      if (state === "invalid") {
+      if (issue.kind === "invalid") {
         await logSecurityEvent({
           type: "unauthorized_access",
           ip: clientIp(req),
-          detail: `Path: ${pathname}`,
+          detail: `Path: ${pathname} — ${issue.reason}`,
           userAgent: req.headers.get("user-agent"),
         });
       }
@@ -63,7 +64,7 @@ export async function middleware(req: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
       const loginUrl = new URL(
-        state === "idle" ? "/admin/login?reason=idle" : "/admin/login",
+        issue.kind === "idle" ? "/admin/login?reason=idle" : "/admin/login?reason=expired",
         req.url
       );
       return NextResponse.redirect(loginUrl);
@@ -72,7 +73,7 @@ export async function middleware(req: NextRequest) {
     const res = NextResponse.next();
     res.cookies.set(ADMIN_COOKIE_NAME, await createSessionCookieValue(), {
       httpOnly: true,
-      secure: true,
+      secure: isSecureCookieEnv(),
       sameSite: "lax",
       path: "/",
       maxAge: ADMIN_COOKIE_MAX_AGE,

@@ -21,7 +21,16 @@ export default function AdminLoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
-      if (!res.ok) throw new Error("Username atau password salah.");
+      if (!res.ok) {
+        let msg = "Username atau password salah.";
+        try {
+          const data = await res.json();
+          if (data && typeof data.error === "string" && data.error.trim()) msg = data.error;
+        } catch {
+          /* biarkan pesan default bila body bukan JSON */
+        }
+        throw new Error(msg);
+      }
       router.push("/admin");
       router.refresh();
     } catch (err: any) {

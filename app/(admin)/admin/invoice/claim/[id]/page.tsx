@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Image from "next/image";
 import { FileText, Printer, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { useAdminFetch } from "@/lib/useAdminFetch";
 
 type Claim = {
   id: string;
@@ -42,12 +43,13 @@ function parseLikeUrls(value: string): string[] {
 }
 
 export default function InvoiceClaimPage() {
+  const af = useAdminFetch();
   const params = useParams();
   const [claim, setClaim] = useState<Claim | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/admin/claims")
+    af("/api/admin/claims")
       .then((r) => r.json())
       .then((d) => {
         const found = (d.data || []).find((c: Claim) => c.id === params.id);

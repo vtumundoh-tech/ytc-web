@@ -10,6 +10,7 @@ import { parseJsonSafe, isHeicFile, HEIC_ERROR } from "@/lib/fetchJson";
 import { waLink } from "@/lib/whatsapp";
 import AdminIdleLogout from "@/components/AdminIdleLogout";
 import DateRangeBar, { defaultRange, rangeDays, shiftRangeBack, fmtRangeID, type DateRange } from "@/components/DateRangeBar";
+import { useAdminFetch } from "@/lib/useAdminFetch";
 
 const Charts = dynamic(() => import("./charts"), { ssr: false });
 import type { DashboardBucket, DashboardSlice } from "./charts";
@@ -365,6 +366,7 @@ function FilterBar({
 }
 
 function DashboardTab() {
+  const af = useAdminFetch();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<"daily" | "monthly">("daily");
@@ -374,7 +376,7 @@ function DashboardTab() {
 
   async function load() {
     setLoading(true);
-    const res = await fetch("/api/admin/orders");
+    const res = await af("/api/admin/orders");
     const data = await res.json();
     setOrders(data.data || []);
     setLoading(false);
@@ -611,6 +613,7 @@ function DashboardTab() {
 }
 
 function OrdersTab() {
+  const af = useAdminFetch();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   type OrderDraft = { status: string; admin_notes: string; rejection_reason: string; rejection_type: string; amount_paid_by_customer: string; amount_remaining: string };
@@ -627,7 +630,7 @@ function OrdersTab() {
 
   async function load() {
     setLoading(true);
-    const res = await fetch("/api/admin/orders");
+    const res = await af("/api/admin/orders");
     const data = await res.json();
     setOrders(data.data || []);
     setLoading(false);
@@ -665,7 +668,7 @@ function OrdersTab() {
     const d = draftFor(o);
     const wasPaid = o.status === "paid";
     try {
-      const res = await fetch("/api/admin/orders", {
+      const res = await af("/api/admin/orders", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -704,7 +707,7 @@ function OrdersTab() {
     setError(null);
     setResendMsg(null);
     try {
-      const res = await fetch("/api/admin/orders", {
+      const res = await af("/api/admin/orders", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: o.id, resend_link: true }),
@@ -1129,6 +1132,7 @@ function OrdersTab() {
 }
 
 function ClaimsTab() {
+  const af = useAdminFetch();
   const [claims, setClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);
   type ClaimDraft = { status: string; admin_notes: string };
@@ -1141,7 +1145,7 @@ function ClaimsTab() {
 
   async function load() {
     setLoading(true);
-    const res = await fetch("/api/admin/claims");
+    const res = await af("/api/admin/claims");
     const data = await res.json();
     setClaims(data.data || []);
     setLoading(false);
@@ -1167,7 +1171,7 @@ function ClaimsTab() {
     setError(null);
     const d = draftFor(c);
     try {
-      const res = await fetch("/api/admin/claims", {
+      const res = await af("/api/admin/claims", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: c.id, status: d.status, admin_notes: d.admin_notes }),
@@ -1413,6 +1417,7 @@ type RefundRequest = {
 };
 
 function RefundsTab() {
+  const af = useAdminFetch();
   const [items, setItems] = useState<RefundRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1424,7 +1429,7 @@ function RefundsTab() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/admin/refunds");
+      const res = await af("/api/admin/refunds");
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal memuat data refund.");
       setItems(data.data || []);
@@ -1450,7 +1455,7 @@ function RefundsTab() {
       fd.append("id", item.id);
       fd.append("admin_notes", notes[item.id] || "");
       if (file) fd.append("proofFile", file);
-      const res = await fetch("/api/admin/refunds", { method: "POST", body: fd });
+      const res = await af("/api/admin/refunds", { method: "POST", body: fd });
       const data = await parseJsonSafe<{ error?: string }>(res);
       if (!data.ok) throw new Error(data.error || "Gagal memproses refund.");
       setFiles((f) => ({ ...f, [item.id]: null }));
@@ -1609,6 +1614,7 @@ function SettingsTab() {
     created_at: string;
   };
 
+  const af = useAdminFetch();
   const [referralCodes, setReferralCodes] = useState<ReferralCode[]>([]);
   const [referralLoading, setReferralLoading] = useState(true);
   const [referralForm, setReferralForm] = useState({ code: "", discount_amount: "", max_uses: "" });
@@ -1618,7 +1624,7 @@ function SettingsTab() {
   async function loadReferrals() {
     setReferralLoading(true);
     try {
-      const res = await fetch(`/api/admin/referral-codes?t=${Date.now()}`, { cache: "no-store" });
+      const res = await af(`/api/admin/referral-codes?t=${Date.now()}`, { cache: "no-store" });
       const d = await parseJsonSafe<{ data: ReferralCode[] }>(res);
       if (!d.ok) throw new Error(d.error || "Gagal memuat kode referral.");
       setReferralCodes(Array.isArray(d.data?.data) ? d.data.data : []);
@@ -1648,7 +1654,7 @@ function SettingsTab() {
       if (isHeicFile(file)) throw new Error(HEIC_ERROR);
       const fd = new FormData();
       fd.append("file", file);
-      const res = await fetch("/api/admin/qris-image", { method: "POST", body: fd });
+      const res = await af("/api/admin/qris-image", { method: "POST", body: fd });
       const data = await parseJsonSafe<{ error?: string; publicUrl?: string }>(res);
       if (!data.ok) throw new Error(data.error || "Gagal mengunggah.");
       setForm((f) => (f ? { ...f, qris_image_url: data.data.publicUrl || "" } : f));
@@ -1662,7 +1668,7 @@ function SettingsTab() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`/api/admin/settings?t=${Date.now()}`, { cache: "no-store" });
+        const res = await af(`/api/admin/settings?t=${Date.now()}`, { cache: "no-store" });
         const text = await res.text();
         const d = text ? JSON.parse(text) : {};
         if (!res.ok) throw new Error(d.error || `HTTP ${res.status}`);
@@ -1733,7 +1739,7 @@ function SettingsTab() {
       const cashback_tiers = Object.fromEntries(
         Object.entries(form.cashback_tiers).map(([k, v]) => [k, Number(v) || 0])
       );
-      const res = await fetch("/api/admin/settings", {
+      const res = await af("/api/admin/settings", {
         method: "PUT",
         cache: "no-store",
         headers: { "Content-Type": "application/json" },
@@ -1779,7 +1785,7 @@ function SettingsTab() {
     setReferralBusy(true);
     setReferralMsg(null);
     try {
-      const res = await fetch("/api/admin/referral-codes", {
+      const res = await af("/api/admin/referral-codes", {
         method: "POST",
         cache: "no-store",
         headers: { "Content-Type": "application/json" },
@@ -1806,7 +1812,7 @@ function SettingsTab() {
     setReferralBusy(true);
     setReferralMsg(null);
     try {
-      const res = await fetch("/api/admin/referral-codes", {
+      const res = await af("/api/admin/referral-codes", {
         method: "PATCH",
         cache: "no-store",
         headers: { "Content-Type": "application/json" },
@@ -1828,7 +1834,7 @@ function SettingsTab() {
     setReferralBusy(true);
     setReferralMsg(null);
     try {
-      const res = await fetch("/api/admin/referral-codes", {
+      const res = await af("/api/admin/referral-codes", {
         method: "DELETE",
         cache: "no-store",
         headers: { "Content-Type": "application/json" },

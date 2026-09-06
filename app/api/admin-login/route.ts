@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ADMIN_COOKIE_NAME, ADMIN_COOKIE_MAX_AGE, createSessionCookieValue } from "@/lib/adminSession";
+import { ADMIN_COOKIE_NAME, ADMIN_COOKIE_MAX_AGE, createSessionCookieValue, isSecureCookieEnv } from "@/lib/adminSession";
 import { checkRateLimit, rateLimitKey } from "@/lib/rateLimit";
 import { getClientIp, safeEqual } from "@/lib/security";
 import { logSecurityEvent } from "@/lib/securityAlert";
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     const res = NextResponse.json({ ok: true });
     res.cookies.set(ADMIN_COOKIE_NAME, await createSessionCookieValue(), {
       httpOnly: true,
-      secure: true,
+      secure: isSecureCookieEnv(),
       sameSite: "lax",
       path: "/",
       maxAge: ADMIN_COOKIE_MAX_AGE,

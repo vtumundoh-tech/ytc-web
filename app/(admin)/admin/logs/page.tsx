@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowLeft, ScrollText, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import AdminIdleLogout from "@/components/AdminIdleLogout";
+import { useAdminFetch } from "@/lib/useAdminFetch";
 import DateRangeBar, { defaultRange, fmtRangeID, type DateRange } from "@/components/DateRangeBar";
 import type { LogsStats } from "./logs-charts";
 
@@ -61,6 +62,7 @@ function LogsChartsSection({ stats, range }: { stats: LogsStats; range: DateRang
 }
 
 export default function AdminLogsPage() {
+  const af = useAdminFetch();
   const [filter, setFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [range, setRange] = useState<DateRange>(() => defaultRange(7));
@@ -72,7 +74,7 @@ export default function AdminLogsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(
+      const res = await af(
         `/api/admin/logs?filter=${filter}&page=${page}&from=${range.from}&to=${range.to}&stats=1`
       );
       const json = await res.json();

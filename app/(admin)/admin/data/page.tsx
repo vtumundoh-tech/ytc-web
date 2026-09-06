@@ -13,6 +13,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import AdminIdleLogout from "@/components/AdminIdleLogout";
+import { useAdminFetch } from "@/lib/useAdminFetch";
 
 type TargetTable = "orders" | "claims" | "refunds";
 
@@ -42,6 +43,7 @@ function fmtDate(iso?: string | null): string {
 }
 
 export default function AdminDataPage() {
+  const af = useAdminFetch();
   const [tab, setTab] = useState<TargetTable>("orders");
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,7 +61,7 @@ export default function AdminDataPage() {
     setLoading(true);
     setSelected(new Set());
     try {
-      const res = await fetch(TABLE_META[tab].endpoint);
+      const res = await af(TABLE_META[tab].endpoint);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Gagal memuat data.");
       const list: any[] = Array.isArray(json) ? json : Array.isArray(json.data) ? json.data : [];
@@ -110,7 +112,7 @@ export default function AdminDataPage() {
         confirmState.scope === "all"
           ? { password, scope: "all", includeFiles: confirmState.includeFiles }
           : { password, scope: "selected", table: tab, ids: Array.from(selected), includeFiles: confirmState.includeFiles };
-      const res = await fetch("/api/admin/delete", {
+      const res = await af("/api/admin/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
