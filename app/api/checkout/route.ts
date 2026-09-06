@@ -18,11 +18,12 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { fullName, whatsapp, email, tier, agreeSnk, addon1080 } = body || {};
+    const { fullName, whatsapp, email, tier, agreeSnk, addon1080, referralCode } = body || {};
 
     const fullNameStr = String(fullName || "").trim();
     const emailStr = String(email || "").trim();
     const whatsappStr = String(whatsapp || "").trim();
+    const referralStr = String(referralCode || "").trim().toUpperCase().replace(/\s+/g, "-");
     const waDigits = whatsappStr.replace(/[^0-9]/g, "");
 
     if (!fullNameStr || !emailStr || !tier) {
@@ -59,12 +60,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Paket tidak valid." }, { status: 400 });
     }
 
+    let referralDiscount = 0;
+    let referralCodeRow: any = null;
+    if (referralStr) {
+      const { data: rc, error: rcError } = await supabase
+        .from("referral_codes")
+        .select("id, code, discount_amount, max_uses, current_uses, active")
+        .eq("code", referralStr)
+        .maybeSingle();
+      if (rcError) {
+        return NextResponse.json({ error: "Kode referral tidak valid." }, { status: 400 });
+      }
+      if (!rc) {
+        return NextResponse.json({ error: "Kode referral tidak ditemukan." }, { status: 400 });
+      }
+      if (rc.active !== true) {
+        return NextResponse.json({ error: "Kode referral sudah tidak aktif." }, { status: 400 });
+      }
+      if (rc.max_uses !== null && rc.current_uses >= rc.max_uses) {
+        return NextResponse.json({ error: "Kode referral sudah mencapai batas pemakaian." }, { status: 400 });
+      }
+      referralCodeRow = rc;
+      referralDiscount = Math.max(0, Number(rc.discount_amount) || 0);
+    }
+
     const addonWanted = addon1080 === true || addon1080 === "true" || addon1080 === 1 || addon1080 === "1";
     const tierIs1080 = /1080/i.test(tier);
     const hasAddon = tierIs1080 || addonWanted;
     const addonPrice = addonWanted && !tierIs1080 ? settings.addonPrices[tier] || 0 : 0;
     const basePrice = settings.promoEnabled ? tierData.amount : tierData.originalAmount;
-    const totalAmount = basePrice + addonPrice;
+    const totalAmount = Math.max(0, basePrice + addonPrice - referralDiscount);
     const tierLabel = hasAddon ? `${tierData.label} (1080p)` : `${tierData.label} (720p)`;
 
     // SAAT INI KHUSUS QRIS — semua pesanan masuk alur QRIS (pending → bukti bayar → verifikasi admin).
@@ -79,7 +104,7 @@ export async function POST(req: NextRequest) {
     const downloadExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
     const now = new Date().toISOString();
-    const { error: insertError } = await supabase.from("orders").insert({
+    const orderInsert: any = {
       full_name: fullNameStr,
       whatsapp: whatsappStr,
       email: emailStr,
@@ -99,8 +124,20 @@ export async function POST(req: NextRequest) {
       browser: meta.browser,
       os: meta.os,
       device_type: meta.deviceType,
-    });
+    };
+    if (referralCodeRow) {
+      orderInsert.referral_code = referralCodeRow.code;
+      orderInsert.referral_discount = referralDiscount;
+    }
+    const { error: insertError } = await supabase.from("orders").insert(orderInsert);
     if (insertError) throw insertError;
+
+    if (referralCodeRow) {
+      await supabase
+        .from("referral_codes")
+        .update({ current_uses: (referralCodeRow.current_uses || 0) + 1 })
+        .eq("id", referralCodeRow.id);
+    }
 
     if (isInstant) {
       void notifyNewOrder({
@@ -140,6 +177,7 @@ export async function POST(req: NextRequest) {
       qrisEnabled,
       orderId,
       amount: totalAmount,
+      referralDiscount,
       cashbackCode,
       downloadToken,
       emailSent,

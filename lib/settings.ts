@@ -17,6 +17,8 @@ export type AppSettings = {
   qrisImageUrl: string;
   qrisInstructions: string;
   qrisPaymentNotice: string;
+  usdRate: number;
+  usdRateLabel: string;
   updatedAt?: string;
 };
 
@@ -41,6 +43,11 @@ const DEFAULT_QRIS_INSTRUCTIONS =
 
 const DEFAULT_QRIS_PAYMENT_NOTICE = "";
 
+// Kurs tetap (tidak live) — bisa diubah admin di panel. Label dipakai untuk
+// menampilkan bulan/tahun kurs di toggle harga dolar.
+const DEFAULT_USD_RATE = 16000;
+const DEFAULT_USD_RATE_LABEL = "Agustus 2026";
+
 export const DEFAULT_SETTINGS: AppSettings = {
   promoEnabled: false,
   tiers: DEFAULT_TIERS,
@@ -50,6 +57,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   qrisImageUrl: "",
   qrisInstructions: DEFAULT_QRIS_INSTRUCTIONS,
   qrisPaymentNotice: DEFAULT_QRIS_PAYMENT_NOTICE,
+  usdRate: DEFAULT_USD_RATE,
+  usdRateLabel: DEFAULT_USD_RATE_LABEL,
 };
 
 export async function getSettings(): Promise<AppSettings> {
@@ -67,6 +76,8 @@ export async function getSettings(): Promise<AppSettings> {
       qrisImageUrl: data.qris_image_url || "",
       qrisInstructions: data.qris_instructions || DEFAULT_QRIS_INSTRUCTIONS,
       qrisPaymentNotice: data.qris_payment_notice || DEFAULT_QRIS_PAYMENT_NOTICE,
+      usdRate: Number(data.usd_rate) > 0 ? Number(data.usd_rate) : DEFAULT_USD_RATE,
+      usdRateLabel: typeof data.usd_rate_label === "string" && data.usd_rate_label.trim() !== "" ? data.usd_rate_label : DEFAULT_USD_RATE_LABEL,
       updatedAt: data.updated_at || undefined,
     };
   } catch {

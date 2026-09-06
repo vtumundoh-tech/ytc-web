@@ -249,6 +249,14 @@ export const dict = {
       } as T,
       bulletForever: { id: "Berlaku selamanya", en: "Valid forever" } as T,
       choose: { id: "Pilih Paket", en: "Choose Plan" } as T,
+      usdNote: {
+        id: "Untuk pembeli dari luar negeri: 1 USD = Rp {rate} (kurs per {label}). Harga dolar hanya referensi — pembayaran tetap dalam Rupiah via QRIS.",
+        en: "For international buyers: 1 USD = IDR {rate} (rate as of {label}). USD price is a reference only — payment is still made in Rupiah via QRIS.",
+      } as T,
+      urgency: {
+        id: "Beli sekarang — harga akan segera kembali ke harga normal.",
+        en: "Buy now — prices will soon return to normal.",
+      } as T,
     },
     steps: {
       title: { id: "Cara Pembelian", en: "How to Buy" } as T,
@@ -490,6 +498,33 @@ export const dict = {
       id: "Pembayaran Anda diproses dengan aman.",
       en: "Your payment is processed securely.",
     } as T,
+    referralTitle: {
+      id: "Kode Referral (opsional)",
+      en: "Referral Code (optional)",
+    } as T,
+    referralPh: {
+      id: "Masukkan kode referral jika punya",
+      en: "Enter a referral code if you have one",
+    } as T,
+    referralApply: { id: "Terapkan", en: "Apply" } as T,
+    referralApplied: {
+      id: "Diskon referral {amount} diterapkan!",
+      en: "Referral discount {amount} applied!",
+    } as T,
+    referralRemoved: { id: "Kode referral dihapus.", en: "Referral code removed." } as T,
+    referralRemove: { id: "Hapus", en: "Remove" } as T,
+    referralInvalid: {
+      id: "Kode referral tidak ditemukan atau sudah tidak aktif.",
+      en: "Referral code not found or no longer active.",
+    } as T,
+    referralLimitReached: {
+      id: "Kode referral sudah mencapai batas pemakaian.",
+      en: "This referral code has reached its usage limit.",
+    } as T,
+    referralDiscApplied: {
+      id: "Diskon Referral: -{amount}",
+      en: "Referral Discount: -{amount}",
+    } as T,
     errTransaction: {
       id: "Gagal membuat transaksi",
       en: "Failed to create transaction",
@@ -697,6 +732,10 @@ export const dict = {
   },
 
   claim: {
+    limitReached: {
+      id: "Batas pengajuan sudah mencapai batas (maks. 3 kali). Silakan hubungi kami melalui WhatsApp untuk bantuan.",
+      en: "You have reached the claim limit (max. 3 attempts). Please contact us via WhatsApp for assistance.",
+    } as T,
     doneTitle: { id: "Klaim terkirim!", en: "Claim submitted!" } as T,
     doneSub: {
       id: "Admin akan memverifikasi bukti Anda maksimal 1x24 jam. Cashback akan ditransfer ke nomor WhatsApp yang Anda daftarkan.",
@@ -964,6 +1003,7 @@ export const dict = {
       en: "The page you're looking for is unavailable or has moved. Please return to the home page.",
     } as T,
     backHome: { id: "Kembali ke Halaman Utama", en: "Back to Home" } as T,
+    backPrev: { id: "Kembali", en: "Go Back" } as T,
   },
 
   common: {

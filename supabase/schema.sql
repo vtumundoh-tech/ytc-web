@@ -17,6 +17,9 @@ create table if not exists orders (
   midtrans_transaction_id text,
   payment_type text, -- qris, bank_transfer, gopay, dll (diisi otomatis dari webhook)
   license_key text, -- diisi manual oleh admin setelah key dibuat & dikirim
+  cashback_code text, -- kode unik untuk klaim cashback (YTC-XXXXXXXX)
+  referral_code text, -- kode referral yang dipakai customer saat checkout
+  referral_discount integer, -- besaran diskon referral yang diterapkan (Rupiah)
   admin_notes text,
   paid_at timestamptz,
   customer_claimed_pay_at timestamptz, -- QRIS: klaim "sudah bayar" dari pelanggan
@@ -42,6 +45,7 @@ create table if not exists cashback_claims (
   tier text not null,
   addon_1080p text, -- 'no' atau kode addon
   amount_paid integer not null,
+  cashback_code text, -- kode cashback pesanan terkait (untuk batas klaim rejected)
   paid_at timestamptz, -- waktu cashback dibayarkan ke pelanggan
   payment_proof_url text, -- bukti bayar (screenshot transfer / QRIS)
   screenshot_follow_url text not null,
@@ -71,6 +75,8 @@ create table if not exists app_settings (
   qris_enabled boolean not null default false, -- checkout via QRIS statis
   qris_image_url text, -- URL gambar QRIS
   qris_instructions text, -- instruksi pembayaran (satu langkah per baris)
+  usd_rate numeric not null default 16000, -- kurs tetap 1 USD = n IDR (untuk tampilan harga dolar)
+  usd_rate_label text, -- label bulan/tahun kurs (misal: 'Agustus 2026')
   updated_at timestamptz not null default now()
 );
 
@@ -102,6 +108,9 @@ alter table app_settings enable row level security;
 alter table orders enable row level security;
 alter table cashback_claims enable row level security;
 alter table audit_logs enable row level security;
+alter table referral_codes enable row level security;
+-- Tidak ada policy yang dibuat untuk anon/authenticated -> otomatis semua akses
+-- ditolak kecuali lewat service role key di server.
 -- Tidak ada policy yang dibuat untuk anon/authenticated -> otomatis semua akses
 -- ditolak kecuali lewat service role key di server.
 
@@ -122,6 +131,23 @@ on conflict (id) do nothing;
 
 -- Bucket dibuat PRIVATE. Bukti klaim hanya bisa dilihat lewat signed URL yang
 -- dibuat server (service role key) di halaman admin.
+
+-- ========== TABEL REFERRAL CODES ==========
+create table if not exists referral_codes (
+  id uuid primary key default gen_random_uuid(),
+  code text unique not null,
+  discount_amount integer not null default 0, -- nominal diskon dalam Rupiah
+  max_uses integer, -- null = unlimited
+  current_uses integer not null default 0, -- counter pemakaian
+  active boolean not null default true,
+  description text, -- catatan admin (opsional)
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_referral_codes_code on referral_codes(code);
+
+alter table referral_codes enable row level security;
+-- Tidak ada policy untuk anon/authenticated -> hanya bisa diakses lewat service role key di server.
 
 -- ========== MIGRASI DB YANG SUDAH ADA ==========
 -- Jalankan statement di bawah ini SEKALI untuk DB yang sudah dibuat sebelumnya

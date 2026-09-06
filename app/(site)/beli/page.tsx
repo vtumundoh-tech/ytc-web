@@ -33,6 +33,10 @@ function BeliForm() {
   const [customDial, setCustomDial] = useState("");
   const [email, setEmail] = useState("");
   const [emailVerified, setEmailVerified] = useState(false);
+  const [referralInput, setReferralInput] = useState("");
+  const [referralApplied, setReferralApplied] = useState(false);
+  const [referralDiscount, setReferralDiscount] = useState(0);
+  const [referralError, setReferralError] = useState("");
   const [verifyScreen, setVerifyScreen] = useState<"idle" | "otp">("idle");
   const [otpCode, setOtpCode] = useState("");
   const [verifyError, setVerifyError] = useState("");
@@ -363,6 +367,37 @@ function BeliForm() {
     }
   }
 
+  async function handleApplyReferral() {
+    const code = referralInput.trim().toUpperCase().replace(/\s+/g, "-");
+    if (code.length < 3) {
+      setReferralError(t(dict.buy.referralInvalid));
+      return;
+    }
+    setReferralError("");
+    try {
+      const res = await fetch(`/api/referral/check?q=${encodeURIComponent(code)}`, { cache: "no-store" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || t(dict.buy.referralInvalid));
+      if (!data.ok) {
+        setReferralError(data.active === false ? t(dict.buy.referralInvalid) : t(dict.buy.referralLimitReached));
+        setReferralApplied(false);
+        setReferralDiscount(0);
+        return;
+      }
+      setReferralApplied(true);
+      setReferralDiscount(Number(data.discount_amount) || 0);
+    } catch (err: any) {
+      setReferralError(err.message || t(dict.buy.referralInvalid));
+    }
+  }
+
+  function handleRemoveReferral() {
+    setReferralApplied(false);
+    setReferralDiscount(0);
+    setReferralInput("");
+    setReferralError("");
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -383,7 +418,7 @@ function BeliForm() {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName, whatsapp: waNumber, email, tier, addon1080, agreeSnk: true, countryDial: countryDial === OTHER_COUNTRY_VALUE ? customDial : countryDial }),
+        body: JSON.stringify({ fullName, whatsapp: waNumber, email, tier, addon1080, agreeSnk: true, referralCode: referralApplied ? referralInput.trim().toUpperCase() : "", countryDial: countryDial === OTHER_COUNTRY_VALUE ? customDial : countryDial }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || t(dict.buy.errTransaction));
@@ -414,7 +449,7 @@ function BeliForm() {
   const cashback = tier ? settings.cashbackTiers[tier] || 0 : 0;
   const addonPrice = tier ? settings.addonPrices[tier] || 0 : 0;
   const basePrice = selected ? (promoEnabled ? selected.amount : selected.originalAmount) : 0;
-  const totalPrice = tier ? basePrice + (addon1080 ? addonPrice : 0) : 0;
+  const totalPrice = Math.max(0, (tier ? basePrice + (addon1080 ? addonPrice : 0) : 0) - referralDiscount);
   const waValue = whatsapp.trim();
   const waDigits = waValue.replace(/[^\d]/g, "").replace(/^0+/, "");
   const waValid = waDigits.length >= 8 && waDigits.length <= 15;
@@ -716,6 +751,54 @@ function BeliForm() {
               );
             })}
           </div>
+        </div>
+
+        <div>
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">
+            <Gift className="w-3.5 h-3.5 inline mr-1.5 text-purple-500" />
+            {t(dict.buy.referralTitle)}
+          </h2>
+          {referralApplied && referralDiscount > 0 ? (
+            <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-purple-50 border border-purple-200">
+              <div className="flex items-center gap-2 text-sm text-purple-800">
+                <CheckCircle className="w-4 h-4 text-purple-600 shrink-0" />
+                <span>
+                  {tf(t(dict.buy.referralApplied), { amount: formatRupiah(referralDiscount) })}{" "}
+                  <span className="text-[11px] font-bold text-purple-700 bg-purple-100 rounded-full px-2 py-0.5 ml-1">
+                    {tf(t(dict.buy.referralDiscApplied), { amount: formatRupiah(referralDiscount) })}
+                  </span>
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleRemoveReferral}
+                className="text-xs font-semibold text-purple-600 hover:text-purple-800 underline underline-offset-2 shrink-0"
+              >
+                ✕ {t(dict.buy.referralRemove)}
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <input
+                className="flex-1 min-w-0 rounded-lg border border-gray-200 px-3 py-2 text-sm uppercase tracking-wide focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400"
+                placeholder={t(dict.buy.referralPh)}
+                value={referralInput}
+                onChange={(e) => { setReferralInput(e.target.value.toUpperCase()); setReferralError(""); }}
+              />
+              <button
+                type="button"
+                onClick={handleApplyReferral}
+                className="shrink-0 inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg font-semibold text-xs text-white bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 transition-all duration-200"
+              >
+                {t(dict.buy.referralApply)}
+              </button>
+            </div>
+          )}
+          {referralError && (
+            <p className="text-xs font-medium text-red-600 mt-1.5 flex items-start gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" /> {referralError}
+            </p>
+          )}
         </div>
 
         <hr className="border-gray-100" />

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import {
@@ -8,7 +9,7 @@ import {
   Flame, Coins, User, ExternalLink, Cpu, Clapperboard, Send, Subtitles, Bot,
   Play, Zap, FileText, MessageSquare,
 } from "lucide-react";
-import { formatRupiah, formatPrice } from "@/lib/tiers";
+import { formatRupiah, formatPrice, formatUSD } from "@/lib/tiers";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { dict, tf } from "@/lib/i18n";
 import { useLang } from "@/components/LanguageProvider";
@@ -176,6 +177,7 @@ export default function HomePage() {
   const promoEnabled = settings.promoEnabled;
   const tiers = settings.tiers;
   const cashbackEligible = tiers.filter((tp) => (settings.cashbackTiers[tp.value] || 0) > 0);
+  const [currency, setCurrency] = useState<"IDR" | "USD">("IDR");
 
   const anim = reduce ? {} : fadeUp;
   const animStagger = reduce ? {} : stagger;
@@ -288,12 +290,43 @@ export default function HomePage() {
       {/* ─── HARGA ─── */}
       <motion.section id="harga" {...anim} className="relative max-w-4xl mx-auto px-4 py-10 sm:py-14 scroll-mt-20">
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-gray-50/80 to-transparent" />
-        <h2 className="section-title">{t(dict.home.pricing.title)}</h2>
+        <div className="flex flex-wrap items-center justify-center gap-3 mb-2">
+          <h2 className="section-title !mb-0">{t(dict.home.pricing.title)}</h2>
+
+          {/* Toggle Mata Uang */}
+          <div className="inline-flex items-center rounded-full border border-gray-200 bg-white p-1 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setCurrency("IDR")}
+              className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all duration-200 ${
+                currency === "IDR" ? "bg-emerald-600 text-white shadow-sm" : "text-gray-500 hover:text-gray-800"
+              }`}
+            >
+              Rp
+            </button>
+            <button
+              type="button"
+              onClick={() => setCurrency("USD")}
+              className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all duration-200 ${
+                currency === "USD" ? "bg-blue-600 text-white shadow-sm" : "text-gray-500 hover:text-gray-800"
+              }`}
+            >
+              $
+            </button>
+          </div>
+        </div>
         <p className="section-sub">{t(dict.home.pricing.sub)}</p>
-        <p className="text-xs text-gray-400 text-center -mt-4 mb-8">
-          <Coins className="w-4 h-4 inline text-amber-500 -mt-0.5" aria-hidden="true" />{" "}
-          {t(dict.home.pricing.cashbackNote)}
-        </p>
+        <div className="text-center mb-6 space-y-1">
+          <p className="text-xs text-gray-400">
+            <Coins className="w-4 h-4 inline text-amber-500 -mt-0.5" aria-hidden="true" />{" "}
+            {t(dict.home.pricing.cashbackNote)}
+          </p>
+          {currency === "USD" && (
+            <p className="text-[11px] text-blue-500 font-medium">
+              {tf(t(dict.home.pricing.usdNote), { rate: settings.usdRate || 16000, label: settings.usdRateLabel || "" })}
+            </p>
+          )}
+        </div>
 
         <div className="grid sm:grid-cols-2 gap-5">
           {tiers.map((tier, i) => {
@@ -302,6 +335,8 @@ export default function HomePage() {
             const basePrice = promoEnabled ? tier.amount : tier.originalAmount;
             const originalPrice = tier.originalAmount;
             const isSpecial = tier.value === "permanent_1080";
+            const money = (n: number) => (currency === "USD" ? formatUSD(Math.round(n / (settings.usdRate || 16000))) : formatPrice(n));
+            const moneyFull = (n: number) => (currency === "USD" ? formatUSD(Math.round(n / (settings.usdRate || 16000))) : formatRupiah(n));
 
             return (
               <motion.div
@@ -326,19 +361,19 @@ export default function HomePage() {
                   <div className="mt-3 mb-3">
                     {disc > 0 && (
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs text-gray-400 line-through tabular">{formatPrice(originalPrice)}</span>
+                        <span className="text-xs text-gray-400 line-through tabular">{money(originalPrice)}</span>
                         <span className="px-1.5 py-0.5 bg-red-50 text-red-600 text-[10px] font-bold rounded tabular">
                           -{disc}%
                         </span>
                       </div>
                     )}
                     <div className="text-3xl font-extrabold text-gray-900 tracking-tight tabular">
-                      {formatPrice(basePrice)}
+                      {money(basePrice)}
                     </div>
                     {disc > 0 && (
                       <div className="flex items-center gap-1 mt-0.5">
                         <span className="text-[11px] text-emerald-600 font-semibold tabular">
-                          {tf(t(dict.home.pricing.save), { amount: formatRupiah(originalPrice - basePrice) })}
+                          {tf(t(dict.home.pricing.save), { amount: moneyFull(originalPrice - basePrice) })}
                         </span>
                       </div>
                     )}
@@ -348,7 +383,7 @@ export default function HomePage() {
                     <div className="flex items-center gap-1.5 p-2.5 rounded-lg bg-amber-50 border border-amber-100 mb-3">
                       <Gift className="w-3.5 h-3.5 text-amber-600 shrink-0" aria-hidden="true" />
                       <span className="text-[11px] font-bold text-amber-800 tabular">
-                        {tf(t(dict.home.pricing.cashbackAmount), { amount: formatRupiah(cashback) })}
+                        {tf(t(dict.home.pricing.cashbackAmount), { amount: moneyFull(cashback) })}
                       </span>
                     </div>
                   )}
@@ -380,6 +415,10 @@ export default function HomePage() {
                 >
                   {t(dict.home.pricing.choose)} <ChevronRight className="w-3 h-3" aria-hidden="true" />
                 </Link>
+                <p className="mt-2.5 text-[10px] text-orange-500 font-medium text-center flex items-center justify-center gap-1">
+                  <Clock className="w-3 h-3 shrink-0" aria-hidden="true" />
+                  <span>{t(dict.home.pricing.urgency)}</span>
+                </p>
               </motion.div>
             );
           })}

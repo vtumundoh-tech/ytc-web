@@ -66,14 +66,30 @@ export async function POST(req: NextRequest) {
     if (!fullName || !email || !cashbackCode || !tier || !amountPaid) {
       return NextResponse.json({ error: "Data belum lengkap." }, { status: 400 });
     }
+
+    const supabase = supabaseServer();
+
+    const normalizedCashbackCode = String(cashbackCode).trim().toUpperCase();
+    const { count, error: countError } = await supabase
+      .from("cashback_claims")
+      .select("id", { count: "exact", head: true })
+      .eq("cashback_code", normalizedCashbackCode)
+      .eq("status", "rejected");
+    if (countError) {
+      console.error("cashback count error:", countError);
+    } else if ((count || 0) >= 3) {
+      return NextResponse.json(
+        { error: "Batas pengajuan sudah mencapai batas (maks. 3 kali). Silakan hubungi kami melalui WhatsApp untuk bantuan." },
+        { status: 403 }
+      );
+    }
+
     if (!paymentProof || !screenshotFollow || screenshotLike.length !== 6 || !screenshotShare) {
       return NextResponse.json({ error: "Bukti bayar, bukti follow/subscribe, like & comment (wajib 6 foto: 3 postingan × like & komentar), dan share wajib dilampirkan." }, { status: 400 });
     }
     if (agreeSnk !== "yes") {
       return NextResponse.json({ error: "Anda harus setuju dengan Syarat & Ketentuan." }, { status: 400 });
     }
-
-    const supabase = supabaseServer();
 
     const paymentUrl = await uploadProof(supabase, paymentProof, "payment");
     const followUrl = await uploadProof(supabase, screenshotFollow, "follow");
@@ -91,6 +107,7 @@ export async function POST(req: NextRequest) {
         tier,
         addon_1080p: addon,
         amount_paid: amountPaid,
+        cashback_code: normalizedCashbackCode,
         payment_proof_url: paymentUrl,
         screenshot_follow_url: followUrl,
         screenshot_like_url: JSON.stringify(likeUrls),

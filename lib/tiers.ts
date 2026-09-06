@@ -35,6 +35,10 @@ export function formatRupiah(n: number): string {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
 }
 
+export function formatUSD(n: number): string {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+}
+
 export function formatPrice(n: number): string {
   return Math.round(n / 1000) + "k";
 }

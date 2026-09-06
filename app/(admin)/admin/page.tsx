@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { LogOut, ShoppingBag, Gift, Users, DollarSign, ExternalLink, Save, Download, FileText, Settings, Power, Search, Calendar, Filter, X, QrCode, Upload, RotateCcw, AlertTriangle, Paperclip, BellRing, Copy, BarChart3, RefreshCw, Trash2, ScrollText } from "lucide-react";
+import { LogOut, ShoppingBag, Gift, Users, DollarSign, ExternalLink, Save, Download, FileText, Settings, Power, Search, Calendar, Filter, X, QrCode, Upload, RotateCcw, AlertTriangle, Paperclip, BellRing, Copy, BarChart3, RefreshCw, Trash2, ScrollText, Plus, Loader2 } from "lucide-react";
 import { useMemo } from "react";
 import dynamic from "next/dynamic";
 import { parseJsonSafe, isHeicFile, HEIC_ERROR } from "@/lib/fetchJson";
@@ -43,6 +43,8 @@ type Order = {
   amount_paid_by_customer: number | null;
   amount_remaining: number | null;
   supplement_for: string | null;
+  referral_code: string | null;
+  referral_discount: number | null;
 };
 
 type Claim = {
@@ -883,6 +885,7 @@ function OrdersTab() {
               <div className="text-xs text-gray-400">
                 ID: {o.midtrans_order_id}
                 {o.cashback_code ? <><span className="mx-1.5">·</span><span className="font-mono">{o.cashback_code}</span></> : ""}
+                {o.referral_code ? <><span className="mx-1.5">·</span><span className="font-mono text-purple-600">{o.referral_code}</span></> : ""}
                 <span className="mx-1.5">·</span>
                 {new Date(o.created_at).toLocaleString("id-ID")}
                 {o.payment_type ? <><span className="mx-1.5">·</span>{o.payment_type}</> : ""}
@@ -1513,7 +1516,40 @@ function SettingsTab() {
     qris_image_url: string;
     qris_instructions: string;
     qris_payment_notice: string;
+    usd_rate: string;
+    usd_rate_label: string;
   };
+
+  type ReferralCode = {
+    id: string;
+    code: string;
+    discount_amount: number;
+    max_uses: number | null;
+    current_uses: number;
+    active: boolean;
+    description: string | null;
+    created_at: string;
+  };
+
+  const [referralCodes, setReferralCodes] = useState<ReferralCode[]>([]);
+  const [referralLoading, setReferralLoading] = useState(true);
+  const [referralForm, setReferralForm] = useState({ code: "", discount_amount: "", max_uses: "" });
+  const [referralBusy, setReferralBusy] = useState(false);
+  const [referralMsg, setReferralMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+
+  async function loadReferrals() {
+    setReferralLoading(true);
+    try {
+      const res = await fetch(`/api/admin/referral-codes?t=${Date.now()}`, { cache: "no-store" });
+      const d = await parseJsonSafe<{ data: ReferralCode[] }>(res);
+      if (!d.ok) throw new Error(d.error || "Gagal memuat kode referral.");
+      setReferralCodes(Array.isArray(d.data?.data) ? d.data.data : []);
+    } catch (err: any) {
+      setReferralMsg({ kind: "err", text: err.message || "Gagal memuat kode referral." });
+    } finally {
+      setReferralLoading(false);
+    }
+  }
 
   const [form, setForm] = useState<SettingsForm | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1572,6 +1608,8 @@ function SettingsTab() {
             qris_image_url: data.qris_image_url || "",
             qris_instructions: data.qris_instructions || "",
             qris_payment_notice: data.qris_payment_notice || "",
+            usd_rate: String(Number(data.usd_rate) > 0 ? Number(data.usd_rate) : 16000),
+            usd_rate_label: data.usd_rate_label || "",
           };
           setForm(nextForm);
           setInitialJson(JSON.stringify(nextForm));
@@ -1583,6 +1621,8 @@ function SettingsTab() {
         setLoading(false);
       }
     })();
+    void loadReferrals();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function setTier(value: string, patch: Partial<TierForm>) {
@@ -1628,6 +1668,8 @@ function SettingsTab() {
           qris_image_url: form.qris_image_url,
           qris_instructions: form.qris_instructions,
           qris_payment_notice: form.qris_payment_notice,
+          usd_rate: Number(form.usd_rate) > 0 ? Number(form.usd_rate) : 16000,
+          usd_rate_label: form.usd_rate_label,
         }),
       });
       const text = await res.text();
@@ -1652,6 +1694,77 @@ function SettingsTab() {
         <p className="text-sm text-gray-400">Pengaturan tidak ditemukan. Jalankan schema terbaru di Supabase.</p>
       </div>
     );
+  }
+
+  async function handleReferralCreate(e: React.FormEvent) {
+    e.preventDefault();
+    setReferralBusy(true);
+    setReferralMsg(null);
+    try {
+      const res = await fetch("/api/admin/referral-codes", {
+        method: "POST",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: referralForm.code,
+          discount_amount: Number(referralForm.discount_amount) || 0,
+          max_uses: referralForm.max_uses.trim() === "" ? null : Number(referralForm.max_uses),
+          description: "",
+        }),
+      });
+      const d = await parseJsonSafe<{ data: { code: string } }>(res);
+      if (!d.ok) throw new Error(d.error || "Gagal membuat kode referral.");
+      setReferralForm({ code: "", discount_amount: "", max_uses: "" });
+      setReferralMsg({ kind: "ok", text: `Kode ${d.data?.data?.code || ""} berhasil dibuat.` });
+      await loadReferrals();
+    } catch (err: any) {
+      setReferralMsg({ kind: "err", text: err.message || "Gagal membuat kode referral." });
+    } finally {
+      setReferralBusy(false);
+    }
+  }
+
+  async function handleReferralToggle(rc: ReferralCode) {
+    setReferralBusy(true);
+    setReferralMsg(null);
+    try {
+      const res = await fetch("/api/admin/referral-codes", {
+        method: "PATCH",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: rc.id, active: !rc.active }),
+      });
+      const d = await parseJsonSafe<{ data: { code: string } }>(res);
+      if (!d.ok) throw new Error(d.error || "Gagal mengubah status kode.");
+      await loadReferrals();
+      setReferralMsg({ kind: "ok", text: `Kode ${d.data?.data?.code || ""} ${!rc.active ? "diaktifkan" : "dinonaktifkan"}.` });
+    } catch (err: any) {
+      setReferralMsg({ kind: "err", text: err.message || "Gagal mengubah status kode." });
+    } finally {
+      setReferralBusy(false);
+    }
+  }
+
+  async function handleReferralDelete(rc: ReferralCode) {
+    if (!window.confirm(`Hapus kode ${rc.code}?`)) return;
+    setReferralBusy(true);
+    setReferralMsg(null);
+    try {
+      const res = await fetch("/api/admin/referral-codes", {
+        method: "DELETE",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: rc.id }),
+      });
+      const d = await parseJsonSafe<{ data: { code: string } }>(res);
+      if (!d.ok) throw new Error(d.error || "Gagal menghapus kode.");
+      await loadReferrals();
+      setReferralMsg({ kind: "ok", text: `Kode ${d.data?.data?.code || rc.code} dihapus.` });
+    } catch (err: any) {
+      setReferralMsg({ kind: "err", text: err.message || "Gagal menghapus kode." });
+    } finally {
+      setReferralBusy(false);
+    }
   }
 
   const promoActive = form.promo_enabled;
@@ -1805,6 +1918,44 @@ function SettingsTab() {
 
       <div className="card-sm space-y-4">
         <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-blue-600" />
+              Kurs Dolar (Tampilan Harga)
+            </h3>
+            <p className="text-xs text-gray-500 mt-1">
+              Kurs tetap untuk menampilkan harga dalam dolar di homepage. Tanpa API live — cukup ubah di sini saat kurs berubah.
+            </p>
+          </div>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs font-medium text-gray-500 block mb-1">1 USD = ... Rupiah</label>
+            <input
+              type="number"
+              className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+              value={form.usd_rate}
+              onChange={(e) => setForm((f) => (f ? { ...f, usd_rate: e.target.value } : f))}
+              placeholder="16000"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-500 block mb-1">Label Periode Kurs</label>
+            <input
+              className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+              value={form.usd_rate_label}
+              onChange={(e) => setForm((f) => (f ? { ...f, usd_rate_label: e.target.value } : f))}
+              placeholder="Agustus 2026"
+            />
+          </div>
+        </div>
+        <p className="text-[11px] text-gray-400">
+          Label tampil pada catatan harga dolar di homepage, misalnya "kurs per Agustus 2026". Pembayaran tetap dalam Rupiah via QRIS.
+        </p>
+      </div>
+
+      <div className="card-sm space-y-4">
+        <div className="flex items-center justify-between">
           <h3 className="font-semibold text-gray-900 text-sm">Harga Paket</h3>
           <span className="text-[10px] text-gray-400">Harga promo otomatis mengikuti % Diskon · % Diskon = angka badge yang tampil</span>
         </div>
@@ -1889,6 +2040,142 @@ function SettingsTab() {
           >
             <Save className="w-3.5 h-3.5" /> {saving ? "Menyimpan..." : "Simpan Pengaturan"}
           </button>
+        </div>
+      </div>
+
+      {/* ─── KODE REFERRAL ─── */}
+      <div className="card-sm space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
+              <Gift className="w-4 h-4 text-purple-600" />
+              Kode Referral
+            </h3>
+            <p className="text-xs text-gray-500 mt-1">
+              Kode diskon yang dimasukkan pelanggan saat checkout. Nominal diskon dalam Rupiah; kosongkan batas pemakaian untuk unlimited.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={loadReferrals}
+            disabled={referralLoading}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-gray-800 border border-gray-200 hover:border-gray-300 px-3 py-1.5 rounded-lg transition-all duration-200"
+          >
+            <RefreshCw className={cn("w-3.5 h-3.5", referralLoading && "animate-spin")} /> Muat Ulang
+          </button>
+        </div>
+
+        {referralMsg && (
+          <div className={cn(
+            "p-3 rounded-xl text-sm",
+            referralMsg.kind === "ok" ? "bg-emerald-50 border border-emerald-100 text-emerald-700" : "bg-red-50 border border-red-100 text-red-700"
+          )}>
+            {referralMsg.text}
+          </div>
+        )}
+
+        <form onSubmit={handleReferralCreate} className="grid sm:grid-cols-[1fr_1fr_1fr_auto] gap-2 items-end">
+          <div>
+            <label className="text-xs font-medium text-gray-500 block mb-1">Kode</label>
+            <input
+              className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400"
+              value={referralForm.code}
+              onChange={(e) => setReferralForm((f) => ({ ...f, code: e.target.value.toUpperCase() }))}
+              placeholder="DISKON21K"
+              required
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-500 block mb-1">Diskon (Rp)</label>
+            <input
+              type="number"
+              className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400"
+              value={referralForm.discount_amount}
+              onChange={(e) => setReferralForm((f) => ({ ...f, discount_amount: e.target.value }))}
+              placeholder="21000"
+              required
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-500 block mb-1">Batas Pemakaian (kosong = unlimited)</label>
+            <input
+              type="number"
+              className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400"
+              value={referralForm.max_uses}
+              onChange={(e) => setReferralForm((f) => ({ ...f, max_uses: e.target.value }))}
+              placeholder="Unlimited"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={referralBusy}
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-violet-600 hover:bg-violet-700 text-white transition-all duration-200 disabled:opacity-50"
+          >
+            {referralBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+            Tambah
+          </button>
+        </form>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100">
+                <th className="text-left font-semibold text-gray-500 pb-2">Kode</th>
+                <th className="text-right font-semibold text-gray-500 pb-2">Diskon</th>
+                <th className="text-right font-semibold text-gray-500 pb-2">Pemakaian</th>
+                <th className="text-center font-semibold text-gray-500 pb-2">Status</th>
+                <th className="text-right font-semibold text-gray-500 pb-2">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {referralLoading ? (
+                <tr>
+                  <td colSpan={5} className="py-6 text-center text-xs text-gray-400">Memuat…</td>
+                </tr>
+              ) : referralCodes.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-6 text-center text-xs text-gray-400">Belum ada kode referral.</td>
+                </tr>
+              ) : (
+                referralCodes.map((rc) => (
+                  <tr key={rc.id} className={cn("border-b border-gray-50", !rc.active && "opacity-50")}>
+                    <td className="py-2.5 font-mono font-semibold text-gray-900">{rc.code}</td>
+                    <td className="py-2.5 text-right tabular">{rupiah(rc.discount_amount)}</td>
+                    <td className="py-2.5 text-right tabular text-gray-500">
+                      {rc.current_uses}
+                      {rc.max_uses !== null ? ` / ${rc.max_uses}` : " / ∞"}
+                    </td>
+                    <td className="py-2.5 text-center">
+                      <span className={cn(
+                        "text-xs font-semibold px-2.5 py-1 rounded-full border",
+                        rc.active ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-gray-50 text-gray-500 border-gray-200"
+                      )}>
+                        {rc.active ? "Aktif" : "Nonaktif"}
+                      </span>
+                    </td>
+                    <td className="py-2.5 text-right whitespace-nowrap">
+                      <button
+                        type="button"
+                        onClick={() => handleReferralToggle(rc)}
+                        disabled={referralBusy}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-100 transition-all duration-200 disabled:opacity-40"
+                      >
+                        {rc.active ? "Nonaktifkan" : "Aktifkan"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleReferralDelete(rc)}
+                        disabled={referralBusy}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-red-600 hover:bg-red-50 transition-all duration-200 disabled:opacity-40"
+                      >
+                        Hapus
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
