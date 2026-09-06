@@ -9,6 +9,12 @@ const REJECTED_STATUSES = ["cancelled", "failed"];
 const DOWNLOAD_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 const PROOF_BUCKET = "cashback-proofs";
 const SIGN_EXPIRY_SECONDS = 60 * 60;
+const ABANDONED_TTL_MS = 24 * 60 * 60 * 1000;
+const ABANDONED_REASON = "Expired otomatis: bukti bayar tidak diunggah dalam 24 jam.";
+
+function isAbandoned(o: any): boolean {
+  return o.status === "pending" && !o.payment_proof_key && !o.customer_claimed_pay_at;
+}
 
 async function signedProofUrl(supabase: any, path: string | null): Promise<string> {
   if (!path) return "";
@@ -39,13 +45,24 @@ type Order = {
 
 export async function GET() {
   const supabase = supabaseServer() as any;
+  const cutoff = new Date(Date.now() - ABANDONED_TTL_MS).toISOString();
+  await supabase
+    .from("orders")
+    .update({ status: "expired", admin_notes: ABANDONED_REASON })
+    .eq("status", "pending")
+    .is("payment_proof_key", null)
+    .is("customer_claimed_pay_at", null)
+    .lt("created_at", cutoff);
+
   const { data, error } = await supabase.from("orders").select("*").order("created_at", { ascending: false });
   if (error) return NextResponse.json({ error: "Gagal memuat data." }, { status: 500 });
   const rows = await Promise.all(
-    (data || []).map(async (o: any) => ({
-      ...o,
-      payment_proof_url: await signedProofUrl(supabase, o.payment_proof_key),
-    }))
+    (data || [])
+      .filter((o: any) => !isAbandoned(o))
+      .map(async (o: any) => ({
+        ...o,
+        payment_proof_url: await signedProofUrl(supabase, o.payment_proof_key),
+      }))
   );
   return NextResponse.json({ data: rows });
 }

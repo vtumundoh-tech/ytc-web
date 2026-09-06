@@ -556,8 +556,6 @@ export const dict = {
       } as T,
       howToPay: { id: "Cara Pembayaran", en: "Payment Instructions" } as T,
       totalToPay: { id: "Total yang dibayar", en: "Total to pay" } as T,
-      alreadyPaid: { id: "Saya sudah bayar", en: "I've paid" } as T,
-      cancel: { id: "Batal", en: "Cancel" } as T,
       backHome: { id: "Kembali ke Beranda", en: "Back to Home" } as T,
       proofTitle: { id: "Lampirkan Bukti Bayar", en: "Attach Payment Proof" } as T,
       proofSub: {
@@ -570,8 +568,7 @@ export const dict = {
       } as T,
       clickToChoose: { id: "Klik untuk memilih file", en: "Click to choose a file" } as T,
       submitting: { id: "Mengirim…", en: "Sending…" } as T,
-      submitProof: { id: "Submit Bukti Bayar", en: "Submit Payment Proof" } as T,
-      back: { id: "Kembali", en: "Back" } as T,
+      submitProof: { id: "Upload Bukti & Konfirmasi Pembayaran", en: "Upload Proof & Confirm Payment" } as T,
       thanksTitle: { id: "Terima kasih!", en: "Thank you!" } as T,
       thanksSub: {
         id: "Bukti bayar Anda sudah kami terima. Silakan menunggu sampai admin memverifikasi data Anda.",

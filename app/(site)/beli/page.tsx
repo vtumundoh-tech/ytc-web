@@ -60,7 +60,7 @@ function BeliForm() {
   const [countdown, setCountdown] = useState(5);
   const autoFired = useRef(false);
   const [qrisModal, setQrisModal] = useState(false);
-  const [qrisStep, setQrisStep] = useState<"pay" | "proof" | "thanks" | "rejected">("pay");
+  const [qrisStep, setQrisStep] = useState<"pay" | "thanks" | "rejected">("pay");
   const [qrisAmount, setQrisAmount] = useState(0);
   const [qrisOrderId, setQrisOrderId] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
@@ -220,14 +220,6 @@ function BeliForm() {
     }, 1000);
     return () => clearInterval(iv);
   }, [qrisModal, qrisStep, qrisTick]);
-
-  function handleBatal() {
-    setQrisModal(false);
-    setProofFile(null);
-    setProofError("");
-    setLoading(false);
-    if (supplementToken) router.push("/");
-  }
 
   function handleProofFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     setProofError("");
@@ -951,81 +943,56 @@ function BeliForm() {
                   <span className="font-bold text-gray-900">{formatRupiah(qrisAmount)}</span>
                 </div>
 
-                <button
-                  onClick={() => setQrisStep("proof")}
-                  className="w-full flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 shadow-md"
-                >
-                  <CheckCircle className="w-4 h-4" />
-                  {t(dict.buy.qris.alreadyPaid)}
-                </button>
+                <div className="pt-4 border-t border-dashed border-gray-200 text-left mb-4">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-gray-700 mb-1">
+                    <FileImage className="w-4 h-4 text-blue-600" /> {t(dict.buy.qris.proofTitle)}
+                  </div>
+                  <p className="text-xs text-gray-500 mb-3">{t(dict.buy.qris.proofSub)}</p>
 
-                <div className="mt-3 flex items-center justify-center gap-2 text-xs">
-                  <button onClick={handleBatal} className="inline-flex items-center gap-1.5 font-semibold text-gray-500 hover:text-gray-700 underline underline-offset-2">
-                    <X className="w-3.5 h-3.5" /> {t(dict.buy.qris.cancel)}
-                  </button>
-                  <span className="text-gray-300">·</span>
-                  <button onClick={() => router.push("/")} className="inline-flex items-center gap-1.5 font-semibold text-gray-500 hover:text-gray-700 underline underline-offset-2">
-                    <Home className="w-3.5 h-3.5" /> {t(dict.buy.qris.backHome)}
+                  <label className="flex flex-col items-center justify-center gap-2 w-full p-5 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/70 cursor-pointer hover:border-emerald-300 hover:bg-emerald-50/30 transition-colors duration-200 mb-3">
+                    <Upload className="w-6 h-6 text-gray-400" />
+                    {proofFile ? (
+                      <span className="text-sm font-medium text-emerald-700 break-all">{proofFile.name}</span>
+                    ) : (
+                      <>
+                        <span className="text-sm font-semibold text-gray-600">{t(dict.buy.qris.chooseFile)}</span>
+                        <span className="text-xs text-gray-400">{t(dict.buy.qris.clickToChoose)}</span>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={handleProofFileChange}
+                    />
+                  </label>
+
+                  {proofError && (
+                    <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-xs text-red-700 mb-3">
+                      {proofError}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleProofSubmit}
+                    disabled={proofLoading || !proofFile}
+                    className="w-full flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                  >
+                    {proofLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" /> {t(dict.buy.qris.submitting)}
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-4 h-4" /> {t(dict.buy.qris.submitProof)}
+                      </>
+                    )}
                   </button>
                 </div>
-              </>
-            )}
 
-            {qrisStep === "proof" && (
-              <>
-                <FileImage className="w-10 h-10 text-blue-600 mx-auto mb-3" />
-                <h2 className="text-lg font-bold text-gray-900 mb-1">{t(dict.buy.qris.proofTitle)}</h2>
-                <p className="text-sm text-gray-500 mb-4">
-                  {t(dict.buy.qris.proofSub)}
-                </p>
-
-                <label className="flex flex-col items-center justify-center gap-2 w-full p-6 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/70 cursor-pointer hover:border-emerald-300 hover:bg-emerald-50/30 transition-colors duration-200 mb-3">
-                  <Upload className="w-6 h-6 text-gray-400" />
-                  {proofFile ? (
-                    <span className="text-sm font-medium text-emerald-700 break-all">{proofFile.name}</span>
-                  ) : (
-                    <>
-                      <span className="text-sm font-semibold text-gray-600">{t(dict.buy.qris.chooseFile)}</span>
-                      <span className="text-xs text-gray-400">{t(dict.buy.qris.clickToChoose)}</span>
-                    </>
-                  )}
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    className="hidden"
-                    onChange={handleProofFileChange}
-                  />
-                </label>
-
-                {proofError && (
-                  <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-xs text-red-700 mb-3">
-                    {proofError}
-                  </div>
-                )}
-
-                <button
-                  onClick={handleProofSubmit}
-                  disabled={proofLoading || !proofFile}
-                  className="w-full flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
-                >
-                  {proofLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" /> {t(dict.buy.qris.submitting)}
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="w-4 h-4" /> {t(dict.buy.qris.submitProof)}
-                    </>
-                  )}
-                </button>
-
-                <div className="mt-3 flex items-center justify-center gap-2 text-xs">
-                  <button onClick={() => setQrisStep("pay")} className="inline-flex items-center gap-1.5 font-semibold text-gray-500 hover:text-gray-700 underline underline-offset-2">
-                    <ArrowRight className="w-3.5 h-3.5 rotate-180" /> {t(dict.buy.qris.back)}
-                  </button>
-                  <span className="text-gray-300">·</span>
-                  <button onClick={handleBatal} className="inline-flex items-center gap-1.5 font-semibold text-gray-500 hover:text-gray-700 underline underline-offset-2">
-                    <X className="w-3.5 h-3.5" /> {t(dict.buy.qris.cancel)}
+                <div className="mt-2 flex items-center justify-center gap-2 text-xs">
+                  <button onClick={() => router.push("/")} className="inline-flex items-center gap-1.5 font-semibold text-gray-500 hover:text-gray-700 underline underline-offset-2">
+                    <Home className="w-3.5 h-3.5" /> {t(dict.buy.qris.backHome)}
                   </button>
                 </div>
               </>

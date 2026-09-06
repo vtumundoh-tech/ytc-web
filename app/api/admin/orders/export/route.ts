@@ -46,7 +46,9 @@ export async function GET() {
   const { data, error } = await supabase.from("orders").select("*").order("created_at", { ascending: true });
   if (error) return NextResponse.json({ error: "Gagal memuat data." }, { status: 500 });
 
-  const rows = (data || []).map((o: any, i: number) => ({
+  const rows = (data || [])
+    .filter((o: any) => !(o.status === "pending" && !o.payment_proof_key && !o.customer_claimed_pay_at))
+    .map((o: any, i: number) => ({
     no: i + 1,
     tanggal: fmtDateTime(o.created_at),
     nama: o.full_name ?? "",

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { LogOut, ShoppingBag, Gift, Users, DollarSign, ExternalLink, Save, Download, FileText, Settings, Power, Search, Calendar, Filter, X, QrCode, Upload, RotateCcw, AlertTriangle, Paperclip, BellRing, Copy, BarChart3, RefreshCw, Trash2, ScrollText, Plus, Loader2 } from "lucide-react";
+import { LogOut, ShoppingBag, Gift, Users, DollarSign, ExternalLink, Save, Download, FileText, Settings, Power, Search, Calendar, Filter, X, QrCode, Upload, RotateCcw, AlertTriangle, Paperclip, BellRing, Copy, BarChart3, RefreshCw, Trash2, ScrollText, Plus, Loader2, Clock, ZoomIn } from "lucide-react";
 import { useMemo } from "react";
 import dynamic from "next/dynamic";
 import { parseJsonSafe, isHeicFile, HEIC_ERROR } from "@/lib/fetchJson";
@@ -39,6 +39,8 @@ type Order = {
   os: string | null;
   device_type: string | null;
   payment_proof_url: string | null;
+  payment_proof_key: string | null;
+  customer_claimed_pay_at: string | null;
   rejection_type: string | null;
   amount_paid_by_customer: number | null;
   amount_remaining: number | null;
@@ -621,6 +623,7 @@ function OrdersTab() {
   const [view, setView] = useState<"pending" | "processed" | "all">("pending");
   const [resending, setResending] = useState<string | null>(null);
   const [resendMsg, setResendMsg] = useState<string | null>(null);
+  const [proofPreview, setProofPreview] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -732,19 +735,25 @@ function OrdersTab() {
     const q = filter.query.trim().toLowerCase();
     const from = filter.fromDate ? new Date(filter.fromDate + "T00:00:00").getTime() : null;
     const to = filter.toDate ? new Date(filter.toDate + "T23:59:59.999").getTime() : null;
-    return orders.filter((o) => {
-      if (view === "pending" && o.status !== "pending") return false;
-      if (view === "processed" && o.status === "pending") return false;
-      if (filter.tier && o.tier_label !== filter.tier) return false;
-      if (filter.status && o.status !== filter.status) return false;
-      if (q && !`${o.full_name} ${o.whatsapp} ${o.email || ""} ${o.midtrans_order_id} ${o.cashback_code || ""}`.toLowerCase().includes(q)) return false;
-      if (from || to) {
-        const t = new Date(o.created_at).getTime();
-        if (from && t < from) return false;
-        if (to && t > to) return false;
-      }
-      return true;
-    });
+    return orders
+      .filter((o) => {
+        if (view === "pending" && o.status !== "pending") return false;
+        if (view === "processed" && o.status === "pending") return false;
+        if (filter.tier && o.tier_label !== filter.tier) return false;
+        if (filter.status && o.status !== filter.status) return false;
+        if (q && !`${o.full_name} ${o.whatsapp} ${o.email || ""} ${o.midtrans_order_id} ${o.cashback_code || ""}`.toLowerCase().includes(q)) return false;
+        if (from || to) {
+          const t = new Date(o.created_at).getTime();
+          if (from && t < from) return false;
+          if (to && t > to) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        const ap = a.status === "pending" ? 0 : 1;
+        const bp = b.status === "pending" ? 0 : 1;
+        return ap - bp || new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
   }, [orders, filter, view]);
 
   if (loading) return <LoadingSkeleton />;
@@ -892,6 +901,50 @@ function OrdersTab() {
               </div>
 
               <DeviceInfo ip={o.ip_address} browser={o.browser} os={o.os} deviceType={o.device_type} />
+
+              {o.status === "expired" && (
+                <div className="w-full rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-[11px] text-amber-700 flex items-start gap-2">
+                  <Clock className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Expired</strong>
+                    {o.admin_notes?.startsWith("Expired otomatis")
+                      ? ` — ${o.admin_notes}`
+                      : o.rejection_reason
+                        ? ` — ${o.rejection_reason}`
+                        : " — tidak diproses."}
+                  </span>
+                </div>
+              )}
+
+              {(o.payment_proof_url || (d.status === "pending" && o.customer_claimed_pay_at && !o.payment_proof_key)) && (
+                <div className="flex flex-wrap items-center gap-2.5">
+                  {o.payment_proof_url ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setProofPreview(o.payment_proof_url)}
+                        title="Klik untuk melihat bukti bayar"
+                        className="shrink-0 flex items-center gap-2 rounded-lg border border-gray-200 overflow-hidden hover:border-violet-300 hover:shadow-sm hover:bg-violet-50/40 transition-all duration-200"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={o.payment_proof_url} alt="Bukti bayar" className="h-10 w-14 object-cover" />
+                        <span className="text-[11px] font-semibold text-gray-500 pr-2 flex items-center gap-1">
+                          <ZoomIn className="w-3 h-3 text-violet-500" /> Lihat Bukti
+                        </span>
+                      </button>
+                      {d.status === "pending" && o.status !== "expired" && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full animate-pulse">
+                          <Clock className="w-3 h-3" /> Menunggu Verifikasi
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-red-600 bg-red-50 border border-red-100 px-2 py-1 rounded-full">
+                      <AlertTriangle className="w-3 h-3" /> Klaim dibayar tanpa bukti — tandai Expired/Cancelled
+                    </span>
+                  )}
+                </div>
+              )}
 
               <div className="grid sm:grid-cols-6 gap-3 items-end">
                 <div className="sm:col-span-2">
@@ -1045,6 +1098,31 @@ function OrdersTab() {
             </div>
           );
         })
+      )}
+
+      {proofPreview && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setProofPreview(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <button
+            type="button"
+            onClick={() => setProofPreview(null)}
+            className="absolute top-4 right-4 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 transition-colors"
+            aria-label="Tutup"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={proofPreview}
+            alt="Bukti bayar"
+            className="max-h-[85vh] max-w-[95vw] object-contain rounded-xl shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
       )}
     </div>
   );
