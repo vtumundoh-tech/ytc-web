@@ -8,6 +8,7 @@ export type OrderMailData = {
   midtrans_order_id: string;
   paid_at?: string | null;
   downloadToken?: string | null;
+  downloadCode?: string | null;
   cashbackCode?: string | null;
 };
 
@@ -55,7 +56,16 @@ export async function sendInvoiceEmail(order: OrderMailData): Promise<boolean> {
 
   const downloadBlock = downloadUrl
     ? `<a class="btn" href="${downloadUrl}">Download Aplikasi</a>
-      <p class="muted" style="margin-top:8px;">Link unduh bersifat sementara (terkunci ke pesanan Anda).</p>`
+      <p class="muted" style="margin-top:8px;">Link berlaku <strong>15 jam sejak email ini</strong> dan hanya <strong>sekali pakai</strong>. Setelah dipakai, minta link baru ke admin bila perlu mengunduh lagi.</p>
+      ${
+        order.downloadCode
+          ? `<div class="note" style="background:#f0f9ff;border:1px solid #bae6fd;">
+          <strong style="color:#0c4a6e;">🔑 Kode Verifikasi Unduhan</strong>
+          <div style="background:#111827;color:#fff;font-family:monospace;font-size:20px;letter-spacing:4px;text-align:center;padding:12px;border-radius:8px;margin:8px 0;">${order.downloadCode}</div>
+          <p class="muted" style="color:#0c4a6e;">Masukkan kode ini saat halaman unduh memintanya. Kode sekali pakai — simpan baik-baik.</p>
+        </div>`
+          : ""
+      }`
     : `<p class="muted">Link download aplikasi akan dikirimkan melalui email/WhatsApp oleh admin.</p>`;
 
   const cashbackBlock = order.cashbackCode
@@ -126,7 +136,9 @@ export async function sendInvoiceEmail(order: OrderMailData): Promise<boolean> {
 </body>
 </html>`;
 
-  const downloadLine = downloadUrl ? `\nDownload aplikasi: ${downloadUrl}` : "\nLink unduh aplikasi akan dikirim oleh admin via WhatsApp/email.";
+  const downloadLine = downloadUrl
+  ? `\nDownload aplikasi: ${downloadUrl}\nKode verifikasi unduhan (sekali pakai): ${order.downloadCode || "(lihat email / hubungi admin)"}\nLink berlaku 15 jam sejak email ini dan hanya sekali pakai.`
+  : "\nLink unduh aplikasi akan dikirim oleh admin via WhatsApp/email.";
 
   const text = `Halo ${order.full_name},
 

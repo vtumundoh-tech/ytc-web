@@ -32,6 +32,7 @@ const ACTION_META: Record<string, { label: string; emoji: string; cls: string }>
   delete_selected_orders: { label: "Hapus Pesanan Terpilih", emoji: "🗑️", cls: "bg-gray-100 text-gray-600 border-gray-200" },
   delete_selected_claims: { label: "Hapus Klaim Terpilih", emoji: "🗑️", cls: "bg-gray-100 text-gray-600 border-gray-200" },
   delete_selected_refunds: { label: "Hapus Refund Terpilih", emoji: "🗑️", cls: "bg-gray-100 text-gray-600 border-gray-200" },
+  download_gate_failed: { label: "Kode Verifikasi Unduh Salah", emoji: "⛔", cls: "bg-orange-50 text-orange-700 border-orange-200" },
 };
 
 const FILTERS: Array<{ key: string; label: string }> = [

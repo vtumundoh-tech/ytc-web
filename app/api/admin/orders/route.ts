@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { sendInvoiceEmail, sendOrderRejectedEmail } from "@/lib/mail";
-import { generateDownloadToken } from "@/lib/cashCode";
+import { generateDownloadCode, generateDownloadToken } from "@/lib/cashCode";
 import { writeAudit } from "@/lib/audit";
 
 const ORDER_STATUSES = ["pending", "paid", "expired", "failed", "cancelled"];
 const REJECTED_STATUSES = ["cancelled", "failed"];
-const DOWNLOAD_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
+const DOWNLOAD_TOKEN_TTL_MS = 15 * 60 * 60 * 1000; // 15 jam
 const PROOF_BUCKET = "cashback-proofs";
 const SIGN_EXPIRY_SECONDS = 60 * 60;
 const ABANDONED_TTL_MS = 24 * 60 * 60 * 1000;
@@ -33,6 +33,7 @@ type Order = {
   midtrans_order_id: string;
   download_token: string | null;
   download_expires_at: string | null;
+  download_code?: string | null;
   email_status: string | null;
   cashback_code?: string | null;
   rejection_reason?: string | null;
@@ -81,7 +82,7 @@ export async function PATCH(req: NextRequest) {
 
   const { data: existing, error: fetchError } = await supabase
     .from("orders")
-    .select("id, status, email, full_name, tier_label, amount, midtrans_order_id, download_token, download_expires_at, email_status, cashback_code, rejection_reason, rejection_type, amount_paid_by_customer, amount_remaining, rejection_email_sent_at, supplement_for")
+    .select("id, status, email, full_name, tier_label, amount, midtrans_order_id, download_token, download_expires_at, download_code, email_status, cashback_code, rejection_reason, rejection_type, amount_paid_by_customer, amount_remaining, rejection_email_sent_at, supplement_for")
     .eq("id", id)
     .maybeSingle();
   if (fetchError || !existing) {
@@ -94,10 +95,17 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Link unduh hanya bisa dikirim ulang untuk pesanan yang sudah lunas." }, { status: 400 });
     }
     const newToken = generateDownloadToken();
+    const newCode = generateDownloadCode();
     const newExpiry = new Date(Date.now() + DOWNLOAD_TOKEN_TTL_MS).toISOString();
     const { error: rotateError } = await supabase
       .from("orders")
-      .update({ download_token: newToken, download_expires_at: newExpiry })
+      .update({
+        download_token: newToken,
+        download_code: newCode,
+        download_expires_at: newExpiry,
+        gate_failed_attempts: 0,
+        gate_locked_until: null,
+      })
       .eq("id", order.id);
     if (rotateError) return NextResponse.json({ error: "Gagal membuat link baru. Coba lagi." }, { status: 500 });
 
@@ -108,6 +116,7 @@ export async function PATCH(req: NextRequest) {
       amount: order.amount,
       midtrans_order_id: order.midtrans_order_id,
       downloadToken: newToken,
+      downloadCode: newCode,
       cashbackCode: order.supplement_for ? null : order.cashback_code,
     });
     await supabase.from("orders").update({ email_status: sent ? "sent" : "failed" }).eq("id", order.id);
@@ -135,6 +144,7 @@ export async function PATCH(req: NextRequest) {
   if (normalizedStatus === "paid" && order.status !== "paid") {
     const now = new Date();
     let downloadToken = order.download_token || generateDownloadToken();
+    const downloadCode = order.download_code || generateDownloadCode();
 
     const { data: claimed, error: claimErr } = await supabase
       .from("orders")
@@ -142,7 +152,10 @@ export async function PATCH(req: NextRequest) {
         status: "paid",
         paid_at: now.toISOString(),
         download_token: downloadToken,
+        download_code: downloadCode,
         download_expires_at: new Date(now.getTime() + DOWNLOAD_TOKEN_TTL_MS).toISOString(),
+        gate_failed_attempts: 0,
+        gate_locked_until: null,
       })
       .eq("id", id)
       .eq("status", order.status)
@@ -165,18 +178,22 @@ export async function PATCH(req: NextRequest) {
       const parentId = order.supplement_for;
       const { data: parent } = await supabase
         .from("orders")
-        .select("id, status, email, full_name, tier_label, amount, midtrans_order_id, download_token, download_expires_at, cashback_code, email_status")
+        .select("id, status, email, full_name, tier_label, amount, midtrans_order_id, download_token, download_expires_at, download_code, cashback_code, email_status")
         .eq("id", parentId)
         .maybeSingle();
       if (parent && parent.status !== "paid") {
         const parentToken = parent.download_token || generateDownloadToken();
+        const parentCode = parent.download_code || generateDownloadCode();
         const { data: parentClaimed } = await supabase
           .from("orders")
           .update({
             status: "paid",
             paid_at: now.toISOString(),
             download_token: parentToken,
+            download_code: parentCode,
             download_expires_at: new Date(now.getTime() + DOWNLOAD_TOKEN_TTL_MS).toISOString(),
+            gate_failed_attempts: 0,
+            gate_locked_until: null,
           })
           .eq("id", parentId)
           .eq("status", parent.status)
@@ -190,6 +207,7 @@ export async function PATCH(req: NextRequest) {
             midtrans_order_id: parent.midtrans_order_id,
             paid_at: now.toISOString(),
             downloadToken: parentToken,
+            downloadCode: parentCode,
             cashbackCode: parent.cashback_code,
           });
           await supabase.from("orders").update({ email_status: sent ? "sent" : "failed" }).eq("id", parentId);
@@ -206,6 +224,7 @@ export async function PATCH(req: NextRequest) {
       midtrans_order_id: order.midtrans_order_id,
       paid_at: now.toISOString(),
       downloadToken,
+      downloadCode,
       cashbackCode: order.supplement_for ? null : order.cashback_code,
     });
     emailKind = "invoice";

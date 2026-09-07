@@ -3,7 +3,8 @@ export type SecurityEventType =
   | "login_failed"
   | "login_ok"
   | "unauthorized_access"
-  | "delete_password_failed";
+  | "delete_password_failed"
+  | "download_gate_failed";
 
 type SecurityEvent = {
   type: SecurityEventType;
@@ -46,6 +47,12 @@ const EVENT_META: Record<
     title: "⚠️ PERCOBAAN AKSES TERLARANG (BYPASS)",
     tag: "#BypassTerdeteksi",
     emoji: "🚨",
+    alert: true,
+  },
+  download_gate_failed: {
+    title: "📥 KODE VERIFIKASI UNDUH SALAH",
+    tag: "#DownloadGateGagal",
+    emoji: "⛔",
     alert: true,
   },
   delete_password_failed: {

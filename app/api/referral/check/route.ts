@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ found: false, error: "Gagal memeriksa kode." }, { status: 500 });
   }
   if (!data) {
-    return NextResponse.json({ found: false, ok: false });
+    return NextResponse.json({ found: false, ok: false, reason: "not_found" });
   }
 
   const limitReached = data.active === true && data.max_uses !== null && data.current_uses >= data.max_uses;
@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     found: true,
     ok: valid,
+    reason: limitReached ? "limit_reached" : data.active === true ? "ok" : "inactive",
     code: data.code,
     discount_amount: Number(data.discount_amount) || 0,
     active: data.active === true,

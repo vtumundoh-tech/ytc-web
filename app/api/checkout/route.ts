@@ -3,11 +3,12 @@ import { supabaseServer } from "@/lib/supabaseServer";
 import { getSettings } from "@/lib/settings";
 import { checkRateLimit, rateLimitKey } from "@/lib/rateLimit";
 import { getRequestMeta } from "@/lib/requestMeta";
-import { generateCashbackCode, generateDownloadToken } from "@/lib/cashCode";
+import { generateCashbackCode, generateDownloadCode, generateDownloadToken } from "@/lib/cashCode";
 import { sendInvoiceEmail } from "@/lib/mail";
 import { notifyNewOrder } from "@/lib/telegram";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const DOWNLOAD_TOKEN_TTL_MS = 15 * 60 * 60 * 1000; // 15 jam
 
 export async function POST(req: NextRequest) {
   try {
@@ -34,6 +35,9 @@ export async function POST(req: NextRequest) {
     }
     if (waDigits.length < 8) {
       return NextResponse.json({ error: "Nomor WhatsApp wajib diisi minimal 8 digit." }, { status: 400 });
+    }
+    if (waDigits.length > 15) {
+      return NextResponse.json({ error: "Nomor WhatsApp maksimal 15 digit." }, { status: 400 });
     }
     if (agreeSnk !== true) {
       return NextResponse.json({ error: "Anda harus setuju dengan Syarat & Ketentuan." }, { status: 400 });
@@ -101,7 +105,8 @@ export async function POST(req: NextRequest) {
     const orderId = `YTC-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
     const cashbackCode = generateCashbackCode();
     const downloadToken = generateDownloadToken();
-    const downloadExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const downloadCode = generateDownloadCode();
+    const downloadExpiresAt = new Date(Date.now() + DOWNLOAD_TOKEN_TTL_MS).toISOString();
 
     const now = new Date().toISOString();
     const orderInsert: any = {
@@ -114,6 +119,7 @@ export async function POST(req: NextRequest) {
       status: isInstant ? "paid" : "pending",
       cashback_code: cashbackCode,
       download_token: downloadToken,
+      download_code: downloadCode,
       download_expires_at: downloadExpiresAt,
       paid_at: isInstant ? now : null,
       payment_type: qrisEnabled ? "qris" : "manual",
@@ -162,6 +168,7 @@ export async function POST(req: NextRequest) {
         midtrans_order_id: orderId,
         paid_at: now,
         downloadToken,
+        downloadCode,
       });
 
       const { error: statusError } = await supabase
@@ -180,6 +187,7 @@ export async function POST(req: NextRequest) {
       referralDiscount,
       cashbackCode,
       downloadToken,
+      downloadCode,
       emailSent,
     });
   } catch (err: any) {

@@ -10,7 +10,7 @@ import { parseJsonSafe, isHeicFile } from "@/lib/fetchJson";
 import { COUNTRY_CODES, OTHER_COUNTRY_VALUE, normalizeWhatsapp } from "@/lib/whatsapp";
 import { dict, tf } from "@/lib/i18n";
 import { useLang } from "@/components/LanguageProvider";
-import { CreditCard, User, Phone, Mail, CheckCircle, ArrowRight, ExternalLink, Gift, TrendingUp, Download, Loader2, QrCode, Home, BellRing, Upload, FileImage, X, AlertTriangle, Timer, RefreshCw } from "lucide-react";
+import { CreditCard, User, Phone, Mail, CheckCircle, ArrowRight, ExternalLink, Gift, TrendingUp, Download, Loader2, QrCode, Home, BellRing, Upload, FileImage, X, AlertTriangle, Timer, RefreshCw, KeyRound } from "lucide-react";
 
 function cn(...classes: (string | false | undefined | null)[]) {
   return classes.filter(Boolean).join(" ");
@@ -55,6 +55,7 @@ function BeliForm() {
   const [cashbackCode, setCashbackCode] = useState("");
   const [paidModal, setPaidModal] = useState(false);
   const [downloadToken, setDownloadToken] = useState("");
+  const [downloadCode, setDownloadCode] = useState("");
   const [downloadUrl, setDownloadUrl] = useState("");
   const [dlState, setDlState] = useState<"prep" | "countdown" | "error">("prep");
   const [countdown, setCountdown] = useState(5);
@@ -81,14 +82,18 @@ function BeliForm() {
   }
 
   useEffect(() => {
-    if (!paidModal || !downloadToken) return;
+    if (!paidModal || !downloadToken || !downloadCode) return;
     autoFired.current = false;
     let counter = 5;
     setDlState("prep");
     setCountdown(counter);
     (async () => {
       try {
-        const res = await fetch(`/api/download?token=${encodeURIComponent(downloadToken)}`);
+        const res = await fetch("/api/download", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: downloadToken, code: downloadCode }),
+        });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || t(dict.buy.qris.errDlLink));
         setDownloadUrl(data.url);
@@ -116,7 +121,7 @@ function BeliForm() {
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paidModal, downloadToken]);
+  }, [paidModal, downloadToken, downloadCode]);
 
   useEffect(() => {
     if (preselected && tiers.some((x) => x.value === preselected)) {
@@ -371,7 +376,7 @@ function BeliForm() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || t(dict.buy.referralInvalid));
       if (!data.ok) {
-        setReferralError(data.active === false ? t(dict.buy.referralInvalid) : t(dict.buy.referralLimitReached));
+        setReferralError(data.reason === "limit_reached" ? t(dict.buy.referralLimitReached) : t(dict.buy.referralInvalid));
         setReferralApplied(false);
         setReferralDiscount(0);
         return;
@@ -416,6 +421,7 @@ function BeliForm() {
       if (!res.ok) throw new Error(data.error || t(dict.buy.errTransaction));
 
       setCashbackCode(data.cashbackCode || "");
+      setDownloadCode(data.downloadCode || "");
       if (data.paid) {
         setDownloadToken(data.downloadToken || "");
         openPaidModal();
@@ -520,6 +526,7 @@ function BeliForm() {
                     waInvalid ? "border-red-400 focus:ring-red-300 focus:border-red-400" : ""
                   )}
                   type="tel"
+                  maxLength={15}
                   placeholder={t(dict.buy.whatsappPh)}
                   value={whatsapp}
                   onChange={(e) => setWhatsapp(e.target.value)}
@@ -529,6 +536,7 @@ function BeliForm() {
                   <input
                     className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 placeholder:text-gray-300"
                     type="tel"
+                    maxLength={4}
                     placeholder={t(dict.buy.customDialPh)}
                     value={customDial}
                     onChange={(e) => setCustomDial(e.target.value.replace(/[^\d]/g, ""))}
@@ -1185,6 +1193,19 @@ function BeliForm() {
                 </>
               )}
             </div>
+
+            {/* Kode verifikasi unduh */}
+            {downloadCode && (
+              <div className="text-left mb-4">
+                <p className="text-xs text-sky-800 font-semibold mb-2 flex items-center gap-1">
+                  <KeyRound className="w-3.5 h-3.5" /> {t(dict.buy.qris.dlCodeTitle)}
+                </p>
+                <div className="p-4 rounded-xl bg-sky-50 border border-sky-200 text-sky-900 font-mono text-xl tracking-widest mb-2 select-all text-center">
+                  {downloadCode}
+                </div>
+                <p className="text-xs text-gray-500 leading-relaxed">{t(dict.buy.qris.dlCodeInfo)}</p>
+              </div>
+            )}
 
             {/* Kode unik cashback (hanya paket eligible) */}
             {isCashbackEligible && (

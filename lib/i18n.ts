@@ -376,8 +376,8 @@ export const dict = {
       en: "Country code, e.g. 852 (Hong Kong)",
     } as T,
     waInvalid: {
-      id: "Nomor WhatsApp belum lengkap — isi minimal 8 digit angka tanpa awalan 0 (contoh: 8123456789).",
-      en: "WhatsApp number incomplete — enter at least 8 digits without a leading 0 (e.g. 8123456789).",
+      id: "Nomor WhatsApp belum lengkap — isi 8–15 digit angka tanpa awalan 0 (contoh: 8123456789).",
+      en: "WhatsApp number incomplete — enter 8–15 digits without a leading 0 (e.g. 8123456789).",
     } as T,
     dialInvalid: {
       id: "Lengkapi kode negara (1–4 digit) pada kolom di bawah.",
@@ -608,12 +608,20 @@ export const dict = {
       } as T,
       downloadBtn: { id: "Unduh Aplikasi", en: "Download App" } as T,
       dlNote1: {
-        id: "Harap unduh di Komputer, bukan di HP. Tautan juga dikirim ke email {email} bila perlu mengunduh kembali dalam 24 jam.",
-        en: "Please download on a Computer, not on your phone. The link is also sent to {email} if you need to re-download within 24 hours.",
+        id: "Harap unduh di Komputer, bukan di HP. Tautan berlaku 15 jam sejak dikirim dan hanya sekali pakai; bila perlu mengunduh lagi, minta link baru ke admin.",
+        en: "Please download on a Computer, not on your phone. The link is valid 15 hours after being sent and can be used once; ask admin for a new link if you need to download again.",
       } as T,
       dlNote2: {
         id: "📬 Email terkadang masuk folder Promosi / Spam / Junk — periksa juga folder-folder tersebut jika email belum masuk.",
         en: "📬 Emails sometimes land in the Promotions / Spam / Junk folder — check those folders if the email hasn't arrived.",
+      } as T,
+      dlCodeTitle: {
+        id: "Kode Verifikasi Unduhan",
+        en: "Download Verification Code",
+      } as T,
+      dlCodeInfo: {
+        id: "Simpan kode ini baik-baik (sekali pakai) — dibutuhkan ketika halaman unduh meminta verifikasi, misalnya saat membuka link dari email.",
+        en: "Keep this code safe (one-time use) — it's required when the download page asks for verification, e.g. when opening the emailed link.",
       } as T,
       cbEligible: {
         id: "Paket ini dapat cashback",
@@ -991,6 +999,23 @@ export const dict = {
       en: "Something went wrong, please try again later.",
     } as T,
     contactAdmin: { id: "Hubungi admin", en: "Contact admin" } as T,
+    gateTitle: {
+      id: "Verifikasi Unduhan",
+      en: "Download Verification",
+    } as T,
+    gateSub: {
+      id: "Masukkan kode verifikasi yang dikirim di email / muncul saat pembelian berhasil, lalu tekan unduh.",
+      en: "Enter the verification code sent by email / shown after a successful purchase, then press download.",
+    } as T,
+    gateBtn: { id: "Unduh Aplikasi", en: "Download App" } as T,
+    gateInfo: {
+      id: "Link berlaku 15 jam sejak dikirim dan hanya sekali pakai. Setelah digunakan, link akan nonaktif — minta link baru ke admin bila perlu mengunduh lagi.",
+      en: "The link is valid 15 hours after being sent and can only be used once. After use, the link turns inactive — ask admin for a new link if you need to download again.",
+    } as T,
+    tryAgain: {
+      id: "Coba Lagi",
+      en: "Try Again",
+    } as T,
   },
 
   notFound: {
